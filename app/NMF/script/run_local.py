@@ -15,7 +15,7 @@ if len(sys.argv) != 3:
   sys.exit(1)
 
 # Please set the FULL app dir path here
-app_dir = "/home/user/bosen/app/NMF"
+app_dir = os.environ.get('NMF_APP_DIRECTORY', "/media/raajay/ps/bosen/app/NMF")
 
 client_id = sys.argv[1]
 hostfile = sys.argv[2]

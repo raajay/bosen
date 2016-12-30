@@ -6,7 +6,8 @@ import time
 
 hostfile_name = "machinefiles/localserver"
 
-app_dir = dirname(dirname(os.path.realpath(__file__)))
+#app_dir = dirname(dirname(os.path.realpath(__file__)))
+app_dir = os.environ.get('NMF_APP_DIRECTORY', "/media/raajay/ps/bosen/app/NMF")
 proj_dir = dirname(dirname(app_dir))
 
 hostfile = join(proj_dir, hostfile_name)
