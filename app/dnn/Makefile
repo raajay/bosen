@@ -20,13 +20,15 @@ PRED_OBJ = $(PRED_SRC:.cpp=.o)
 
 
 GENDATA_SRC= $(DNN_DIR)/src/tools/gen_data.cpp
+GENDATA2_SRC= $(DNN_DIR)/src/tools/gen_data2.cpp
 
 
-all: DNN DNN_PRED GENDATA
+all: DNN DNN_PRED GENDATA GENDATA2
 
 DNN: $(DNN_BIN)/DNN
 DNN_PRED: $(DNN_BIN)/DNN_PRED
 GENDATA: $(DNN_BIN)/gen_data
+GENDATA2: $(DNN_BIN)/gen_data2
 
 $(DNN_BIN):
 	mkdir -p $(DNN_BIN)
@@ -48,6 +50,11 @@ $(PRED_OBJ): %.o: %.cpp $(PRED_HDR)
 
 
 $(DNN_BIN)/gen_data: $(GENDATA_SRC) 
+	mkdir -p $(DNN_BIN)
+	$(PETUUM_CXX) $(PETUUM_CXXFLAGS)  $^ \
+	$(PETUUM_LDFLAGS) -o $@
+
+$(DNN_BIN)/gen_data2: $(GENDATA2_SRC)
 	mkdir -p $(DNN_BIN)
 	$(PETUUM_CXX) $(PETUUM_CXXFLAGS)  $^ \
 	$(PETUUM_LDFLAGS) -o $@
