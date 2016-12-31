@@ -15,7 +15,8 @@ if len(sys.argv) != 3:
   sys.exit(1)
 
 # Please set the FULL app dir path here
-app_dir = "/home/user/bosen/app/dnn"
+#app_dir = "/home/user/bosen/app/dnn"
+app_dir = os.environ.get('DNN_APP_DIRECTORY', "/media/raajay/ps/bosen/app/dnn")
 
 client_id = sys.argv[1]
 hostfile = sys.argv[2]
