@@ -71,6 +71,6 @@ cmd += env_params + prog_path
 petuum_params["client_id"] = client_id
 cmd += "".join([" --%s=%s" % (k,v) for k,v in petuum_params.items()])
 cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
-cmd += " 2>/users/raajay86/dnn_stdout.log 1>/users/raajay86/dnn_stderr.log"
+cmd += " 1>/users/raajay86/dnn_stdout.log 2>/users/raajay86/dnn_stderr.log"
 print cmd
 os.system(cmd)
