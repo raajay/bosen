@@ -24,12 +24,17 @@ proj_dir = dirname(dirname(app_dir))
 
 params = {
     "staleness": 5
-     , "parafile": join(app_dir, "datasets/para_imnet.txt")
+     , "parafile": os.environ.get('DNN_PARAMETER_FILE' ,join(app_dir, "datasets/para_imnet.txt"))
+#     , "parafile": join(app_dir, "datasets/para_imnet.txt")
     #, "parafile": "hdfs://hdfs-domain/user/bosen/dataset/dnn/datasets/para_imnet.txt"
-     , "data_ptt_file": join(app_dir, "datasets/data_ptt_file.txt")
+
+     , "data_ptt_file": os.environ.get('DNN_DATA_PARTITION_FILE' ,join(app_dir, "datasets/data_ptt_file.txt"))
+#     , "data_ptt_file": join(app_dir, "datasets/data_ptt_file.txt")
     #, "data_ptt_file": "hdfs://hdfs-domain/user/bosen/dataset/dnn/datasets/data_ptt_file.txt"
+
      , "model_weight_file": join(app_dir, "datasets/weights.txt")
     #, "model_weight_file": "hdfs://hdfs-domain/user/bosen/dataset/dnn/datasets/weights.txt"
+
      , "model_bias_file": join(app_dir, "datasets/biases.txt")
     #, "model_bias_file": "hdfs://hdfs-domain/user/bosen/dataset/dnn/datasets/biases.txt"
     }
@@ -66,5 +71,6 @@ cmd += env_params + prog_path
 petuum_params["client_id"] = client_id
 cmd += "".join([" --%s=%s" % (k,v) for k,v in petuum_params.items()])
 cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
+cmd += " 2>/users/raajay86/dnn_stdout.log 1>/users/raajay86/dnn_stderr.log"
 print cmd
 os.system(cmd)
