@@ -42,7 +42,7 @@ params = {
 
 petuum_params = {
     "hostfile": hostfile,
-    "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '16'))
+    "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '32'))
     }
 
 prog_name = "DNN"
