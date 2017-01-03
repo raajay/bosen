@@ -41,7 +41,7 @@ params = {
 
 petuum_params = {
     "hostfile": hostfile,
-    "num_worker_threads": 4
+    "num_worker_threads": 24
     }
 
 prog_name = "DNN"
