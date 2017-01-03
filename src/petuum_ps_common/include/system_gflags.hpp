@@ -23,7 +23,7 @@ DEFINE_string(consistency_model, "SSPPush", "SSPAggr/SSPPush/SSP");
 DEFINE_uint64(bandwidth_mbps, 400, "per-thread bandwidth limit, in mbps");
 DEFINE_uint64(bg_idle_milli, 10, "Bg idle millisecond");
 
-DEFINE_uint64(oplog_push_upper_bound_kb, 100,
+DEFINE_uint64(oplog_push_upper_bound_kb, 1000,
              "oplog push upper bound in Kilobytes per comm thread.");
 DEFINE_int32(oplog_push_staleness_tolerance, 2,
              "oplog push staleness tolerance");

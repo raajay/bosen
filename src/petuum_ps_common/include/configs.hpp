@@ -69,7 +69,7 @@ struct TableGroupConfig {
       update_sort_policy(Random),
       bg_idle_milli(2),
       bandwidth_mbps(400),
-      oplog_push_upper_bound_kb(100),
+      oplog_push_upper_bound_kb(1000),
       oplog_push_staleness_tolerance(2),
       thread_oplog_batch_size(100*1000*1000),
       server_row_candidate_factor(5) { }
