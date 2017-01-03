@@ -41,7 +41,7 @@ params = {
 
 petuum_params = {
     "hostfile": hostfile,
-    "num_worker_threads": 24
+    "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '4'))
     }
 
 prog_name = "DNN"
@@ -51,7 +51,7 @@ hadoop_path = os.popen('hadoop classpath --glob').read()
 
 env_params = (
   "GLOG_logtostderr=true "
-  "GLOG_v=-1 "
+  "GLOG_v=1 "
   "GLOG_minloglevel=0 "
   )
 
@@ -71,6 +71,7 @@ cmd += env_params + prog_path
 petuum_params["client_id"] = client_id
 cmd += "".join([" --%s=%s" % (k,v) for k,v in petuum_params.items()])
 cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
-cmd += " 1>/users/raajay86/dnn_stdout.log 2>/users/raajay86/dnn_stderr.log"
+log_dir = os.environ.get('REMOTE_LOG_DIRECTORY', '/tmp')
+cmd += " 1>/tmp/dnn-stdout.log 2>/tmp/dnn-stderr.log"
 print cmd
 os.system(cmd)
