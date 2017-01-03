@@ -40,6 +40,7 @@
 #include <vector>
 #include <cmath>
 #include <io/general_fstream.hpp>
+#include <petuum_ps_common/util/high_resolution_timer.hpp>
 
 dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, int num_train_data){
   num_layers=para.num_layers;
@@ -254,7 +255,9 @@ void dnn::train(mat * weights, mat * biases)
 
   int * idxes_batch=new int[size_minibatch];
   int inner_iter=num_train_data/num_worker_threads/size_minibatch;
-  VLOG(2) << "Value of inner_iter = " << inner_iter;
+  if((*thread_id) == 0) {
+    VLOG(2) << "Value of inner_iter = " << inner_iter;
+  }
   srand (time(NULL));
   int it=0;
 
@@ -510,8 +513,10 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
   // initialize parameters
   if (client_id==0&&(*thread_id) == 0){
     std::cout<<"init parameters"<<std::endl;
+    petuum::HighResolutionTimer init_paras_timer;
     init_paras(weights, biases);
     std::cout<<"init parameters done"<<std::endl;
+    VLOG(2) << "init parameters took " << init_paras_timer.elapsed() << " seconds.";
   }
   process_barrier->wait();
   
