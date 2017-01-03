@@ -20,7 +20,7 @@ DEFINE_string(hostfile, "", "path to Petuum PS server configuration file");
 DEFINE_string(consistency_model, "SSPPush", "SSPAggr/SSPPush/SSP");
 
 // SSPAggr Configs -- client side
-DEFINE_uint64(bandwidth_mbps, 40, "per-thread bandwidth limit, in mbps");
+DEFINE_uint64(bandwidth_mbps, 400, "per-thread bandwidth limit, in mbps");
 DEFINE_uint64(bg_idle_milli, 10, "Bg idle millisecond");
 
 DEFINE_uint64(oplog_push_upper_bound_kb, 100,
