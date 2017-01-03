@@ -25,7 +25,7 @@ proj_dir = dirname(dirname(app_dir))
 params = {
     "staleness": 5
 #     , "parafile": os.environ.get('DNN_PARAMETER_FILE' ,join(app_dir, "datasets/para_imnet.txt"))
-     , "parafile": os.environ.get('DNN_PARAMETER_FILE', "/media/raajay/ps/configs/dnn_param_file"))
+     , "parafile": os.environ.get('DNN_PARAMETER_FILE', '/media/raajay/ps/configs/dnn_param_file')
 #     , "parafile": join(app_dir, "datasets/para_imnet.txt")
     #, "parafile": "hdfs://hdfs-domain/user/bosen/dataset/dnn/datasets/para_imnet.txt"
 
