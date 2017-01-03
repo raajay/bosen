@@ -77,6 +77,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     memset(delta_biases[l],0,sizeof(float)*num_units_ineach_layer[l+1]);
   
   //local_weights is the local copy of weight tables, local_biases is the local copy of bias tables
+  petuum::HighResolutionTimer read_local_weight_timer;
   petuum::RowAccessor row_acc;
   //fetch parameters from PS tables to local parameter buffers
   for(int l=0;l<num_layers-1;l++){
@@ -99,6 +100,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     for(int j=0;j<dim;j++)
       local_biases[rnd_idx][j]=r[j];
   }
+  VLOG(2) << "Reading local weights and biases took " << read_local_weight_timer.elapsed() << " s."; 
 
   //compute gradient of the mini batch
   petuum::HighResolutionTimer mini_batch_timer;
@@ -108,6 +110,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
 
 
   //update parameters
+  petuum::HighResolutionTimer update_tables_timer;
   float coeff_update=-stepsize/size_minibatch;
   for(int l=0;l<num_layers-1;l++){
     int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
@@ -129,6 +132,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
       update_batch.Update(j, coeff_update*delta_biases[rnd_idx][j]);
     biases[rnd_idx].BatchInc(0,update_batch);
   }
+  VLOG(2) << "BatchInc tables took " << update_tables_timer.elapsed() << " s";
 
 
 }
