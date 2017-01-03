@@ -254,6 +254,7 @@ void dnn::train(mat * weights, mat * biases)
 
   int * idxes_batch=new int[size_minibatch];
   int inner_iter=num_train_data/num_worker_threads/size_minibatch;
+  VLOG(2) << "Value of inner_iter = " << inner_iter;
   srand (time(NULL));
   int it=0;
 
