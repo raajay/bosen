@@ -101,8 +101,10 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
   }
 
   //compute gradient of the mini batch
+  petuum::HighResolutionTimer mini_batch_timer;
   for(int i=0;i<size_minibatch;i++)
     compute_gradient_single_data(idxes_batch[i], local_weights,  local_biases, delta_weights, delta_biases, z,  delta );
+  VLOG(2) << "SGD minibatch took " << mini_batch_timer.elapsed() << " s for " << size_minibatch << " records.";
 
 
   //update parameters
