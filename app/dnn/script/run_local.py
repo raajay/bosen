@@ -24,7 +24,8 @@ proj_dir = dirname(dirname(app_dir))
 
 params = {
     "staleness": 5
-     , "parafile": os.environ.get('DNN_PARAMETER_FILE' ,join(app_dir, "datasets/para_imnet.txt"))
+#     , "parafile": os.environ.get('DNN_PARAMETER_FILE' ,join(app_dir, "datasets/para_imnet.txt"))
+     , "parafile": os.environ.get('DNN_PARAMETER_FILE', "/media/raajay/ps/configs/dnn_param_file"))
 #     , "parafile": join(app_dir, "datasets/para_imnet.txt")
     #, "parafile": "hdfs://hdfs-domain/user/bosen/dataset/dnn/datasets/para_imnet.txt"
 
@@ -41,7 +42,7 @@ params = {
 
 petuum_params = {
     "hostfile": hostfile,
-    "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '4'))
+    "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '16'))
     }
 
 prog_name = "DNN"
@@ -71,7 +72,7 @@ cmd += env_params + prog_path
 petuum_params["client_id"] = client_id
 cmd += "".join([" --%s=%s" % (k,v) for k,v in petuum_params.items()])
 cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
-log_dir = os.environ.get('REMOTE_LOG_DIRECTORY', '/tmp')
+log_dir = os.environ.get('REMOTE_LOG_DIRECTORY', '/media/raajay/ps/logs')
 cmd += " 1>%s/dnn-stdout.log 2>%s/dnn-stderr.log" % (log_dir, log_dir)
 print cmd
 os.system(cmd)
