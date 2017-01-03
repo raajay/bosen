@@ -51,7 +51,7 @@ hadoop_path = os.popen('hadoop classpath --glob').read()
 
 env_params = (
   "GLOG_logtostderr=true "
-  "GLOG_v=1 "
+  "GLOG_v=2 "
   "GLOG_minloglevel=0 "
   )
 
@@ -72,6 +72,6 @@ petuum_params["client_id"] = client_id
 cmd += "".join([" --%s=%s" % (k,v) for k,v in petuum_params.items()])
 cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
 log_dir = os.environ.get('REMOTE_LOG_DIRECTORY', '/tmp')
-cmd += " 1>/tmp/dnn-stdout.log 2>/tmp/dnn-stderr.log"
+cmd += " 1>%s/dnn-stdout.log 2>%s/dnn-stderr.log" % (log_dir, log_dir)
 print cmd
 os.system(cmd)
