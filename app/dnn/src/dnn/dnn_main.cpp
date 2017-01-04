@@ -85,7 +85,8 @@ int main(int argc, char *argv[]) {
 #else
   petuum::GetHostInfos(FLAGS_hostfile, &table_group_config.host_map);
 //  petuum::GetServerIDsFromHostMap(&table_group_config.server_ids, table_group_config.host_map);
-  table_group_config.consistency_model = petuum::SSPPush;
+//  table_group_config.consistency_model = petuum::SSPPush;
+  table_group_config.consistency_model = petuum::SSP;
 #endif
   // Local parameters for this process
 //  table_group_config.num_local_server_threads = 1;
