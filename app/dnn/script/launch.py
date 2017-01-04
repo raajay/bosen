@@ -25,9 +25,26 @@ with open(hostfile, "r") as f:
   hostlines = f.read().splitlines()
 host_ips = [line.split()[1] for line in hostlines]
 
+# env variables required by run_local.py
+env_variables = [
+    "DNN_APP_DIRECTORY",
+    "DNN_PARAMETER_FILE",
+    "DNN_DATA_PARTITION_FILE",
+    "BOSEN_NUM_THREADS",
+    "GLOG_VERBOSITY "
+]
+
+env_params = ""
+for var in env_variables:
+    value = os.environ.get(var)
+    if value is None:
+        break
+    # notice the space at the end
+    env_params += "%s=%s " % (var, value)
+
 for client_id, ip in enumerate(host_ips):
   cmd = ssh_cmd + ip + " "
-  cmd += "\'python " + join(app_dir, "script/run_local.py")
+  cmd += "\'" + env_params + "python " + join(app_dir, "script/run_local.py")
   cmd += " %d %s\'" % (client_id, hostfile)
   cmd += " &"
   print cmd

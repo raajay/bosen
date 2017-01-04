@@ -23,7 +23,7 @@ hostfile = sys.argv[2]
 proj_dir = dirname(dirname(app_dir))
 
 params = {
-    "staleness": 100
+    "staleness": os.environ.get('STALENESS', '5')
 #     , "parafile": os.environ.get('DNN_PARAMETER_FILE' ,join(app_dir, "datasets/para_imnet.txt"))
      , "parafile": os.environ.get('DNN_PARAMETER_FILE', '/media/raajay/ps/configs/dnn_param_file')
 #     , "parafile": join(app_dir, "datasets/para_imnet.txt")
@@ -52,7 +52,7 @@ hadoop_path = os.popen('hadoop classpath --glob').read()
 
 env_params = (
   "GLOG_logtostderr=true "
-  "GLOG_v=2 "
+  "GLOG_v=%s " % os.environ.get('GLOG_VERBOSITY', '0')
   "GLOG_minloglevel=0 "
   )
 
