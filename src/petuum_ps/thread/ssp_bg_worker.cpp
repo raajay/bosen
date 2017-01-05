@@ -30,6 +30,8 @@ SSPBgWorker::~SSPBgWorker() {
 
 void SSPBgWorker::CreateRowRequestOpLogMgr() {
   row_request_oplog_mgr_ = new SSPRowRequestOpLogMgr;
+  VLOG(5) << "Create an OpLogMgr in BgWorker with (id=" << my_id_
+      << ", comm_channel_idx=" << my_comm_channel_idx_ << ")";
 }
 
 bool SSPBgWorker::GetRowOpLog(AbstractOpLog &table_oplog, int32_t row_id,
