@@ -42,14 +42,17 @@ for var in env_variables:
     # notice the space at the end
     env_params += "%s=%s " % (var, value)
 
+fp = open("./cmds.log", "w")
 for client_id, ip in enumerate(host_ips):
   cmd = ssh_cmd + ip + " "
   cmd += "\'" + env_params + "python " + join(app_dir, "script/run_local.py")
   cmd += " %d %s\'" % (client_id, hostfile)
   cmd += " &"
   print cmd
+  fp.write(cmd+"\n")
   os.system(cmd)
 
   if client_id == 0:
     print "Waiting for first client to set up"
     time.sleep(2)
+fp.close()
