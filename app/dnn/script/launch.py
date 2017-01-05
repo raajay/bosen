@@ -31,7 +31,7 @@ env_variables = [
     "DNN_PARAMETER_FILE",
     "DNN_DATA_PARTITION_FILE",
     "BOSEN_NUM_THREADS",
-    "GLOG_VERBOSITY "
+    "GLOG_VERBOSITY"
 ]
 
 env_params = ""
