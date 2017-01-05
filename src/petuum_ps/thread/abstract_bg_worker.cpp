@@ -914,6 +914,7 @@ void AbstractBgWorker::ConnectToNameNodeOrServer(int32_t server_id) {
 
   if (comm_bus_->IsLocalEntity(server_id)) {
     comm_bus_->ConnectTo(server_id, msg, msg_size);
+    VLOG(5) << "Init LOCAL handshake from bgworker=" << my_id_ << " to server" << server_id;
   } else {
     HostInfo server_info;
     if (server_id == GlobalContext::get_name_node_id())
@@ -923,6 +924,8 @@ void AbstractBgWorker::ConnectToNameNodeOrServer(int32_t server_id) {
 
     std::string server_addr = server_info.ip + ":" + server_info.port;
     comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
+    VLOG(5) << "Init handshake from bgworker=" << my_id_ << " to server="
+        << server_id << " at " << server_addr;
   }
 }
 
