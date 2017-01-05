@@ -50,11 +50,11 @@ prog_path = join(app_dir, "bin", prog_name)
 
 hadoop_path = os.popen('hadoop classpath --glob').read()
 
-env_params = (
-  "GLOG_logtostderr=true "
-  "GLOG_v=%s " % os.environ.get('GLOG_VERBOSITY', '0')
+env_params = "".join((
+  "GLOG_logtostderr=true ",
+  "GLOG_v=%s " % os.environ.get('GLOG_VERBOSITY', '0'),
   "GLOG_minloglevel=0 "
-  )
+  ))
 
 # Get host IPs
 with open(hostfile, "r") as f:
