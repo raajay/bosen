@@ -32,6 +32,7 @@ void BgWorkerGroup::CreateBgWorkers() {
                           &init_barrier_, &create_table_barrier_);
     ++idx;
   }
+  VLOG(5) << "Created " << idx << " instances of SSPBgWorker";
 }
 
 void BgWorkerGroup::Start() {

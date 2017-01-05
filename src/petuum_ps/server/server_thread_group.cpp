@@ -22,6 +22,7 @@ ServerThreadGroup::ServerThreadGroup(int32_t server_id_st_):
               &init_barrier_);
           ++idx;
         }
+        VLOG(5) << "Created " << idx << " ServerThread instances";
       }
       break;
     case SSPPush:
@@ -34,6 +35,7 @@ ServerThreadGroup::ServerThreadGroup(int32_t server_id_st_):
               &init_barrier_);
           ++idx;
         }
+        VLOG(5) << "Created " << idx << " SSPPushServerThread instances";
       }
       break;
     case SSPAggr:
@@ -46,6 +48,7 @@ ServerThreadGroup::ServerThreadGroup(int32_t server_id_st_):
               &init_barrier_);
           ++idx;
         }
+        VLOG(5) << "Created " << idx << " SSPAggrServerThread instances";
       }
       break;
     default:
