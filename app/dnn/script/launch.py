@@ -38,7 +38,7 @@ env_params = ""
 for var in env_variables:
     value = os.environ.get(var)
     if value is None:
-        break
+        continue
     # notice the space at the end
     env_params += "%s=%s " % (var, value)
 
