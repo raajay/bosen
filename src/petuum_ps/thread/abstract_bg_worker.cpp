@@ -102,6 +102,8 @@ bool AbstractBgWorker::CreateTable(int32_t table_id,
     size_t sent_size = SendMsg(
         reinterpret_cast<MsgBase*>(&bg_create_table_msg));
     CHECK_EQ((int32_t) sent_size, bg_create_table_msg.get_size());
+    VLOG(5) << "Send CREATE_TABLE request from bgworker=" << this->my_id_
+        << " for table=" << table_id;
   }
   // waiting for response
   {
@@ -110,6 +112,7 @@ bool AbstractBgWorker::CreateTable(int32_t table_id,
     comm_bus_->RecvInProc(&sender_id, &zmq_msg);
     MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
     CHECK_EQ(msg_type, kCreateTableReply);
+    VLOG(5) << "Received reply for CREATE_TABLE from sender=" << sender_id;
   }
   return true;
 }
@@ -348,6 +351,8 @@ void AbstractBgWorker::HandleCreateTables() {
       size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(name_node_id,
 	create_table_msg.get_mem(), create_table_msg.get_size());
       CHECK_EQ(sent_size, create_table_msg.get_size());
+      VLOG(5) << "Send CREATE_TABLE request from bgworker=" << my_id_ <<
+          " to namenode=" << name_node_id;
     }
 
     // wait for response from name node
@@ -363,6 +368,7 @@ void AbstractBgWorker::HandleCreateTables() {
 
       ClientTable *client_table;
       try {
+          VLOG(5) << "Creating an instance of a ClientTable in bgworker=" << my_id_;
 	client_table  = new ClientTable(table_id, client_table_config);
       } catch (std::bad_alloc &e) {
 	LOG(FATAL) << "Bad alloc exception";
@@ -382,6 +388,7 @@ void AbstractBgWorker::HandleCreateTables() {
     (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
     MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
     CHECK_EQ(msg_type, kCreatedAllTables);
+    VLOG(5) << "Received a kCreatedAllTables message from sender=" << sender_id;
   }
 }
 
@@ -914,7 +921,7 @@ void AbstractBgWorker::ConnectToNameNodeOrServer(int32_t server_id) {
 
   if (comm_bus_->IsLocalEntity(server_id)) {
     comm_bus_->ConnectTo(server_id, msg, msg_size);
-    VLOG(5) << "Init LOCAL handshake from bgworker=" << my_id_ << " to server" << server_id;
+    VLOG(5) << "Init LOCAL handshake from bgworker=" << my_id_ << " to server=" << server_id;
   } else {
     HostInfo server_info;
     if (server_id == GlobalContext::get_name_node_id())
