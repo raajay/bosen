@@ -137,6 +137,8 @@ void NameNodeThread::HandleCreateTable (int32_t sender_id,
     table_info.oplog_dense_serialized = create_table_msg.get_oplog_dense_serialized();
     table_info.row_oplog_type = create_table_msg.get_row_oplog_type();
     table_info.dense_row_oplog_capacity = create_table_msg.get_dense_row_oplog_capacity();
+    VLOG(5) << "Calling CreateTable for table=" << table_id
+        << " on Server Object from name_node_thread";
     server_obj_.CreateTable(table_id, table_info);
 
     create_table_map_.insert(std::make_pair(table_id, CreateTableInfo())); // access it to call default constructor

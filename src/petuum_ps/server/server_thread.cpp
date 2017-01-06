@@ -159,6 +159,8 @@ void ServerThread::HandleCreateTable(int32_t sender_id,
       = create_table_msg.get_row_oplog_type();
   table_info.dense_row_oplog_capacity
       = create_table_msg.get_dense_row_oplog_capacity();
+  VLOG(5) << "Calling CreateTable for table=" << table_id
+      << " from server_thread=" << my_id_;
   server_obj_.CreateTable(table_id, table_info);
 }
 

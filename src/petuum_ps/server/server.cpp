@@ -16,6 +16,7 @@ Server::~Server() {}
 
 void Server::Init(int32_t server_id,
                   const std::vector<int32_t> &bg_ids) {
+    VLOG(5) << "Creating Server instance on server=" << server_id;
   for (auto iter = bg_ids.cbegin(); iter != bg_ids.cend(); iter++){
     bg_clock_.AddClock(*iter, 0);
     bg_version_map_[*iter] = -1;
@@ -38,6 +39,7 @@ void Server::Init(int32_t server_id,
                                      server_id_, table_id,
                                      GlobalContext::get_resume_clock());
    }
+   VLOG(5) << "Created ServerTable=" << table_id << " on server=" << server_id_;
  }
 
  ServerRow *Server::FindCreateRow(int32_t table_id, int32_t row_id){
