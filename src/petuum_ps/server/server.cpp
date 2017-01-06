@@ -33,7 +33,8 @@ void Server::Init(int32_t server_id,
    auto ret = tables_.emplace(table_id, ServerTable(table_info));
    CHECK(ret.second);
    // Displaying the address of the created ServerTable
-   VLOG(5) << "Emplace ServerTable(" << &(ret.first->second)  << ")";
+   VLOG(5) << "Emplace ServerTable(" << &(ret.first->second)
+       << ") in Server(" << this << ")";
 
    if (GlobalContext::get_resume_clock() > 0) {
      boost::unordered_map<int32_t, ServerTable>::iterator table_iter

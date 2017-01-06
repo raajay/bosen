@@ -179,6 +179,8 @@ void TableGroup::Clock() {
   STATS_APP_ACCUM_TG_CLOCK_BEGIN();
   ThreadContext::Clock();
   (this->*ClockInternal)();
+  VLOG(6) << "ThreadContext("  <<ThreadContext::get_id() <<  ") Clock=" << ThreadContext::get_clock();
+  VLOG(6) << "Min Vector Clock=" << vector_clock_.get_min_clock();
   STATS_APP_ACCUM_TG_CLOCK_END();
 }
 

@@ -368,8 +368,9 @@ void AbstractBgWorker::HandleCreateTables() {
 
       ClientTable *client_table;
       try {
-          VLOG(5) << "Creating an instance of a ClientTable in bgworker=" << my_id_;
 	client_table  = new ClientTable(table_id, client_table_config);
+          VLOG(5) << "Creating an instance of a ClientTable(id=" << table_id
+              << ", address:" << &client_table << ") in bgworker=" << my_id_;
       } catch (std::bad_alloc &e) {
 	LOG(FATAL) << "Bad alloc exception";
       }
@@ -724,6 +725,8 @@ void AbstractBgWorker::CheckForwardRowRequestToServer(
   if (should_be_sent) {
     int32_t server_id
         = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
+    VLOG(6) << "Sending a RowRequest from app_thread=" << app_thread_id
+        << " to server=" << server_id << " for table="<<table_id;
 
     size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(server_id,
       row_request_msg.get_mem(), row_request_msg.get_size());

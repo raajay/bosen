@@ -507,6 +507,7 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
   mat *weights= new mat[num_layers-1];
   mat *biases=new mat[num_layers-1];
   for(int i=0;i<num_layers-1;i++){
+      // GetTableorDies returns a pointer to AbstractClientTable
     weights[i]=petuum::PSTableGroup::GetTableOrDie<float>(i);
     biases[i]=petuum::PSTableGroup::GetTableOrDie<float>(i+num_layers-1);
   }
