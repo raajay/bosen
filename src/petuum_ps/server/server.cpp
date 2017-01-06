@@ -16,7 +16,8 @@ Server::~Server() {}
 
 void Server::Init(int32_t server_id,
                   const std::vector<int32_t> &bg_ids) {
-    VLOG(5) << "Creating Server instance on server=" << server_id;
+    VLOG(5) << "Initializing an instance of class Server ("<< this
+        << ") on server=" << server_id;
   for (auto iter = bg_ids.cbegin(); iter != bg_ids.cend(); iter++){
     bg_clock_.AddClock(*iter, 0);
     bg_version_map_[*iter] = -1;
@@ -31,6 +32,8 @@ void Server::Init(int32_t server_id,
  void Server::CreateTable(int32_t table_id, TableInfo &table_info){
    auto ret = tables_.emplace(table_id, ServerTable(table_info));
    CHECK(ret.second);
+   // Displaying the address of the created ServerTable
+   VLOG(5) << "Emplace ServerTable(" << &(ret.first->second)  << ")";
 
    if (GlobalContext::get_resume_clock() > 0) {
      boost::unordered_map<int32_t, ServerTable>::iterator table_iter
@@ -39,7 +42,6 @@ void Server::Init(int32_t server_id,
                                      server_id_, table_id,
                                      GlobalContext::get_resume_clock());
    }
-   VLOG(5) << "Created ServerTable=" << table_id << " on server=" << server_id_;
  }
 
  ServerRow *Server::FindCreateRow(int32_t table_id, int32_t row_id){
