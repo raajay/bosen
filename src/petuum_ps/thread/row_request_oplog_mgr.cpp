@@ -10,7 +10,7 @@ bool SSPRowRequestOpLogMgr::AddRowRequest(RowRequestInfo &request,
   int32_t table_id, int32_t row_id) {
   uint32_t version = request.version;
   request.sent = true;
-  VLOG(10) << "Add RR (App thread id=" << request.app_thread_id << ", clock="
+  VLOG(6) << "Add RR (App thread id=" << request.app_thread_id << ", clock="
       << request.clock << ", version=" << request.version << ")";
 
   {
@@ -18,7 +18,7 @@ bool SSPRowRequestOpLogMgr::AddRowRequest(RowRequestInfo &request,
     if (pending_row_requests_.count(request_key) == 0) {
       pending_row_requests_.insert(std::make_pair(request_key,
         std::list<RowRequestInfo>()));
-      VLOG(10) << "pending_row_requests_ does not have this table_id = "
+      VLOG(6) << "pending_row_requests_ does not have this table_id = "
 	      << table_id << " row_id = " << row_id;
     }
     std::list<RowRequestInfo> &request_list
@@ -31,7 +31,7 @@ bool SSPRowRequestOpLogMgr::AddRowRequest(RowRequestInfo &request,
       auto iter_prev = std::prev(iter);
       int32_t clock = request.clock;
       if (clock >= iter_prev->clock) {
-	VLOG(10) << "I'm requesting clock is " << clock
+	VLOG(6) << "I'm requesting clock is " << clock
 		<< " There's a previous request requesting clock "
 		<< iter_prev->clock;
         // insert before iter

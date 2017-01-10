@@ -23,6 +23,7 @@ SSPConsistencyController::SSPConsistencyController(
   thread_cache_(thread_cache),
   oplog_index_(oplog_index),
   oplog_(oplog) {
+  VLOG(6) << "SSP controller for table=" << table_id << " has staleness=" << staleness_;
   AddUpdates_ = std::bind(&AbstractRow::AddUpdates,
                           sample_row_, std::placeholders::_1,
                           std::placeholders::_2, std::placeholders::_3);
@@ -43,11 +44,16 @@ ClientRow *SSPConsistencyController::Get(int32_t row_id, RowAccessor* row_access
 
   if (client_row != 0) {
     // Found it! Check staleness.
+    VLOG(6) << "Found row_id=" << row_id << " for table=" << this->table_id_ << " in process_storage.";
     int32_t clock = client_row->GetClock();
     if (clock >= stalest_clock) {
       STATS_APP_SAMPLE_SSP_GET_END(table_id_, true);
+      VLOG(6) << "Returning value in process_storage. Thread clock=" << ThreadContext::get_clock()
+              << " Client Row clock=" << clock;
       return client_row;
     }
+    VLOG(6) << "However, value in process_storage is stale. Thread clock=" << ThreadContext::get_clock()
+        << " Client Row clock=" << clock;
   }
 
   // Didn't find row_id that's fresh enough in process_storage_.

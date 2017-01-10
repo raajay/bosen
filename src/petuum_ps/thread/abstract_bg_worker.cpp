@@ -726,7 +726,7 @@ void AbstractBgWorker::CheckForwardRowRequestToServer(
     int32_t server_id
         = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
     VLOG(6) << "Sending a RowRequest from app_thread=" << app_thread_id
-        << " to server=" << server_id << " for table="<<table_id;
+        << " to server=" << server_id << " for table="<<table_id << " with version=" << row_request.version;
 
     size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(server_id,
       row_request_msg.get_mem(), row_request_msg.get_size());
