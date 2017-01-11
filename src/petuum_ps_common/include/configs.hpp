@@ -67,7 +67,7 @@ struct TableGroupConfig {
       snapshot_clock(-1),
       resume_clock(-1),
       update_sort_policy(Random),
-      bg_idle_milli(2),
+      bg_idle_milli(0),
       bandwidth_mbps(400),
       oplog_push_upper_bound_kb(1000),
       oplog_push_staleness_tolerance(2),

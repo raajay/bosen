@@ -21,7 +21,8 @@ DEFINE_string(consistency_model, "SSPPush", "SSPAggr/SSPPush/SSP");
 
 // SSPAggr Configs -- client side
 DEFINE_uint64(bandwidth_mbps, 400, "per-thread bandwidth limit, in mbps");
-DEFINE_uint64(bg_idle_milli, 10, "Bg idle millisecond");
+//DEFINE_uint64(bg_idle_milli, 10, "Bg idle millisecond");
+DEFINE_uint64(bg_idle_milli, 0, "Bg idle millisecond");
 
 DEFINE_uint64(oplog_push_upper_bound_kb, 1000,
              "oplog push upper bound in Kilobytes per comm thread.");
@@ -32,7 +33,8 @@ DEFINE_uint64(thread_oplog_batch_size, 100*1000*1000, "thread oplog batch size")
 // SSPAggr Configs -- server side
 DEFINE_uint64(server_row_candidate_factor, 5, "server row candidate factor");
 DEFINE_int32(server_push_row_threshold, 100, "Server push row threshold");
-DEFINE_int32(server_idle_milli, 10, "server idle time out in millisec");
+//DEFINE_int32(server_idle_milli, 10, "server idle time out in millisec");
+DEFINE_int32(server_idle_milli, 0, "server idle time out in millisec");
 DEFINE_string(update_sort_policy, "Random", "Update sort policy");
 
 // Snapshot Configs
