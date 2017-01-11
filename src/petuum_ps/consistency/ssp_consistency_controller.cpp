@@ -54,7 +54,11 @@ ClientRow *SSPConsistencyController::Get(int32_t row_id, RowAccessor* row_access
     }
     VLOG(6) << "However, value in process_storage is stale. Thread clock=" << ThreadContext::get_clock()
         << " Client Row clock=" << clock;
+  } else {
+    VLOG(6) << "NOT FOUND in process_storage row_id=" << row_id << " for table="
+        << this->table_id_;
   }
+  VLOG(6) << "Issue RequestRow row_id=" << row_id << " for table=" << this->table_id_;
 
   // Didn't find row_id that's fresh enough in process_storage_.
   // Fetch from server.
