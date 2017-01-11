@@ -118,6 +118,7 @@ bool AbstractBgWorker::CreateTable(int32_t table_id,
 }
 
 bool AbstractBgWorker::RequestRow(int32_t table_id, int32_t row_id, int32_t clock) {
+  petuum::HighResolutionTimer rr_send;
   {
     RowRequestMsg request_row_msg;
     request_row_msg.get_table_id() = table_id;
@@ -133,6 +134,8 @@ bool AbstractBgWorker::RequestRow(int32_t table_id, int32_t row_id, int32_t cloc
     zmq::message_t zmq_msg;
     int32_t sender_id;
     comm_bus_->RecvInProc(&sender_id, &zmq_msg);
+    VLOG(6) << "Row request (table=" << table_id << ", rowid=" << row_id
+      << " blocked for " << rr_send.elapsed() << " seconds";
 
     MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
     CHECK_EQ(msg_type, kRowRequestReply);
