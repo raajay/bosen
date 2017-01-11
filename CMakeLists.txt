@@ -13,6 +13,7 @@ file(GLOB_RECURSE petuum_ps_common_src "${CMAKE_SOURCE_DIR}/src/petuum_ps_common
 file(GLOB_RECURSE ml_src "${CMAKE_SOURCE_DIR}/src/ml/*.[h|c]pp")
 file(GLOB_RECURSE io_src "${CMAKE_SOURCE_DIR}/src/io/*.[h|c]pp")
 
+file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/lib")
 # petuum-ps
 add_library(petuum-ps ${petuum_ps_src} ${petuum_ps_common_src})
 set_target_properties(petuum-ps PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/lib)
