@@ -43,15 +43,17 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
   switch (config.process_storage_type) {
     case BoundedDense:
       {
-//          VLOG(6) << "The process storage type for table=" << table_id << " is BoundedDense";
+          VLOG(6) << "The process_storage_ type for table=" << table_id << " is BoundedDense";
         BoundedDenseProcessStorage::CreateClientRowFunc StorageCreateClientRow;
         if (GlobalContext::get_consistency_model() == SSP) {
           StorageCreateClientRow = std::bind(&ClientTable::CreateSSPClientRow, this,
                                              std::placeholders::_1);
+          VLOG(6) << "process_storage_ client row has a per-row clock (it is a SSPClientRow)";
         } else if (GlobalContext::get_consistency_model() == SSPPush
                    || GlobalContext::get_consistency_model() == SSPAggr) {
           StorageCreateClientRow = std::bind(&ClientTable::CreateClientRow, this,
                                              std::placeholders::_1);
+          VLOG(6) << "process_storage_ client row no clock (it is of type ClientRow)";
         } else {
           LOG(FATAL) << "Unknown consistency model " << GlobalContext::get_consistency_model();
         }
@@ -63,6 +65,7 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
       break;
     case BoundedSparse:
       {
+        VLOG(6) << "The process_storage_ type for table=" << table_id << " is BoundedSparse";
         process_storage_ = static_cast<AbstractProcessStorage*>(
             new BoundedSparseProcessStorage(
             config.process_cache_capacity,
@@ -75,10 +78,12 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
 
   switch (config.oplog_type) {
     case Sparse:
+      VLOG(6) << "oplog_type is Sparse (see: sparse_oplog.[h|c]pp)";
       oplog_ = new SparseOpLog(config.oplog_capacity, sample_row_,
                                dense_row_oplog_capacity_, row_oplog_type_);
       break;
     case AppendOnly:
+      VLOG(6) << "oplog_type is AppendOnly (see: append_only_oplog.[h|c]pp)";
       oplog_ = new AppendOnlyOpLog(
           config.append_only_buff_capacity,
           sample_row_,
@@ -87,6 +92,7 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
           config.per_thread_append_only_buff_pool_size);
       break;
     case Dense:
+      VLOG(6) << "oplog_type_ is Dense (see: dense_oplog.[h|c]pp";
       oplog_ = new DenseOpLog(
           config.oplog_capacity,
           sample_row_,
@@ -96,6 +102,8 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
     default:
       LOG(FATAL) << "Unknown oplog type = " << config.oplog_type;
   }
+  // TODO(raajay) what is oplog capacity?
+  // what is dense_row_oplog_capacity?
 
   switch (GlobalContext::get_consistency_model()) {
     case SSP:
@@ -105,6 +113,7 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
                 config.table_info,
                 table_id, *process_storage_, *oplog_, sample_row_, thread_cache_,
                 oplog_index_, row_oplog_type_);
+        VLOG(6) << "Consistency controller for table= " << table_id << " is SSPConsistencyController";
       }
       break;
     case SSPPush:
