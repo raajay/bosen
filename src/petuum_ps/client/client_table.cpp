@@ -43,6 +43,7 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
   switch (config.process_storage_type) {
     case BoundedDense:
       {
+//          VLOG(6) << "The process storage type for table=" << table_id << " is BoundedDense";
         BoundedDenseProcessStorage::CreateClientRowFunc StorageCreateClientRow;
         if (GlobalContext::get_consistency_model() == SSP) {
           StorageCreateClientRow = std::bind(&ClientTable::CreateSSPClientRow, this,
