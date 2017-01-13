@@ -371,9 +371,9 @@ void AbstractBgWorker::HandleCreateTables() {
 
       ClientTable *client_table;
       try {
+        VLOG(5) << "Creating an instance of a ClientTable(id=" << table_id
+                << ", address:" << &client_table << ") in bgworker=" << my_id_;
 	client_table  = new ClientTable(table_id, client_table_config);
-          VLOG(5) << "Creating an instance of a ClientTable(id=" << table_id
-              << ", address:" << &client_table << ") in bgworker=" << my_id_;
       } catch (std::bad_alloc &e) {
 	LOG(FATAL) << "Bad alloc exception";
       }

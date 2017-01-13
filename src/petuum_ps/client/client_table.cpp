@@ -40,6 +40,8 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
     append_only_oplog_type_(config.append_only_oplog_type),
     row_capacity_(config.table_info.row_capacity),
     no_oplog_replay_(config.no_oplog_replay) {
+
+  VLOG(6) << "In ClientTable constructor";
   switch (config.process_storage_type) {
     case BoundedDense:
       {
