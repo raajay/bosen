@@ -467,6 +467,7 @@ void dnn::load_data(char * data_file){
 
 void dnn::init_paras(mat *weights,mat *biases ){
   //init weights and biases randomly
+  VLOG(6) << "Starting initializing parameters";
   for(int i=0;i<num_layers-1;i++){
     int num_rows=num_units_ineach_layer[i+1];
     int num_cols=num_units_ineach_layer[i];
@@ -491,6 +492,7 @@ void dnn::init_paras(mat *weights,mat *biases ){
            }
     }       
   }
+  VLOG(6) << "Finished initializing parameters";
 }
 
 
