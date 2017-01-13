@@ -27,12 +27,14 @@ host_ips = [line.split()[1] for line in hostlines]
 
 # env variables required by run_local.py
 env_variables = [
+    "GLOG_VERBOSITY",
+    "BOSEN_CONFIG_FILE",
+    "BOSEN_NUM_THREADS",
+    "STALENESS",
     "DNN_APP_DIRECTORY",
     "DNN_PARAMETER_FILE",
     "DNN_DATA_PARTITION_FILE",
-    "BOSEN_NUM_THREADS",
-    "GLOG_VERBOSITY",
-    "STALENESS"
+    "REMOTE_LOG_DIRECTORY"
 ]
 
 env_params = ""
