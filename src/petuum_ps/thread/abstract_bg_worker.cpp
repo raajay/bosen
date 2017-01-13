@@ -134,7 +134,7 @@ bool AbstractBgWorker::RequestRow(int32_t table_id, int32_t row_id, int32_t cloc
     zmq::message_t zmq_msg;
     int32_t sender_id;
     comm_bus_->RecvInProc(&sender_id, &zmq_msg);
-    VLOG(6) << "Row request (table=" << table_id << ", rowid=" << row_id
+    VLOG(20) << "Row request (table=" << table_id << ", rowid=" << row_id
       << " blocked for " << rr_send.elapsed() << " seconds";
 
     MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
@@ -728,7 +728,7 @@ void AbstractBgWorker::CheckForwardRowRequestToServer(
   if (should_be_sent) {
     int32_t server_id
         = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
-    VLOG(6) << "Sending a RowRequest from app_thread=" << app_thread_id
+    VLOG(20) << "Sending a RowRequest from app_thread=" << app_thread_id
         << " to server=" << server_id << " for table="<<table_id << " with version=" << row_request.version;
 
     size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(server_id,
