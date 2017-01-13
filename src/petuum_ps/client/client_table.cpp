@@ -94,7 +94,8 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
           config.per_thread_append_only_buff_pool_size);
       break;
     case Dense:
-      VLOG(6) << "oplog_type_ is Dense (see: dense_oplog.[h|c]pp";
+      VLOG(6) << "oplog_type_ is Dense (see: dense_oplog.[h|c]pp)";
+      VLOG(6) << "row_oplog_type_ is " << row_oplog_type_;
       oplog_ = new DenseOpLog(
           config.oplog_capacity,
           sample_row_,
@@ -115,7 +116,7 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
                 config.table_info,
                 table_id, *process_storage_, *oplog_, sample_row_, thread_cache_,
                 oplog_index_, row_oplog_type_);
-        VLOG(6) << "Consistency controller for table= " << table_id << " is SSPConsistencyController";
+        VLOG(6) << "Consistency controller for table=" << table_id << " is SSPConsistencyController";
       }
       break;
     case SSPPush:
