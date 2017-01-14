@@ -118,8 +118,12 @@ void SSPConsistencyController::BatchInc(int32_t row_id,
     sample_row_->AddUpdates(column_ids[i], oplog_delta, deltas_uint8
 			    + sample_row_->get_update_size()*i);
   }
+  VLOG(6) << "Finished adding an entry in oplog_ for table=" << table_id_ << ", row=" << row_id;
   STATS_APP_SAMPLE_BATCH_INC_OPLOG_END();
 
+  // TODO (Raajay) these updates are also synced into the process_storage_. This enables other app threads to read it
+  // when needed. Process storage has the local view of the Table so updating it makes sense. However, is the version
+  // count incremented? If not, how do we avoid double counting?
   STATS_APP_SAMPLE_BATCH_INC_PROCESS_STORAGE_BEGIN();
   RowAccessor row_accessor;
   ClientRow *client_row = process_storage_.Find(row_id, &row_accessor);

@@ -114,6 +114,8 @@ bool DenseOpLog::FindInsertOpLog(int32_t row_id,
   }
 
   oplog_accessor->set_row_oplog(row_oplog);
+  VLOG(6) << "Found row_oplog for row_id=" << row_id
+          << ". Create New? " << new_create << ", Location=" << GetVecIndex(row_id);
   return new_create;
 }
 

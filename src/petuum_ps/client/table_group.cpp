@@ -177,10 +177,10 @@ void TableGroup::DeregisterThread(){
 
 void TableGroup::Clock() {
   STATS_APP_ACCUM_TG_CLOCK_BEGIN();
+  // move the clock of the application thread by a step
   ThreadContext::Clock();
+  // Clock the table group, It can either be ClockAggresive or ClockConservative
   (this->*ClockInternal)();
-  VLOG(6) << "ThreadContext("  <<ThreadContext::get_id() <<  ") Clock=" << ThreadContext::get_clock();
-  VLOG(6) << "Min Vector Clock=" << vector_clock_.get_min_clock();
   STATS_APP_ACCUM_TG_CLOCK_END();
 }
 
@@ -191,14 +191,21 @@ void TableGroup::GlobalBarrier() {
 }
 
 void TableGroup::ClockAggressive() {
+  // Clocking the table, flushes the values in the thread_cache_ and then dumps the oplog index into a
+  // table_oplog_index_ data structure that is visible from all the threads.
   for (auto table_iter = tables_.cbegin(); table_iter != tables_.cend();
     table_iter++) {
     table_iter->second->Clock();
   }
+  // vector_clock_ used is a clock with locking support (enabled through mutexes). Tick increments a thread specific
+  // clock. The return value is zero is the current thread is not the slowest. Else, it returns a non zero value,
+  // equal to the min_clock among all the threads.
   int clock = vector_clock_.Tick(ThreadContext::get_id());
   if (clock != 0) {
     BgWorkers::ClockAllTables();
   } else {
+    // If Clock is aggressive, then even when the "Client" has not clocked, Oplogs are sent to the server to update
+    // values at the server.
     BgWorkers::SendOpLogsAllTables();
   }
 }
@@ -209,6 +216,7 @@ void TableGroup::ClockConservative() {
     table_iter->second->Clock();
   }
   int clock = vector_clock_.Tick(ThreadContext::get_id());
+  // If Clock is Conservative, oplogs are send to the server only when all the threads have finished an iteration.
   if (clock != 0) {
     BgWorkers::ClockAllTables();
   }
