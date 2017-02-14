@@ -1,7 +1,6 @@
 #include <petuum_ps/thread/bg_workers.hpp>
 #include <petuum_ps_common/include/configs.hpp>
 #include <petuum_ps/thread/bg_worker_group.hpp>
-#include <petuum_ps/thread/ssp_push_bg_worker_group.hpp>
 
 namespace petuum {
 BgWorkerGroup *BgWorkers::bg_worker_group_;
@@ -11,10 +10,6 @@ void BgWorkers::Start(std::map<int32_t, ClientTable*> *tables) {
   switch(consistency_model) {
     case SSP:
       bg_worker_group_ = new BgWorkerGroup(tables);
-      break;
-    case SSPPush:
-    case SSPAggr:
-      bg_worker_group_ = new SSPPushBgWorkerGroup(tables);
       break;
     default:
       LOG(FATAL) << "Unknown consistency model = " << consistency_model;
