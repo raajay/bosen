@@ -687,10 +687,8 @@ void AbstractBgWorker::CheckForwardRowRequestToServer(
       RowAccessor row_accessor;
       ClientRow *client_row = table_storage.Find(row_id, &row_accessor);
       if (client_row != 0) {
-        if ((GlobalContext::get_consistency_model() == SSP
-             && client_row->GetClock() >= clock)
-            || (GlobalContext::get_consistency_model() == SSPPush)
-            || (GlobalContext::get_consistency_model() == SSPAggr)) {
+        if (GlobalContext::get_consistency_model() == SSP
+             && client_row->GetClock() >= clock) {
           RowRequestReplyMsg row_request_reply_msg;
           size_t sent_size = comm_bus_->SendInProc(
               app_thread_id, row_request_reply_msg.get_mem(),

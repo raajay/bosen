@@ -13,7 +13,7 @@ DEFINE_int32(client_id, 0, "This client's ID");
 DEFINE_int32(num_app_threads, 1, "Number of app threads in this client");
 
 // Execution Configs
-DEFINE_string(consistency_model, "SSPPush", "SSPAggr/SSPPush/SSP");
+DEFINE_string(consistency_model, "SSP", "SSP");
 
 // SSPAggr Configs -- client side
 DEFINE_uint64(bandwidth_mbps, 40, "per-thread bandwidth limit, in mbps");
@@ -52,12 +52,8 @@ void InitTableGroupConfig(TableGroupConfig *config, int32_t *client_id,
 
   config->client_id = FLAGS_client_id;
 
-  if (FLAGS_consistency_model == "SSPPush") {
-    config->consistency_model = petuum::SSPPush;
-  } else if (FLAGS_consistency_model == "SSP") {
+  if (FLAGS_consistency_model == "SSP") {
     config->consistency_model = petuum::SSP;
-  } else if (FLAGS_consistency_model == "SSPAggr") {
-    config->consistency_model = petuum::SSPAggr;
   } else {
     LOG(FATAL) << "Unsupported ssp mode " << FLAGS_consistency_model;
   }

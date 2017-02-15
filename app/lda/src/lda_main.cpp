@@ -86,7 +86,7 @@ DEFINE_int32(max_vocab_id, -1, "Maximum word index, which could be different "
 
 //DEFINE_string(stats_path, "", "Statistics output file");
 
-//DEFINE_string(consistency_model, "SSPPush", "SSP or SSPPush or ...");
+//DEFINE_string(consistency_model, "SSP", "SSP or ...");
 
 //DEFINE_int32(num_bg_threads, 1, "number of background threads");
 DEFINE_int32(num_server_threads, 1, "number of server threads");

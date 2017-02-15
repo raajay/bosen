@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
   table_group_config.consistency_model = petuum::LocalOOC;
 #else
   petuum::GetHostInfos(FLAGS_hostfile, &table_group_config.host_map);
-  table_group_config.consistency_model = petuum::SSPPush;
+  table_group_config.consistency_model = petuum::SSP;
 #endif
   // Local parameters for this process
   table_group_config.num_local_app_threads = FLAGS_num_worker_threads + 1;  // +1 for main() thread

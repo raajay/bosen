@@ -37,12 +37,7 @@ private:
   friend class BoundedSparseProcessStorage;
   friend class AbstractBgWorker;
   friend class SSPBgWorker;
-  friend class SSPPushBgWorker;
-  friend class SSPAggrBgWorker;
   friend class SSPConsistencyController;
-  friend class SSPPushConsistencyController;
-  friend class SSPAggrConsistencyController;
-  friend class SSPAggrValueConsistencyController;
   friend class LocalConsistencyController;
   friend class LocalOOCConsistencyController;
   friend class ThreadTable;
@@ -95,7 +90,6 @@ public:
 
 private:
   friend class SSPConsistencyController;
-  friend class SSPPushConsistencyController;
   friend class LocalConsistencyController;
   friend class LocalOOCConsistencyController;
   friend class ThreadTable;

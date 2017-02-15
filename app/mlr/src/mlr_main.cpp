@@ -94,8 +94,6 @@ int main(int argc, char *argv[]) {
   petuum::GetHostInfos(FLAGS_hostfile, &table_group_config.host_map);
   if (std::string("SSP").compare(FLAGS_consistency_model) == 0) {
     table_group_config.consistency_model = petuum::SSP;
-  } else if (std::string("SSPPush").compare(FLAGS_consistency_model) == 0) {
-    table_group_config.consistency_model = petuum::SSPPush;
   } else if (std::string("LocalOOC").compare(FLAGS_consistency_model) == 0) {
     table_group_config.consistency_model = petuum::LocalOOC;
   } else {

@@ -67,7 +67,7 @@ public:
     // +1 to include the main() thread
     table_group_config.num_local_app_threads = num_worker_threads + 1;
     // Consistency model
-    table_group_config.consistency_model = SSPPush;
+    table_group_config.consistency_model = SSP;
     // False to disallow table access for the main thread.
     PSTableGroup::Init(table_group_config, false);
 

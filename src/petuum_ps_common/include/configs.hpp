@@ -16,15 +16,6 @@ enum ConsistencyModel {
    * Stale synchronous parallel.
    */
   SSP = 0,
-
-  /**
-   * SSP with server push
-   * Assumes that all clients have the same number of bg threads.
-   */
-  SSPPush = 1,
-
-  SSPAggr = 2,
-
   LocalOOC = 6
 };
 

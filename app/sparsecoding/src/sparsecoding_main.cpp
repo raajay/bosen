@@ -97,7 +97,7 @@ DEFINE_int32(table_staleness, 0, "Staleness for dictionary table."
 
 /* No need to change the following */
 DEFINE_string(stats_path, "", "Statistics output file.");
-DEFINE_string(consistency_model, "SSPPush", "SSP or SSPPush or ...");
+DEFINE_string(consistency_model, "SSP", "SSP or ...");
 DEFINE_int32(row_oplog_type, petuum::RowOpLogType::kDenseRowOpLog, 
         "row oplog type");
 DEFINE_bool(oplog_dense_serialized, true, "dense serialized oplog");
@@ -120,8 +120,6 @@ int main(int argc, char * argv[]) {
     petuum::GetHostInfos(FLAGS_hostfile, &table_group_config.host_map);
     if (FLAGS_consistency_model == "SSP") {
         table_group_config.consistency_model = petuum::SSP;
-    } else if (FLAGS_consistency_model == "SSPPush") {
-        table_group_config.consistency_model = petuum::SSPPush;
     } else if (FLAGS_consistency_model == "LocalOOC") {
         table_group_config.consistency_model = petuum::LocalOOC;
     } else {

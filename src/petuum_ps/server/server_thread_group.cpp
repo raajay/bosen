@@ -1,7 +1,5 @@
 #include <petuum_ps/server/server_thread_group.hpp>
 #include <petuum_ps/server/server_thread.hpp>
-#include <petuum_ps/server/ssp_push_server_thread.hpp>
-#include <petuum_ps/server/ssp_aggr_server_thread.hpp>
 #include <petuum_ps/thread/context.hpp>
 
 namespace petuum {
@@ -17,30 +15,6 @@ ServerThreadGroup::ServerThreadGroup(int32_t server_id_st_):
         int idx = 0;
         for (auto &server_thread : server_thread_vec_) {
           server_thread = new ServerThread(
-              GlobalContext::get_server_thread_id(
-                  GlobalContext::get_client_id(), idx),
-              &init_barrier_);
-          ++idx;
-        }
-      }
-      break;
-    case SSPPush:
-      {
-        int idx = 0;
-        for (auto &server_thread : server_thread_vec_) {
-          server_thread = new SSPPushServerThread(
-              GlobalContext::get_server_thread_id(
-                  GlobalContext::get_client_id(), idx),
-              &init_barrier_);
-          ++idx;
-        }
-      }
-      break;
-    case SSPAggr:
-      {
-        int idx = 0;
-        for (auto &server_thread : server_thread_vec_) {
-          server_thread = new SSPAggrServerThread(
               GlobalContext::get_server_thread_id(
                   GlobalContext::get_client_id(), idx),
               &init_barrier_);

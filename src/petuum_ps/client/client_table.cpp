@@ -9,10 +9,6 @@
 
 #include <petuum_ps/client/ssp_client_row.hpp>
 #include <petuum_ps/consistency/ssp_consistency_controller.hpp>
-#include <petuum_ps/consistency/ssp_push_consistency_controller.hpp>
-#include <petuum_ps/consistency/ssp_push_append_only_consistency_controller.hpp>
-#include <petuum_ps/consistency/ssp_aggr_consistency_controller.hpp>
-#include <petuum_ps/consistency/ssp_aggr_value_consistency_controller.hpp>
 #include <petuum_ps/thread/context.hpp>
 
 #include <petuum_ps/oplog/sparse_oplog.hpp>
@@ -46,10 +42,6 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
         BoundedDenseProcessStorage::CreateClientRowFunc StorageCreateClientRow;
         if (GlobalContext::get_consistency_model() == SSP) {
           StorageCreateClientRow = std::bind(&ClientTable::CreateSSPClientRow, this,
-                                             std::placeholders::_1);
-        } else if (GlobalContext::get_consistency_model() == SSPPush
-                   || GlobalContext::get_consistency_model() == SSPAggr) {
-          StorageCreateClientRow = std::bind(&ClientTable::CreateClientRow, this,
                                              std::placeholders::_1);
         } else {
           LOG(FATAL) << "Unknown consistency model " << GlobalContext::get_consistency_model();
@@ -104,44 +96,6 @@ ClientTable::ClientTable(int32_t table_id, const ClientTableConfig &config):
                 config.table_info,
                 table_id, *process_storage_, *oplog_, sample_row_, thread_cache_,
                 oplog_index_, row_oplog_type_);
-      }
-      break;
-    case SSPPush:
-      {
-        if (config.oplog_type == Sparse || config.oplog_type == Dense) {
-        consistency_controller_
-            = new SSPPushConsistencyController(
-                config.table_info,
-                table_id, *process_storage_, *oplog_, sample_row_, thread_cache_,
-                oplog_index_, row_oplog_type_);
-        } else if (config.oplog_type == AppendOnly) {
-          consistency_controller_
-            = new SSPPushAppendOnlyConsistencyController(
-                config.table_info, table_id, *process_storage_, *oplog_,
-                sample_row_, thread_cache_, oplog_index_, row_oplog_type_);
-        } else {
-          LOG(FATAL) << "Unknown oplog type = " << config.oplog_type;
-        }
-      }
-      break;
-    case SSPAggr:
-      {
-        UpdateSortPolicy update_sort_policy
-            = GlobalContext::get_update_sort_policy();
-        if (update_sort_policy == RelativeMagnitude
-            || update_sort_policy == FIFO_N_ReMag) {
-          consistency_controller_
-              = new SSPAggrValueConsistencyController(
-                  config.table_info, table_id, *process_storage_,
-                  *oplog_, sample_row_, thread_cache_, oplog_index_,
-                  row_oplog_type_);
-        } else {
-          consistency_controller_
-              = new SSPAggrConsistencyController(
-                  config.table_info, table_id, *process_storage_,
-                  *oplog_, sample_row_, thread_cache_, oplog_index_,
-                  row_oplog_type_);
-        }
       }
       break;
     default:

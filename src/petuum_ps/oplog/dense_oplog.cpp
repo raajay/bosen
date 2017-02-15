@@ -19,21 +19,12 @@ DenseOpLog::DenseOpLog(int capacity, const AbstractRow *sample_row,
   sample_row_(sample_row),
   dense_row_oplog_capacity_(dense_row_oplog_capacity),
   capacity_(capacity) {
-  if (GlobalContext::get_consistency_model() == SSPAggr) {
-    if (row_oplog_type == RowOpLogType::kDenseRowOpLog)
-      CreateRowOpLog_ = CreateRowOpLog::CreateDenseMetaRowOpLog;
-    else if (row_oplog_type == RowOpLogType::kSparseRowOpLog)
-      CreateRowOpLog_ = CreateRowOpLog::CreateSparseMetaRowOpLog;
-    else
-      CreateRowOpLog_ = CreateRowOpLog::CreateSparseVectorMetaRowOpLog;
-  } else {
     if (row_oplog_type == RowOpLogType::kDenseRowOpLog)
       CreateRowOpLog_ = CreateRowOpLog::CreateDenseRowOpLog;
     else if (row_oplog_type == RowOpLogType::kSparseRowOpLog)
       CreateRowOpLog_ = CreateRowOpLog::CreateSparseRowOpLog;
     else
       CreateRowOpLog_ = CreateRowOpLog::CreateSparseVectorRowOpLog;
-  }
 }
 
 DenseOpLog::~DenseOpLog() {
