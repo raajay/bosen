@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 
 namespace petuum {
 TableGroupConfig Stats::table_group_config_;
@@ -101,6 +102,7 @@ void Stats::Init(const TableGroupConfig &table_group_config) {
   stats_path_ss << "." << table_group_config.client_id;
 
   stats_path_ = stats_path_ss.str();
+  std::cout << "Stats path: " << stats_path_ << std::endl;
 }
 
 void Stats::RegisterThread(ThreadType thread_type) {
