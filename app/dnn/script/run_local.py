@@ -39,7 +39,7 @@ params = {
      , "model_bias_file": join(app_dir, "datasets/biases.txt")
     #, "model_bias_file": "hdfs://hdfs-domain/user/bosen/dataset/dnn/datasets/biases.txt"
 
-    , "stats_path": join(os.environ.get('DNN_STATISTICS_FILE'), '/tmp/dnn-stats.log')
+    , "stats_path": os.environ.get('DNN_STATISTICS_FILE', '/scratch/raajay/ps/logs/dnn-bosen-stats.log')
     }
 
 petuum_params = {
