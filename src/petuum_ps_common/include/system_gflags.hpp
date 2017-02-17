@@ -5,7 +5,6 @@
 
 #include <petuum_ps_common/include/configs.hpp>
 #include <petuum_ps_common/util/utils.hpp>
-<<<<<<< HEAD
 
 DEFINE_string(stats_path, "", "stats file path prefix");
 
@@ -18,7 +17,7 @@ DEFINE_int32(client_id, 0, "This client's ID");
 DEFINE_string(hostfile, "", "path to Petuum PS server configuration file");
 
 // Execution Configs
-DEFINE_string(consistency_model, "SSPPush", "SSPAggr/SSPPush/SSP");
+DEFINE_string(consistency_model, "SSP", "SSP");
 
 // SSPAggr Configs -- client side
 DEFINE_uint64(bandwidth_mbps, 400, "per-thread bandwidth limit, in mbps");
