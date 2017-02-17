@@ -71,7 +71,6 @@ int main(int argc, char *argv[]) {
 
   std::cout<<"client "<<FLAGS_client_id<< " starts working..."<<std::endl;
   std::cout<<"Staleness parameter=" << FLAGS_staleness << std::endl;
-  std::cout<<"stats path=" << FLAGS_stats_path << std::endl;
 
   // Configure Petuum PS
   petuum::TableGroupConfig table_group_config;
