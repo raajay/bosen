@@ -20,22 +20,6 @@ ThreadTable::ThreadTable(
 
   ApplyThreadOpLog_ = &ThreadTable::ApplyThreadOpLogSSP;
 
-  if (GlobalContext::get_consistency_model() == SSPAggr) {
-    UpdateOpLogClock_ = UpdateOpLogClockSSPAggr;
-
-    if (row_oplog_type == RowOpLogType::kDenseRowOpLog) {
-      CreateRowOpLog_ = CreateRowOpLog::CreateDenseMetaRowOpLog;
-    } else if (row_oplog_type == RowOpLogType::kSparseRowOpLog) {
-      CreateRowOpLog_ = CreateRowOpLog::CreateSparseMetaRowOpLog;
-    } else {
-      CreateRowOpLog_ = CreateRowOpLog::CreateSparseVectorMetaRowOpLog;
-    }
-
-    if (GlobalContext::get_update_sort_policy() == RelativeMagnitude
-        || GlobalContext::get_update_sort_policy() == FIFO_N_ReMag) {
-      ApplyThreadOpLog_ = &ThreadTable::ApplyThreadOpLogGetImportance;
-    }
-  } else {
     UpdateOpLogClock_ = UpdateOpLogClockNoOp;
     if (row_oplog_type == RowOpLogType::kDenseRowOpLog)
       CreateRowOpLog_ = CreateRowOpLog::CreateDenseRowOpLog;
@@ -43,7 +27,6 @@ ThreadTable::ThreadTable(
       CreateRowOpLog_ = CreateRowOpLog::CreateSparseRowOpLog;
     else
       CreateRowOpLog_ = CreateRowOpLog::CreateSparseVectorRowOpLog;
-  }
 }
 
 ThreadTable::~ThreadTable() {

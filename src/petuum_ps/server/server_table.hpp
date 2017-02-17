@@ -31,18 +31,6 @@ public:
           ClassRegistry<AbstractRow>::GetRegistry().CreateObject(
               table_info.row_type)) {
 
-    if (GlobalContext::get_consistency_model() == SSPAggr
-        && (GlobalContext::get_update_sort_policy() == RelativeMagnitude
-            || GlobalContext::get_update_sort_policy() == FIFO_N_ReMag)) {
-
-      if (table_info.oplog_dense_serialized)
-        ApplyRowBatchInc_ = ApplyRowDenseBatchIncAccumImportance;
-      else
-        ApplyRowBatchInc_ = ApplyRowDenseBatchInc;
-
-      ResetImportance_ = ResetImportance;
-      SortCandidateVector_ = SortCandidateVectorImportance;
-    } else {
       if (table_info.oplog_dense_serialized)
         ApplyRowBatchInc_ = ApplyRowDenseBatchInc;
       else
@@ -50,7 +38,6 @@ public:
 
       ResetImportance_ = ResetImportanceNoOp;
       SortCandidateVector_ = SortCandidateVectorRandom;
-    }
 
     if (table_info.row_oplog_type == RowOpLogType::kDenseRowOpLog)
       sample_row_oplog_ = new DenseRowOpLog(

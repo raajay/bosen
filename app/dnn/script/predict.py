@@ -15,7 +15,7 @@ if len(sys.argv) != 3:
   sys.exit(1)
 
 # Please set the FULL app dir path here
-app_dir = "/home/user/bosen/app/dnn"
+app_dir = dirname(dirname(os.path.realpath(__file__)))
 
 client_id = sys.argv[1]
 hostfile = sys.argv[2]
@@ -32,8 +32,12 @@ petuum_params = {
     "hostfile": hostfile,
     }
 
-prog_name = "DNN_PRED"
-prog_path = join(app_dir, "bin", prog_name)
+build_dir = join(proj_dir, "build", "app", "dnn")
+prog_name = "dnn_predict_main"
+build_dir = "build"
+app_name = app_dir.split('/')[-1]
+prog_path = os.path.join(proj_dir, build_dir, "app", app_name, prog_name)
+
 
 hadoop_path = os.popen('hadoop classpath --glob').read()
 

@@ -47,8 +47,12 @@ petuum_params = {
     "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '32'))
     }
 
-prog_name = "DNN"
-prog_path = join(app_dir, "bin", prog_name)
+build_dir = join(proj_dir, "build", "app", "dnn")
+prog_name = "dnn_main"
+build_dir = "build"
+app_name = app_dir.split('/')[-1]
+prog_path = os.path.join(proj_dir, build_dir, "app", app_name, prog_name)
+
 
 hadoop_path = os.popen('hadoop classpath --glob').read()
 
