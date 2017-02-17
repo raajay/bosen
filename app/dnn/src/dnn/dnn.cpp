@@ -329,6 +329,10 @@ void dnn::train(mat * weights, mat * biases)
           if(client_id==0&&(*thread_id)==0)
             std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
        }
+
+
+        // RAAJAY: we to terminate after one batch
+        break;
     }
   }
 
