@@ -54,7 +54,7 @@ dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, in
   this->num_worker_threads=num_worker_threads;
   process_barrier.reset(new boost::barrier(num_worker_threads));
   thread_counter=0;
-    
+
   this->client_id=client_id;
   this->staleness=staleness;
   this->num_train_data=num_train_data;
@@ -75,7 +75,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
   }
   for(int l=0;l<num_layers-1;l++)
     memset(delta_biases[l],0,sizeof(float)*num_units_ineach_layer[l+1]);
-  
+
   //local_weights is the local copy of weight tables, local_biases is the local copy of bias tables
   petuum::HighResolutionTimer read_local_weight_timer;
   petuum::RowAccessor row_acc;
@@ -100,7 +100,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     for(int j=0;j<dim;j++)
       local_biases[rnd_idx][j]=r[j];
   }
-  VLOG(2) << "Reading local weights and biases took " << read_local_weight_timer.elapsed() << " s."; 
+  VLOG(2) << "Reading local weights and biases took " << read_local_weight_timer.elapsed() << " s.";
 
   //compute gradient of the mini batch
   petuum::HighResolutionTimer mini_batch_timer;
@@ -169,7 +169,7 @@ void dnn::compute_gradient_single_data(int idx_data,float *** local_weights, flo
 }
 
 
-  
+
 
 void dnn::forward_activation(int index_lower_layer, float ** local_weights, float * local_bias, float * visible, float * hidden)
 {
@@ -221,7 +221,7 @@ void dnn::train(mat * weights, mat * biases)
   for(int i=0;i<num_layers;i++)
     z[i]=new float[num_units_ineach_layer[i]];
 
-  float ** delta=new float*[num_layers-1]; 
+  float ** delta=new float*[num_layers-1];
   for(int i=0;i<num_layers-1;i++)
     delta[i]=new float[num_units_ineach_layer[i+1]];
 
@@ -295,13 +295,14 @@ void dnn::train(mat * weights, mat * biases)
       //sample mini batch
       rand_init_vec_int(idxes_batch,size_minibatch, num_train_data);
       //run sgd
+      std::cout << "Start one minibatch training" << std::endl;
       sgd_mini_batch(idxes_batch, weights, biases, local_weights,  local_biases, delta_weights,  delta_biases, z,  delta, rand_idxes_weight,rand_idxes_bias);
 
       // Advance Parameter Server iteration
       petuum::PSTableGroup::Clock();
 
       it++;	
-      
+
        //evalutate objective function
       	if(it%num_iters_evaluate==0&&client_id==0&&(*thread_id)==0)
        {
@@ -332,6 +333,7 @@ void dnn::train(mat * weights, mat * biases)
 
 
         // RAAJAY: we to terminate after one batch
+        std::cout << "Finished one minibatch training" << std::endl;
         break;
     }
   }
@@ -431,7 +433,7 @@ void dnn::save_model(mat * weights, mat *biases, const char * mdl_weight_file, c
     }
   }
   outfile.close();
- 
+
   //save bias vectors
   //outfile.open(mdl_bias_file);
   petuum::io::ofstream outfile2(mdl_bias_file);
@@ -466,7 +468,7 @@ void dnn::load_data(char * data_file){
     for(int j=0;j<feadim;j++)
       infile>>input_features[i][j];
   }
-  infile.close();  
+  infile.close();
 }
 
 void dnn::init_paras(mat *weights,mat *biases ){
@@ -494,7 +496,7 @@ void dnn::init_paras(mat *weights,mat *biases ){
 	   {
 		 biases[i].BatchInc(0,update_batch);
            }
-    }       
+    }
   }
   VLOG(6) << "Finished initializing parameters";
 }
@@ -521,8 +523,8 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
   // Run additional iterations to let stale values finish propagating
   for (int iter = 0; iter < staleness; ++iter) {
     petuum::PSTableGroup::Clock();
-  } 
-  
+  }
+
   // initialize parameters
   if (client_id==0&&(*thread_id) == 0){
     std::cout<<"init parameters"<<std::endl;
@@ -532,12 +534,12 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
     VLOG(2) << "init parameters took " << init_paras_timer.elapsed() << " seconds.";
   }
   process_barrier->wait();
-  
+
   // do DNN training
   if (client_id==0&&(*thread_id) == 0)
     std::cout<<"training starts"<<std::endl;
   train(weights, biases);
-  
+
   // Run additional iterations to let stale values finish propagating
   for (int iter = 0; iter < staleness; ++iter) {
     petuum::PSTableGroup::Clock();
