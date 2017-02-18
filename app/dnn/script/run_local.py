@@ -20,6 +20,8 @@ app_dir = os.environ.get('DNN_APP_DIRECTORY', "/media/raajay/ps/bosen/app/dnn")
 
 client_id = sys.argv[1]
 hostfile = sys.argv[2]
+
+# go up two directories from app_dir
 proj_dir = dirname(dirname(app_dir))
 
 params = {
@@ -42,17 +44,21 @@ params = {
     , "stats_path": os.environ.get('DNN_STATISTICS_FILE', '/scratch/raajay/ps/logs/dnn-bosen-stats.log')
     }
 
+
 petuum_params = {
     "hostfile": hostfile,
     "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '32'))
     }
 
-build_dir = join(proj_dir, "build", "app", "dnn")
+
+#build_dir = join(proj_dir, "build", "app", "dnn")
 #prog_name = "dnn_main"
+#build_dir = "build"
 prog_name = "DNN"
-build_dir = "build"
 app_name = app_dir.split('/')[-1]
-prog_path = os.path.join(proj_dir, build_dir, "app", app_name, prog_name)
+
+#prog_path = os.path.join(proj_dir, build_dir, "app", app_name, prog_name)
+prog_path = os.path.join(app_dir, prog_name)
 
 
 hadoop_path = os.popen('hadoop classpath --glob').read()
@@ -68,6 +74,7 @@ with open(hostfile, "r") as f:
   hostlines = f.read().splitlines()
 host_ips = [line.split()[1] for line in hostlines]
 petuum_params["num_clients"] = len(host_ips)
+
 
 cmd = "killall -q " + prog_name
 # os.system is synchronous call.
