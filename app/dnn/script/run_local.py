@@ -58,7 +58,7 @@ prog_name = "DNN"
 app_name = app_dir.split('/')[-1]
 
 #prog_path = os.path.join(proj_dir, build_dir, "app", app_name, prog_name)
-prog_path = os.path.join(app_dir, prog_name)
+prog_path = os.path.join(app_dir, "bin", prog_name)
 
 
 hadoop_path = os.popen('hadoop classpath --glob').read()
