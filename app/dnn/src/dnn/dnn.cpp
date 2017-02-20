@@ -331,6 +331,12 @@ void dnn::train(mat * weights, mat * biases)
             std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
        }
 
+        if(it % num_iters_evaluate == 0 && (*thread_id) == 0) {
+            // print the stats for all client, only from one thread;
+            STATS_PRINT();
+        }
+
+
 
         // RAAJAY: we to terminate after one batch
         std::cout << "Finished one minibatch training" << std::endl;
