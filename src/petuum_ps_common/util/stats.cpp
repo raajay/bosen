@@ -10,6 +10,7 @@
 namespace petuum {
 TableGroupConfig Stats::table_group_config_;
 std::string Stats::stats_path_;
+int32_t stats_print_version_;
 boost::thread_specific_ptr<ThreadType> Stats::thread_type_;
 boost::thread_specific_ptr<AppThreadStats> Stats::app_thread_stats_;
 boost::thread_specific_ptr<BgThreadStats> Stats::bg_thread_stats_;
@@ -96,13 +97,14 @@ std::vector<size_t> Stats::server_accum_num_push_row_msg_send_;
 
 void Stats::Init(const TableGroupConfig &table_group_config) {
   table_group_config_ = table_group_config;
+  stats_print_version_ = 0;
 
   std::stringstream stats_path_ss;
   stats_path_ss << table_group_config.stats_path;
   stats_path_ss << "." << table_group_config.client_id;
-
+//  stats_path_ss << "." << stats_print_version_;
   stats_path_ = stats_path_ss.str();
-  std::cout << "Stats path: " << stats_path_ << std::endl;
+  std::cout << "stats path prefix=" << stats_path_ << std::endl;
 }
 
 void Stats::RegisterThread(ThreadType thread_type) {
@@ -1274,15 +1276,18 @@ void Stats::PrintStats() {
 
   yaml_out << YAML::EndMap;
 
-  std::fstream of_stream(stats_path_, std::ios_base::out
+  std::stringstream stats_path_curr_ss;
+  stats_path_curr_ss << stats_path_;
+  stats_path_curr_ss << "." << stats_print_version_;
+  std::fstream of_stream(stats_path_curr_ss.str(), std::ios_base::out
       | std::ios_base::trunc);
-
   of_stream << yaml_out.c_str();
-
   of_stream.close();
 
+
   std::stringstream app_defined_vec_ss;
-  app_defined_vec_ss << stats_path_ << ".app-def-" << app_defined_vec_name_;
+  app_defined_vec_ss << stats_path_ << ".app-def-" << app_defined_vec_name_
+      << "." << stats_print_version_;
 
   std::fstream app_defined_vec_of(app_defined_vec_ss.str(), std::ios_base::out
       | std::ios_base::trunc);
@@ -1295,6 +1300,8 @@ void Stats::PrintStats() {
   }
 
   app_defined_vec_of.close();
+
+  stats_print_version_++; // increment the version number of stats
 }
 
 }

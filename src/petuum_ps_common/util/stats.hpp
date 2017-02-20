@@ -779,6 +779,7 @@ private:
 
   static TableGroupConfig table_group_config_;
   static std::string stats_path_;
+  static int32_t stats_print_version_;
   static boost::thread_specific_ptr<ThreadType> thread_type_;
   static boost::thread_specific_ptr<AppThreadStats> app_thread_stats_;
   static boost::thread_specific_ptr<BgThreadStats> bg_thread_stats_;
