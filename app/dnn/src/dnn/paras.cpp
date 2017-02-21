@@ -53,5 +53,6 @@ void load_dnn_paras(dnn_paras & para, const char * file_dnn_para)
   infile>>tmp>>para.size_minibatch;
   infile>>tmp>>para.num_smps_evaluate;
   infile>>tmp>>para.num_iters_evaluate;
+  infile>>tmp>>para.num_iters_print_stats;
   infile.close();
 }

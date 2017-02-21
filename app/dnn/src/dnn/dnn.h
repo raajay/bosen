@@ -60,13 +60,14 @@ private :
   boost::scoped_ptr<boost::barrier> process_barrier;//process barrier to sync threads
   boost::thread_specific_ptr<int> thread_id;//id of thread
   std::atomic<int> thread_counter;
-  
+
   //misc
   int staleness;//staleness value
   int client_id;//id of the client (machine)
 
   int num_smps_evaluate;//when evaluating objective function, randomly sample <num_smps_evaluate> points to evaluate the objective function
   int num_iters_evaluate;//every <num_iters_evaluate> iterations, evaluate the objective function
+  int num_iters_print_stats;//every <num_iters_print_stats> iterations, print the statistics collected
 
   //do forward activation
   void forward_activation(int index_lower_layer, float ** local_weights, float * local_bias, float * visible, float * hidden);

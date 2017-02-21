@@ -60,6 +60,7 @@ dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, in
     this->num_train_data=num_train_data;
     num_smps_evaluate=para.num_smps_evaluate;
     num_iters_evaluate=para.num_iters_evaluate;
+    num_iters_print_stats = para.num_iters_print_stats;
 }
 
 
@@ -333,7 +334,7 @@ void dnn::train(mat * weights, mat * biases)
                     std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
             }
 
-            if(it % num_iters_evaluate == 0 && (*thread_id) == 0) {
+            if(it % num_iters_print_stats == 0 && (*thread_id) == 0) {
                 // print the stats for all client, only from one thread;
                 STATS_PRINT();
             }

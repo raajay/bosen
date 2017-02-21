@@ -41,6 +41,7 @@ struct dnn_paras
   int size_minibatch;//size of mini batch
   int num_smps_evaluate;//when evaluating objective function, randomly sample <num_smps_evaluate> points to evaluate the objective function
   int num_iters_evaluate;//every <num_iters_evaluate> iterations, evaluate the objective function
+  int num_iters_print_stats;// every <num_iters_print_stats> iterations, print the statistics collected
 };
 
 //load dnn parameters from configuration file
