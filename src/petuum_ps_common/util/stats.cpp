@@ -10,7 +10,7 @@
 namespace petuum {
 TableGroupConfig Stats::table_group_config_;
 std::string Stats::stats_path_;
-int32_t stats_print_version_;
+int32_t Stats::stats_print_version_;
 boost::thread_specific_ptr<ThreadType> Stats::thread_type_;
 boost::thread_specific_ptr<AppThreadStats> Stats::app_thread_stats_;
 boost::thread_specific_ptr<BgThreadStats> Stats::bg_thread_stats_;
