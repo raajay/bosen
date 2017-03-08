@@ -365,7 +365,8 @@
 #define STATS_SERVER_OPLOG_MSG_RECV_INC_ONE() ((void) 0)
 #define STATS_SERVER_PUSH_ROW_MSG_SEND_INC_ONE() ((void) 0)
 
-#define STATS_PRINT() ((void) 0)
+#define STATS_PRINT() \
+  Stats::DummyPrintStats()
 #endif
 
 namespace petuum {
@@ -748,6 +749,7 @@ public:
   static void ServerPushRowMsgSendIncOne();
 
   static void PrintStats();
+  static void DummyPrintStats();
 
 private:
 

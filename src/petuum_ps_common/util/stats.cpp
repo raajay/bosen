@@ -929,6 +929,13 @@ void Stats::YamlPrintSequence(YAML::Emitter *yaml_out,
   *yaml_out << YAML::EndSeq;
 }
 
+
+  void Stats::DummyPrintStats() {
+    VLOG(2) << "Dummy Print Stats";
+    std::cout << "Dummy Print Stats" << std::endl;
+  }
+
+
 void Stats::PrintStats() {
   VLOG(2) << "Print Stats: version=" << stats_print_version_ << std::endl;
   std::cout << "Print Stats: version=" << stats_print_version_ << std::endl;
