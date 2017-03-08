@@ -931,6 +931,7 @@ void Stats::YamlPrintSequence(YAML::Emitter *yaml_out,
 
 void Stats::PrintStats() {
   VLOG(2) << "Print Stats: version=" << stats_print_version_ << std::endl;
+  std::cout << "Print Stats: version=" << stats_print_version_ << std::endl;
   YAML::Emitter yaml_out;
   std::lock_guard<std::mutex> lock(stats_mtx_);
 

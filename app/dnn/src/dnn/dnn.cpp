@@ -336,6 +336,7 @@ void dnn::train(mat * weights, mat * biases)
 
             if(it % num_iters_print_stats == 0 && (*thread_id) == 0) {
                 // print the stats for all client, only from one thread;
+              std::cout << "Invoke stats print at iteration: " << it << std::endl;
                 STATS_PRINT();
             }
         }
