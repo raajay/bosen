@@ -366,7 +366,7 @@
 #define STATS_SERVER_PUSH_ROW_MSG_SEND_INC_ONE() ((void) 0)
 
 #define STATS_PRINT() \
-  Stats::DummyPrintStats()
+  petuum::Stats::DummyPrintStats()
 #endif
 
 namespace petuum {
