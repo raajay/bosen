@@ -17,7 +17,7 @@
 //DEFINE_int32(num_clients, 1, "Total number of clients");
 //DEFINE_int32(num_app_threads, 1, "Number of app threads in this client");
 //DEFINE_int32(client_id, 0, "Client ID");
-//DEFINE_string(consistency_model, "SSPPush", "SSP or SSPPush");
+//DEFINE_string(consistency_model, "SSP", "SSP");
 //DEFINE_string(stats_path, "", "Statistics output file");
 //DEFINE_int32(num_comm_channels_per_client, 1,
 //   "number of comm channels per client");
