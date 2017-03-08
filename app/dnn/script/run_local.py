@@ -61,7 +61,7 @@ app_name = app_dir.split('/')[-1]
 prog_path = os.path.join(app_dir, "bin", prog_name)
 
 
-hadoop_path = os.popen('hadoop classpath --glob').read()
+# hadoop_path = os.popen('hadoop classpath --glob').read()
 
 env_params = "".join((
   "GLOG_logtostderr=true ",
@@ -81,7 +81,8 @@ cmd = "killall -q " + prog_name
 os.system(cmd)
 print "Done killing"
 
-cmd = "export CLASSPATH=`hadoop classpath --glob`:$CLASSPATH; "
+# cmd = "export CLASSPATH=`hadoop classpath --glob`:$CLASSPATH; "
+cmd = " "
 cmd += env_params + prog_path
 petuum_params["client_id"] = client_id
 cmd += "".join([" --%s=%s" % (k,v) for k,v in petuum_params.items()])
