@@ -258,7 +258,7 @@
   Stats::ServerPushRowMsgSendIncOne();
 
 #define STATS_PRINT() \
-  Stats::PrintStats()
+  petuum::Stats::PrintStats()
 
 #else
 #define STATS_INIT(table_group_config) ((void) 0)
