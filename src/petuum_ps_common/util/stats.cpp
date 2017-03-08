@@ -930,6 +930,7 @@ void Stats::YamlPrintSequence(YAML::Emitter *yaml_out,
 }
 
 void Stats::PrintStats() {
+  VLOG(2) << "Print Stats: version=" << stats_print_version_ << std::endl;
   YAML::Emitter yaml_out;
   std::lock_guard<std::mutex> lock(stats_mtx_);
 
@@ -1283,6 +1284,7 @@ void Stats::PrintStats() {
       | std::ios_base::trunc);
   of_stream << yaml_out.c_str();
   of_stream.close();
+  VLOG(2) << "Regular statistics written to: "  << stats_path_curr_ss.str() << std::endl;
 
 
   std::stringstream app_defined_vec_ss;
@@ -1300,6 +1302,7 @@ void Stats::PrintStats() {
   }
 
   app_defined_vec_of.close();
+  VLOG(2) << "App defined statistics written to: "  << app_defined_vec_ss.str() << std::endl;
 
   stats_print_version_++; // increment the version number of stats
 }
