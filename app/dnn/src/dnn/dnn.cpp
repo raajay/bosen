@@ -339,7 +339,6 @@ void dnn::train(mat * weights, mat * biases)
                 // print the stats for all client, only from one thread;
               std::cout << "Invoke stats print at iteration: " << it << std::endl;
               petuum::PrintStatsWrapper();
-                break;
             }
         }
     }
