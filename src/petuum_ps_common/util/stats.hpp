@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <string>
 #include <mutex>
+#include <iostream>
 #include <yaml-cpp/yaml.h>
 
 #ifdef PETUUM_STATS
@@ -877,5 +878,10 @@ private:
   static std::vector<size_t> server_accum_num_oplog_msg_recv_;
   static std::vector<size_t> server_accum_num_push_row_msg_send_;
 };
+
+  // A wrapper function to call print stats when ever we want from the application.
+  // If we have to use the macro then, the appropriate flags have to be defined
+  // when compiling the application.
+  void PrintStatsWrapper();
 
 }   // namespace petuum

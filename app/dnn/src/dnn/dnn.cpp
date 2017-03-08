@@ -41,6 +41,7 @@
 #include <cmath>
 #include <io/general_fstream.hpp>
 #include <petuum_ps_common/util/high_resolution_timer.hpp>
+#include <petuum_ps_common/util/stats.hpp>
 
 dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, int num_train_data){
     num_layers=para.num_layers;
@@ -336,8 +337,8 @@ void dnn::train(mat * weights, mat * biases)
 
             if(it % num_iters_print_stats == 0 && (*thread_id) == 0) {
                 // print the stats for all client, only from one thread;
-              // std::cout << "Invoke stats print at iteration: " << it << std::endl;
-              //   STATS_PRINT();
+              std::cout << "Invoke stats print at iteration: " << it << std::endl;
+              petuum::PrintStatsWrapper();
                 break;
             }
         }

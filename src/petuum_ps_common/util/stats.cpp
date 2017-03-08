@@ -1315,4 +1315,10 @@ void Stats::PrintStats() {
   stats_print_version_++; // increment the version number of stats
 }
 
-}
+
+  void PrintStatsWrapper() {
+    VLOG(2) << "Calling the STATS_PRINT macro";
+    STATS_PRINT();
+  }
+
+} // namespace petuum
