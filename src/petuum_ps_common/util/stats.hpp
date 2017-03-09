@@ -261,6 +261,9 @@
 #define STATS_PRINT() \
   petuum::Stats::PrintStats()
 
+#define STATS_SYNCHRONIZE() \
+  petuum::Stats::SynchronizeThreadStatistics();
+
 #else
 #define STATS_INIT(table_group_config) ((void) 0)
 #define STATS_REGISTER_THREAD(thread_type) ((void) 0)
@@ -368,6 +371,8 @@
 
 #define STATS_PRINT() \
   petuum::Stats::DummyPrintStats()
+
+#define STATS_SYNCHRONIZE() ((void) 0)
 #endif
 
 namespace petuum {
@@ -633,6 +638,7 @@ public:
 
   static void RegisterThread(ThreadType thread_type);
   static void DeregisterThread();
+  static void SynchronizeThreadStatistics();
 
   static void AppLoadDataBegin();
   static void AppLoadDataEnd();
@@ -757,6 +763,8 @@ private:
   static void DeregisterAppThread();
   static void DeregisterBgThread();
   static void DeregisterServerThread();
+
+  static void SynchronizeAppThreadStatistics();
 
   template<typename T>
   static void YamlPrintSequence(YAML::Emitter *yaml_out,

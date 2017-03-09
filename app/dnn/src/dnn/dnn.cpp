@@ -41,7 +41,7 @@
 #include <cmath>
 #include <io/general_fstream.hpp>
 #include <petuum_ps_common/util/high_resolution_timer.hpp>
-#include <petuum_ps_common/util/stats.hpp>
+//#include <petuum_ps_common/util/stats.hpp>
 
 dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, int num_train_data){
     num_layers=para.num_layers;
@@ -109,6 +109,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     for(int i=0;i<size_minibatch;i++)
         compute_gradient_single_data(idxes_batch[i], local_weights,  local_biases, delta_weights, delta_biases, z,  delta );
     VLOG(2) << "SGD minibatch took " << mini_batch_timer.elapsed() << " s for " << size_minibatch << " records.";
+    STATS_APP_DEFINED_ACCUM_VAL_INC(mini_batch_timer.elapsed());
 
 
     //update parameters
@@ -335,11 +336,17 @@ void dnn::train(mat * weights, mat * biases)
                     std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
             }
 
-            if(it % num_iters_print_stats == 0 && (*thread_id) == 0) {
+            if(it % num_iters_print_stats == 0) {
+              VLOG(2) << "Synchronize stats from thread:" << (*thread_id);
+              STATS_SYNCHRONIZE();
+
+              if((*thread_id) == 0) {
                 // print the stats for all client, only from one thread;
-              std::cout << "Invoke stats print at iteration: " << it << std::endl;
-              petuum::PrintStatsWrapper();
+                std::cout << "Invoke stats print at iteration: " << it << std::endl;
+                petuum::PrintStatsWrapper();
+              }
             }
+
         }
     }
 

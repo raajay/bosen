@@ -404,6 +404,44 @@ void Stats::DeregisterServerThread() {
       stats.accum_num_push_row_msg_send);
 }
 
+  void Stats::SynchronizeThreadStatistics() {
+    switch(*thread_type_) {
+    case kAppThread:
+      SynchronizeAppThreadStatistics();
+      break;
+
+    case kBgThread:
+      // do nothing for now
+      break;
+
+    case kServerThread:
+      // do nothing for now
+      break;
+
+    case kNameNodeThread:
+      // there are not Name node stats
+      break;
+
+    default:
+      LOG(FATAL) << "Unrecognized thread type " << *thread_type_;
+    }
+  }
+
+  void Stats::SynchronizeAppThreadStatistics() {
+    // grab a lock on the stats mutex, it will be released automatically when function ends
+    VLOG(2) << "Synchronizing App Thread Statistics";
+    std::lock_guard<std::mutex> lock(stats_mtx_);
+
+    // currently to test if synchronization works correctly we are going to
+    // just synchronize a few of the thread statistics to the "static" stats
+    // variables.
+    // TODO(raajay) figure out how to avoid blowing up the push_back
+    // operations, while still gathering statistics.
+
+    app_defined_accum_val_ += app_thread_stats_->app_defined_accum_val;
+  }
+
+
 void Stats::AppLoadDataBegin() {
   app_thread_stats_->load_data_timer.restart();
 }
