@@ -5,7 +5,8 @@
 
 #include <petuum_ps_common/util/lock.hpp>
 #include <petuum_ps_common/util/lockable.hpp>
-#include <sys/sysinfo.h>  // get_nprocs_conf
+// #include <sys/sysinfo.h>  // get_nprocs_conf
+#include <thread>
 #include <mutex>
 #include <cstdint>
 #include <boost/scoped_array.hpp>
@@ -36,7 +37,8 @@ public:
    * Determine number of locks based on number of cores.
    */
   StripedLock() :
-    StripedLock(get_nprocs_conf() * kLockPoolSizeExpansionFactor) { }
+    // StripedLock(get_nprocs_conf() * kLockPoolSizeExpansionFactor) { }
+    StripedLock(std::thread::hardware_concurrency() * kLockPoolSizeExpansionFactor) { }
 
   /**
    * Initialize with number of locks in the pool.
