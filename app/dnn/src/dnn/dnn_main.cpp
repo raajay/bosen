@@ -172,6 +172,7 @@ int main(int argc, char *argv[]) {
     }
     petuum::PSTableGroup::WaitThreadRegister();
     worker_threads.join_all();
+    VLOG(1) << "All application threads on client:"<< FLAGS_client_id << "(except main) have completed";
 
     if(FLAGS_client_id == 0)
         std::cout<<"DNN training ends."<<std::endl;
