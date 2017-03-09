@@ -256,13 +256,13 @@
   Stats::ServerOpLogMsgRecvIncOne();
 
 #define STATS_SERVER_PUSH_ROW_MSG_SEND_INC_ONE() \
-  Stats::ServerPushRowMsgSendIncOne();
+  Stats::ServerPushRowMsgSendIncOne()
 
 #define STATS_PRINT() \
   petuum::Stats::PrintStats()
 
 #define STATS_SYNCHRONIZE() \
-  petuum::Stats::SynchronizeThreadStatistics();
+  petuum::Stats::SynchronizeThreadStatistics()
 
 #else
 #define STATS_INIT(table_group_config) ((void) 0)

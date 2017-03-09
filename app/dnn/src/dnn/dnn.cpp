@@ -337,7 +337,7 @@ void dnn::train(mat * weights, mat * biases)
             }
 
             if(it % num_iters_print_stats == 0) {
-              VLOG(2) << "Synchronize stats from thread:" << (*thread_id);
+              VLOG(2) << "Synchronize stats from thread: " << (*thread_id);
               STATS_SYNCHRONIZE();
 
               if((*thread_id) == 0) {
