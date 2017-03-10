@@ -225,6 +225,8 @@ void TableGroup::ClockConservative() {
   // If Clock is Conservative, oplogs are send to the server only when all the
   // threads have finished an iteration.
   if (clock != 0) {
+    // ClockAllTables will make the current thread invoke ClockAllTables in all bg threads.
+    // Note that the bg_threads_ are accessible from worker groups.
     BgWorkers::ClockAllTables();
   }
 }

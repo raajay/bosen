@@ -96,6 +96,7 @@ int main(int argc, char *argv[]) {
     table_group_config.num_local_app_threads = FLAGS_num_worker_threads + 1;  // +1 for main() thread
     table_group_config.client_id = FLAGS_client_id;
     table_group_config.stats_path = FLAGS_stats_path;
+    table_group_config.aggressive_clock = false; // make clock conservative by default
     // snapshots
     table_group_config.snapshot_clock = FLAGS_snapshot_clock;
     table_group_config.resume_clock = FLAGS_resume_clock;
