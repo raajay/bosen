@@ -77,11 +77,14 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     }
     for(int l=0;l<num_layers-1;l++)
         memset(delta_biases[l],0,sizeof(float)*num_units_ineach_layer[l+1]);
+    // until here, we are just re-setting the delta weights to zero
 
-    //local_weights is the local copy of weight tables, local_biases is the local copy of bias tables
+
     petuum::HighResolutionTimer read_local_weight_timer;
     petuum::RowAccessor row_acc;
+
     //fetch parameters from PS tables to local parameter buffers
+    //(local_weights is the local copy of weight tables, local_biases is the local copy of bias tables)
     for(int l=0;l<num_layers-1;l++){
         int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
         for(int j=0;j<dim1;j++){
@@ -109,7 +112,9 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     for(int i=0;i<size_minibatch;i++)
         compute_gradient_single_data(idxes_batch[i], local_weights,  local_biases, delta_weights, delta_biases, z,  delta );
     VLOG(2) << "SGD minibatch took " << mini_batch_timer.elapsed() << " s for " << size_minibatch << " records.";
-    STATS_APP_DEFINED_ACCUM_VAL_INC(mini_batch_timer.elapsed());
+
+
+    STATS_APP_DEFINED_ACCUM_VAL_INC(mini_batch_timer.elapsed()); // used to test stats synchronization
 
 
     //update parameters
@@ -260,13 +265,19 @@ void dnn::train(mat * weights, mat * biases)
     for(int l=0;l<num_layers-1;l++){
         delta_biases[l]=new float[num_units_ineach_layer[l+1]];
         memset(delta_biases[l],0,sizeof(float)*num_units_ineach_layer[l+1]);
-    }
+    } // until now we are just creating a bunch of matrices in the heap (thread local) to store
+    // the different variables (no get/set to local buffers are not processed yet.).
 
     int * idxes_batch=new int[size_minibatch];
+
+    // epoch by definition is the number of passes over the ENTIRE data.
+    // If each thread processes <size_minibatch> data, and there are <n> threads,
+    // then we need (num_train_data/n/size_minibatch), iterations to complete one epoch
     int inner_iter=num_train_data/num_worker_threads/size_minibatch;
     if((*thread_id) == 0) {
         VLOG(2) << "Value of inner_iter = " << inner_iter;
     }
+
     srand (time(NULL));
     int it=0;
 
@@ -283,6 +294,7 @@ void dnn::train(mat * weights, mat * biases)
         for(int i=0;i<dim;i++)
             rand_idxes_weight[l][i]=output_idx_perm[i];
     }
+
     int * rand_idxes_bias=new int[num_layers-1];
     {
         std::vector<int> output_idx_perm;
@@ -291,8 +303,10 @@ void dnn::train(mat * weights, mat * biases)
         std::random_shuffle ( output_idx_perm.begin(), output_idx_perm.end(), myrandom);
         for(int i=0;i<num_layers-1;i++)
             rand_idxes_bias[i]=output_idx_perm[i];
-    }
+    } // finish computing random permutation indices
 
+
+    // Star the actual training process
     for(int iter=0;iter<num_epochs;iter++){
         for(int i=0;i<inner_iter;i++) {
             //sample mini batch
@@ -343,7 +357,7 @@ void dnn::train(mat * weights, mat * biases)
               if((*thread_id) == 0) {
                 // print the stats for all client, only from one thread;
                 std::cout << "Invoke stats print at iteration: " << it << std::endl;
-                petuum::PrintStatsWrapper();
+                STATS_PRINT();
               }
             }
 
@@ -527,7 +541,9 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
     mat *weights= new mat[num_layers-1];
     mat *biases=new mat[num_layers-1];
     for(int i=0;i<num_layers-1;i++){
-        // GetTableorDies returns a pointer to AbstractClientTable
+        // GetTableorDies returns a pointer to AbstractClientTable (raajay: more precisely, it is
+        // a pointer to abstract_table_group_->tables_[table_id]. The pointer is recast as a pointer to
+        // AbstractClientTable)
         weights[i]=petuum::PSTableGroup::GetTableOrDie<float>(i);
         biases[i]=petuum::PSTableGroup::GetTableOrDie<float>(i+num_layers-1);
     }
@@ -537,7 +553,11 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
         petuum::PSTableGroup::Clock();
     }
 
-    // initialize parameters
+    // initialize parameters; only one client and one thread does the init.
+    // Essentially, the tables are static objects (one per client). Thus, there
+    // is an abstract_table_group_->tables static variable in each
+    // client.However, each client is responsible only for a sub-set of
+    // parameters in each table.
     if (client_id==0&&(*thread_id) == 0){
         std::cout<<"init parameters"<<std::endl;
         petuum::HighResolutionTimer init_paras_timer;
@@ -545,7 +565,7 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
         std::cout<<"init parameters done"<<std::endl;
         VLOG(2) << "init parameters took " << init_paras_timer.elapsed() << " seconds.";
     }
-    process_barrier->wait();
+    process_barrier->wait(); // Why do we have process level barrier? Shouldn't it be all workers across all clients?
 
     // do DNN training
     if (client_id==0&&(*thread_id) == 0)
