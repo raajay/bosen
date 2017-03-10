@@ -191,21 +191,27 @@ void TableGroup::GlobalBarrier() {
 }
 
 void TableGroup::ClockAggressive() {
-  // Clocking the table, flushes the values in the thread_cache_ and then dumps the oplog index into a
+  // Clocking the table, flushes the values in the thread_cache_ to
+  // process_storage_ and, dumps the per thread oplog_index_ into a
   // table_oplog_index_ data structure that is visible from all the threads.
   for (auto table_iter = tables_.cbegin(); table_iter != tables_.cend();
     table_iter++) {
+    // clock each table, this in turn clocks the consistency controller (only does that), which
+    // flushes the per thread oplog values to process_storage_ and also flushes the oplog_index_
+    // to the per table (per process) op log index.
     table_iter->second->Clock();
   }
-  // vector_clock_ used is a clock with locking support (enabled through mutexes). Tick increments a thread specific
-  // clock. The return value is zero is the current thread is not the slowest. Else, it returns a non zero value,
-  // equal to the min_clock among all the threads.
+  // vector_clock_ used is a clock with locking support (enabled through
+  // mutexes). Tick increments a thread specific clock. The return value is zero
+  // is the current thread is not the slowest. Else, it returns a non zero
+  // value, equal to the min_clock among all the threads.
   int clock = vector_clock_.Tick(ThreadContext::get_id());
   if (clock != 0) {
     BgWorkers::ClockAllTables();
   } else {
-    // If Clock is aggressive, then even when the "Client" has not clocked, Oplogs are sent to the server to update
-    // values at the server.
+    // If Clock is aggressive, then even when the "Client" has not clocked
+    // (i.e., all the threads have not clocked), Oplogs are sent to the server
+    // to update values at the server.
     BgWorkers::SendOpLogsAllTables();
   }
 }
@@ -216,7 +222,8 @@ void TableGroup::ClockConservative() {
     table_iter->second->Clock();
   }
   int clock = vector_clock_.Tick(ThreadContext::get_id());
-  // If Clock is Conservative, oplogs are send to the server only when all the threads have finished an iteration.
+  // If Clock is Conservative, oplogs are send to the server only when all the
+  // threads have finished an iteration.
   if (clock != 0) {
     BgWorkers::ClockAllTables();
   }

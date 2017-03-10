@@ -971,6 +971,9 @@ void *AbstractBgWorker::operator() () {
   bool destroy_mem = false;
   long timeout_milli = GlobalContext::get_bg_idle_milli();
   PrepareBeforeInfiniteLoop();
+  // here, the BgWorker runs an infinite loop and processes the different messages
+  // initiated by either the AppThread (eg. RequestRow) or server thread (e.g. )
+  // Further, it also creates new handle clock messages I guess.
   while (1) {
     bool received = WaitMsg_(&sender_id, &zmq_msg, timeout_milli);
 
