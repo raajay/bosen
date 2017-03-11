@@ -89,6 +89,7 @@ BgOpLog *SSPBgWorker::PrepareOpLogsToSend() {
 
 BgOpLogPartition *SSPBgWorker::PrepareOpLogsNormal(
     int32_t table_id, ClientTable *table) {
+  VLOG(2) << "In PrepareOpLogsNormal";
   AbstractOpLog &table_oplog = table->get_oplog();
   GetSerializedRowOpLogSizeFunc GetSerializedRowOpLogSize;
 
@@ -130,6 +131,7 @@ BgOpLogPartition *SSPBgWorker::PrepareOpLogsNormal(
 
 BgOpLogPartition *SSPBgWorker::PrepareOpLogsAppendOnly(
     int32_t table_id, ClientTable *table) {
+  VLOG(2) << "In PrepareOpLogsAppendOnly";
   GetSerializedRowOpLogSizeFunc GetSerializedRowOpLogSize;
 
   if (table->oplog_dense_serialized()) {
@@ -168,6 +170,7 @@ BgOpLogPartition *SSPBgWorker::PrepareOpLogsAppendOnly(
 
 void SSPBgWorker::PrepareOpLogsNormalNoReplay(
     int32_t table_id, ClientTable *table) {
+  VLOG(2) << "In PrepareOpLogsNormalNoReplay";
 
   AbstractOpLog &table_oplog = table->get_oplog();
 
@@ -213,6 +216,7 @@ void SSPBgWorker::PrepareOpLogsNormalNoReplay(
 
 void SSPBgWorker::PrepareOpLogsAppendOnlyNoReplay(
     int32_t table_id, ClientTable *table) {
+  VLOG(2) << "In PrepareOpLogsAppendOnlyNoReplay";
 
   auto serializer_iter = row_oplog_serializer_map_.find(table_id);
   if (serializer_iter == row_oplog_serializer_map_.end()) {

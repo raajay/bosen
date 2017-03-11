@@ -226,7 +226,8 @@ void TableGroup::ClockConservative() {
   // threads have finished an iteration.
   if (clock != 0) {
     // ClockAllTables will make the current thread invoke ClockAllTables in all bg threads.
-    // Note that the bg_threads_ are accessible from worker groups.
+    // Note that the bg_threads_ are accessible from worker groups. They inturn send a bg_clock_msg with
+    // through SendInProc to themselves..
     BgWorkers::ClockAllTables();
   }
 }
