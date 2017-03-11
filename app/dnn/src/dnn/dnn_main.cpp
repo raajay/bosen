@@ -158,6 +158,13 @@ int main(int argc, char *argv[]) {
         cnter++;
     }
     infile.close();
+
+    // display parameters
+    VLOG(0) << "My client id = " << FLAGS_client_id;
+    VLOG(0) << "Number of app workers = " << FLAGS_num_worker_threads;
+    VLOG(0) << "Staleness value = " << FLAGS_staleness;
+    VLOG(0) << "Clock = " << ((table_group_config.aggressive_clock) ? "Aggressive" : "Conservative");
+
     //run dnn
     dnn mydnn(para,FLAGS_client_id, FLAGS_num_worker_threads, FLAGS_staleness,num_train_data);
     //load data
@@ -173,10 +180,11 @@ int main(int argc, char *argv[]) {
     }
     petuum::PSTableGroup::WaitThreadRegister();
     worker_threads.join_all();
-    VLOG(1) << "All application threads on client:"<< FLAGS_client_id << "(except main) have completed";
 
-    if(FLAGS_client_id == 0)
-        std::cout<<"DNN training ends."<<std::endl;
+    VLOG(1) << "All application threads on client:"<< FLAGS_client_id << "(except main) have completed";
+    if(FLAGS_client_id == 0) {
+      std::cout<<"DNN training ends."<<std::endl;
+    }
 
     // Cleanup and output runtime
     petuum::PSTableGroup::ShutDown();
