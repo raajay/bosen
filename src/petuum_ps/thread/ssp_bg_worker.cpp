@@ -89,10 +89,10 @@ BgOpLog *SSPBgWorker::PrepareOpLogsToSend() {
 
 BgOpLogPartition *SSPBgWorker::PrepareOpLogsNormal(
     int32_t table_id, ClientTable *table) {
-  VLOG(2) << "In PrepareOpLogsNormal for table = " << table->table_id_;
+  VLOG(2) << "In PrepareOpLogsNormal for table = " << table_id;
   AbstractOpLog &table_oplog = table->get_oplog();
-  GetSerializedRowOpLogSizeFunc GetSerializedRowOpLogSize;
 
+  GetSerializedRowOpLogSizeFunc GetSerializedRowOpLogSize;
   if (table->oplog_dense_serialized()) {
     GetSerializedRowOpLogSize = GetDenseSerializedRowOpLogSize;
   } else {

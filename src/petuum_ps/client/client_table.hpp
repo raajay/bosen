@@ -97,9 +97,8 @@ public:
     return no_oplog_replay_;
   }
 
-  const int32_t table_id_;
-
 private:
+  const int32_t table_id_;
   const int32_t row_type_;
   const AbstractRow* const sample_row_;
   AbstractOpLog *oplog_;
