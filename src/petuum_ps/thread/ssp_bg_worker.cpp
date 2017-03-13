@@ -55,13 +55,17 @@ ClientRow *SSPBgWorker::CreateClientRow(int32_t clock, AbstractRow *row_data) {
   return reinterpret_cast<ClientRow*>(new SSPClientRow(clock, row_data, true));
 }
 
+
 BgOpLog *SSPBgWorker::PrepareOpLogsToSend() {
   BgOpLog *bg_oplog = new BgOpLog;
 
+  // Prepare oplogs prepares each table separately.
   for (const auto &table_pair : (*tables_)) {
     int32_t table_id = table_pair.first;
 
     if (table_pair.second->get_no_oplog_replay()) {
+      // TODO (raajay): I do not understand what no-replay means?
+
       if (table_pair.second->get_oplog_type() == Sparse ||
           table_pair.second->get_oplog_type() == Dense)
         PrepareOpLogsNormalNoReplay(table_id, table_pair.second);
@@ -69,7 +73,10 @@ BgOpLog *SSPBgWorker::PrepareOpLogsToSend() {
         PrepareOpLogsAppendOnlyNoReplay(table_id, table_pair.second);
       else
         LOG(FATAL) << "Unknown oplog type = " << table_pair.second->get_oplog_type();
+
     } else {
+
+      // why are we creating a oplog partition? This is the most common case.
       BgOpLogPartition *bg_table_oplog = 0;
       if (table_pair.second->get_oplog_type() == Sparse ||
           table_pair.second->get_oplog_type() == Dense)
@@ -78,18 +85,23 @@ BgOpLog *SSPBgWorker::PrepareOpLogsToSend() {
         bg_table_oplog = PrepareOpLogsAppendOnly(table_id, table_pair.second);
       else
         LOG(FATAL) << "Unknown oplog type = " << table_pair.second->get_oplog_type();
+
+      // we add each tables oplog to the overall oplog
       bg_oplog->Add(table_id, bg_table_oplog);
     }
 
     FinalizeOpLogMsgStats(table_id, &table_num_bytes_by_server_,
                           &server_table_oplog_size_map_);
-  }
+
+  } // end for loop over tables
   return bg_oplog;
 }
+
 
 BgOpLogPartition *SSPBgWorker::PrepareOpLogsNormal(
     int32_t table_id, ClientTable *table) {
   VLOG(2) << "In PrepareOpLogsNormal for table = " << table_id;
+
   AbstractOpLog &table_oplog = table->get_oplog();
 
   GetSerializedRowOpLogSizeFunc GetSerializedRowOpLogSize;
@@ -99,12 +111,16 @@ BgOpLogPartition *SSPBgWorker::PrepareOpLogsNormal(
     GetSerializedRowOpLogSize = GetSparseSerializedRowOpLogSize;
   }
 
-  // Get OpLog index
+  // Get OpLog index. The index will tell which rows have been modified. So the
+  // function below, will query a static, oplog index and get all the rows that
+  // have been modified. Note that it will find modified rows from among the
+  // rows for each table that the current bg_thread is reponsible for.
   cuckoohash_map<int32_t, bool> *new_table_oplog_index_ptr
       = table->GetAndResetOpLogIndex(my_comm_channel_idx_);
 
   size_t table_update_size
       = table->get_sample_row()->get_update_size();
+
   BgOpLogPartition *bg_table_oplog = new BgOpLogPartition(
         table_id, table_update_size, my_comm_channel_idx_);
 
@@ -113,19 +129,29 @@ BgOpLogPartition *SSPBgWorker::PrepareOpLogsNormal(
     table_num_bytes_by_server_[server_id] = 0;
   }
 
+  // iterate over all rows that are potentially modified
   for (auto oplog_index_iter = new_table_oplog_index_ptr->cbegin();
        !oplog_index_iter.is_end(); oplog_index_iter++) {
+
     int32_t row_id = oplog_index_iter->first;
+
     AbstractRowOpLog *row_oplog = 0;
     bool found = GetRowOpLog(table_oplog, row_id, &row_oplog);
-    if (!found) continue;
 
-    if (found && (row_oplog == 0)) continue;
+    // if not found, row_id has not been modified in this table
+    if (!found) {
+      continue;
+    }
+
+    // if row_oplog is null, nothing more to do
+    if (found && (row_oplog == 0)) {
+      continue;
+    }
 
     CountRowOpLogToSend(row_id, row_oplog, &table_num_bytes_by_server_,
                         bg_table_oplog, GetSerializedRowOpLogSize);
   }
-  delete new_table_oplog_index_ptr;
+  delete new_table_oplog_index_ptr; // no one else points to this struct, see earlier GetAndResetOpLogIndex function
   return bg_table_oplog;
 }
 
@@ -185,22 +211,31 @@ void SSPBgWorker::PrepareOpLogsNormalNoReplay(
   }
   RowOpLogSerializer *row_oplog_serializer = serializer_iter->second;
 
-  // Get OpLog index
+  // Get OpLog index. The index will tell which rows have been modified. So the
+  // function below, will query a static, oplog index and get all the rows that
+  // have been modified. Note that it will find modified rows from among the
+  // rows for each table that the current bg_thread is reponsible for.
   cuckoohash_map<int32_t, bool> *new_table_oplog_index_ptr
       = table->GetAndResetOpLogIndex(my_comm_channel_idx_);
 
   for (auto oplog_index_iter = new_table_oplog_index_ptr->cbegin();
        !oplog_index_iter.is_end(); oplog_index_iter++) {
-    int32_t row_id = oplog_index_iter->first;
 
+    int32_t row_id = oplog_index_iter->first;
     OpLogAccessor oplog_accessor;
     bool found = table_oplog.FindAndLock(row_id, &oplog_accessor);
 
-    if (!found) continue;
+    // if not found, row_id has not been modified in this table
+    if (!found) {
+      continue;
+    }
 
     AbstractRowOpLog *row_oplog = oplog_accessor.get_row_oplog();
 
-    if (found && (row_oplog == 0)) continue;
+    if (found && (row_oplog == 0)) {
+      // TODO (raajay): what does it mean for a row_oplog to be 0 (or null)?
+      continue;
+    }
 
     row_oplog_serializer->AppendRowOpLog(row_id, row_oplog);
     row_oplog->Reset();

@@ -397,14 +397,13 @@ void AbstractBgWorker::HandleCreateTables() {
 }
 
 long AbstractBgWorker::HandleClockMsg(bool clock_advanced) {
+
   STATS_BG_ACCUM_CLOCK_END_OPLOG_SERIALIZE_BEGIN();
   BgOpLog *bg_oplog = PrepareOpLogsToSend();
-
   CreateOpLogMsgs(bg_oplog);
   STATS_BG_ACCUM_CLOCK_END_OPLOG_SERIALIZE_END();
 
   clock_has_pushed_ = client_clock_;
-
   SendOpLogMsgs(clock_advanced);
   TrackBgOpLog(bg_oplog);
   return 0;
@@ -541,12 +540,16 @@ void AbstractBgWorker::FinalizeOpLogMsgStats(
     std::map<int32_t, size_t> *table_num_bytes_by_server,
     std::map<int32_t, std::map<int32_t, size_t> >
     *server_table_oplog_size_map) {
+
+
+  // add the size used to represent the number of rows in an update to stats
   for (auto server_iter = (*table_num_bytes_by_server).begin();
        server_iter != (*table_num_bytes_by_server).end(); ++server_iter) {
     // 1. int32_t: number of rows
     if (server_iter->second != 0)
       server_iter->second += sizeof(int32_t);
   }
+
 
   for (auto server_iter = (*table_num_bytes_by_server).begin();
        server_iter != (*table_num_bytes_by_server).end(); server_iter++) {
@@ -559,6 +562,7 @@ void AbstractBgWorker::FinalizeOpLogMsgStats(
 }
 
 void AbstractBgWorker::CreateOpLogMsgs(const BgOpLog *bg_oplog) {
+
   std::map<int32_t, std::map<int32_t, void*> > table_server_mem_map;
 
   for (auto server_iter = server_table_oplog_size_map_.begin();
@@ -624,6 +628,9 @@ size_t AbstractBgWorker::SendOpLogMsgs(bool clock_advanced) {
   for (const auto &server_id : server_ids_) {
     auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
     if (oplog_msg_iter != server_oplog_msg_map_.end()) {
+
+      // if there is data that needs to be sent to the server, we send it along
+      // with clock information.
       oplog_msg_iter->second->get_is_clock() = clock_advanced;
       oplog_msg_iter->second->get_client_id() = GlobalContext::get_client_id();
       oplog_msg_iter->second->get_version() = version_;
@@ -634,7 +641,12 @@ size_t AbstractBgWorker::SendOpLogMsgs(bool clock_advanced) {
       // delete message after send
       delete oplog_msg_iter->second;
       oplog_msg_iter->second = 0;
+
     } else {
+
+      // If there is no gradient update to be sent to the server, then we just send them
+      // a clock message notifying the server that client has moved its clock (we also tell
+      // the server the iteration (clock) that generated the data).
       ClientSendOpLogMsg clock_oplog_msg(0);
       clock_oplog_msg.get_is_clock() = clock_advanced;
       clock_oplog_msg.get_client_id() = GlobalContext::get_client_id();
@@ -643,6 +655,7 @@ size_t AbstractBgWorker::SendOpLogMsgs(bool clock_advanced) {
 
       accum_size += clock_oplog_msg.get_size();
       MemTransfer::TransferMem(comm_bus_, server_id, &clock_oplog_msg);
+
     }
   }
 
