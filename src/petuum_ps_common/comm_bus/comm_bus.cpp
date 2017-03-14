@@ -46,6 +46,7 @@ CommBus::CommBus(int32_t e_st, int32_t e_end, int32_t num_clients,
   } catch(...) {
     LOG(FATAL) << "Failed to create zmq context";
   }
+  VLOG(2) << "Create a new zmq context with e_st_=" << e_st_ << " and e_end_=" << e_end_;
 
   if (num_clients == 1) {
     RecvAny_ = &CommBus::RecvInProc;
