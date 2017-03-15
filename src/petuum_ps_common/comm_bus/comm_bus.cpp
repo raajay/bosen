@@ -117,6 +117,7 @@ void CommBus::ThreadRegister(const Config &config) {
     MakeInProcAddr(config.entity_id_, &bind_addr);
 
     ZMQUtil::ZMQBind(sock, bind_addr);
+    VLOG(2) << "Create an in-proc socket for thread:" << config.entity_id_;
   }
 
   if (config.ltype_ & kInterProc) {
@@ -137,6 +138,7 @@ void CommBus::ThreadRegister(const Config &config) {
     MakeInterProcAddr(config.network_addr_, &bind_addr);
 
     ZMQUtil::ZMQBind(sock, bind_addr);
+    VLOG(2) << "Create an inter-proc socket for thread:" << config.entity_id_;
   }
 }
 
@@ -164,6 +166,7 @@ void CommBus::ConnectTo(int32_t entity_id, void *connect_msg, size_t size) {
   MakeInProcAddr(entity_id, &connect_addr);
   int32_t zmq_id = ZMQUtil::EntityID2ZmqID(entity_id);
   ZMQUtil::ZMQConnectSend(sock, connect_addr, zmq_id, connect_msg, size);
+  VLOG(2) << "Thread:" << thr_info_->entity_id_ << " initiates connection with (in-proc) thread:" << entity_id;
 }
 
 void CommBus::ConnectTo(int32_t entity_id, const std::string &network_addr,
@@ -189,6 +192,7 @@ void CommBus::ConnectTo(int32_t entity_id, const std::string &network_addr,
   MakeInterProcAddr(network_addr, &connect_addr);
   int32_t zmq_id = ZMQUtil::EntityID2ZmqID(entity_id);
   ZMQUtil::ZMQConnectSend(sock, connect_addr, zmq_id, connect_msg, size);
+  VLOG(2) << "Thread:" << thr_info_->entity_id_ << " initiates connection with (remote) thread:" << entity_id;
 }
 
 size_t CommBus::Send(int32_t entity_id, const void *data, size_t len) {
