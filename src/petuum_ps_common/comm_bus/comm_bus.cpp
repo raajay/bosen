@@ -101,6 +101,10 @@ void CommBus::ThreadRegister(const Config &config) {
     config.num_bytes_interproc_recv_buff_;
 
   if (config.ltype_ & kInProc) {
+    // in-proc socket is created to allow threads with in the same process
+    // to contact the current thread. Think of this as a server, that can be reached only
+    // by client threads with in the process. So a bg_worker needs only a in-proc socket, since
+    // they are only contacted by app threads.
     try {
       thr_info_->inproc_sock_.reset(new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));
     } catch(...) {
@@ -121,6 +125,8 @@ void CommBus::ThreadRegister(const Config &config) {
   }
 
   if (config.ltype_ & kInterProc) {
+    // inter-proc socket is created to allow (remote) threads, i.e., those running on
+    // a different machine to connect. That is why it needs a network address.
     try {
       thr_info_->interproc_sock_.reset(
           new zmq::socket_t(*zmq_ctx_, ZMQ_ROUTER));

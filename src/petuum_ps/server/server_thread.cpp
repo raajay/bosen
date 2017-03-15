@@ -275,6 +275,12 @@ void *ServerThread::operator() () {
   void *msg_mem;
   bool destroy_mem = false;
   long timeout_milli = GlobalContext::get_server_idle_milli();
+
+
+  // like the bg thread, the server thread also goes on an infinite loop.
+  // It processes one message at a time; TODO shouldn't we have separate queues for
+  // control and data messages.
+
   while(1) {
     bool received = WaitMsg_(&sender_id, &zmq_msg, timeout_milli);
     if (!received) {

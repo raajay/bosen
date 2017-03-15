@@ -26,6 +26,8 @@ std::vector<int32_t> GlobalContext::server_ids_;
 
 HostInfo GlobalContext::name_node_host_info_;
 
+  HostInfo GlobalContext::scheduler_host_info_;
+
 int32_t GlobalContext::client_id_ = 0;
 
 int32_t GlobalContext::server_ring_size_;
