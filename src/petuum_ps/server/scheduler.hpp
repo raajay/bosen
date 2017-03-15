@@ -10,6 +10,6 @@ namespace petuum {
     static void ShutDown();
   private:
     static SchedulerThread *scheduler_thread_;
-    static pthread_barrier_t scheduler_barrier_;
-  }
+    static pthread_barrier_t init_barrier_;
+  };
 }
