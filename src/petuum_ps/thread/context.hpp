@@ -404,6 +404,7 @@ private:
   static std::map<int32_t, HostInfo> host_map_;
   static std::map<int32_t, HostInfo> server_map_;
   static HostInfo name_node_host_info_;
+  static HostInfo scheduler_host_info_;
   static std::vector<int32_t> server_ids_;
 
   static int32_t client_id_;
