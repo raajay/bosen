@@ -6,10 +6,13 @@ namespace petuum {
     pthread_barrier_t Scheduler::init_barrier_;
 
     void Scheduler::Init() {
-        pthread_barrier_init(&init_barrier_, NULL, 2);
-        scheduler_thread_ = new SchedulerThread(&init_barrier_);
-        scheduler_thread_->Start();
-        pthread_barrier_wait(&init_barrier_);
+      // we set up a barrier, that use to synchronize the current thread,
+      // and the new scheduler thread that will be spawned when we Start and
+      // scheduler thread object.
+      pthread_barrier_init(&init_barrier_, NULL, 2);
+      scheduler_thread_ = new SchedulerThread(&init_barrier_);
+      scheduler_thread_->Start();
+      pthread_barrier_wait(&init_barrier_);
     }
 
     void Scheduler::ShutDown() {
