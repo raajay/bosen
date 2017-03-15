@@ -12,6 +12,8 @@ namespace petuum {
       pthread_barrier_init(&init_barrier_, NULL, 2);
       scheduler_thread_ = new SchedulerThread(&init_barrier_);
       scheduler_thread_->Start();
+      // wait until the comm bus has been setup for the spawned thread. Comm
+      // bus setup, would have been triggered upon Start.
       pthread_barrier_wait(&init_barrier_);
     }
 

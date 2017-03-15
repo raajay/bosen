@@ -29,12 +29,29 @@ namespace petuum {
     int32_t sender_id;
     // poll, for new messages
     while(1) {
+        // recv a packet.
+        (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
+        MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
+        switch(msg_type) {
+            case kTransferRequest:
+                HandlePreTransmitPing();
+                break;
+
+            default:
+              LOG(FATAL) << "Unrecognized message type " << msg_type
+                  << " sender = " << sender_id;
+        }
     }
+
   }
 
   void SchedulerThread::SetupCommBus() {
   }
 
   void SchedulerThread::InitScheduler() {
+  }
+
+  bool SchedulerThread::HandlePreTransmitPing() {
+      return false;
   }
 }
