@@ -4,8 +4,8 @@ namespace petuum {
 
 ServerThreadGroup *ServerThreads::server_thread_group_;
 
-void ServerThreads::Init(int32_t server_id_st) {
-  server_thread_group_ = new ServerThreadGroup(server_id_st);
+void ServerThreads::Init() {
+  server_thread_group_ = new ServerThreadGroup();
   server_thread_group_->Start();
 }
 

@@ -7,7 +7,7 @@ namespace petuum {
 
 class ServerThreads {
 public:
-  static void Init(int32_t server_id_st);
+  static void Init();
   static void ShutDown();
 
 private:

@@ -76,12 +76,11 @@ TableGroup::TableGroup(const TableGroupConfig &table_group_config,
     Scheduler::Init();
   }
 
-  if (GlobalContext::am_i_name_node_client()) {
+  if (GlobalContext::am_i_name_node_client())  {
     NameNode::Init();
-    ServerThreads::Init(local_id_min + 1);
-  } else {
-    ServerThreads::Init(local_id_min);
   }
+
+  ServerThreads::Init();
 
   BgWorkers::Start(&tables_);
   BgWorkers::AppThreadRegister();
