@@ -72,9 +72,12 @@ TableGroup::TableGroup(const TableGroupConfig &table_group_config,
   GlobalContext::comm_bus->ThreadRegister(comm_config);
   ThreadContext::RegisterThread(*init_thread_id);
 
+  if(GlobalContext::am_i_scheduler_client()) {
+    Scheduler::Init();
+  }
+
   if (GlobalContext::am_i_name_node_client()) {
     NameNode::Init();
-    Scheduler::Init();
     ServerThreads::Init(local_id_min + 1);
   } else {
     ServerThreads::Init(local_id_min);
@@ -100,6 +103,9 @@ TableGroup::~TableGroup() {
 
   if (GlobalContext::am_i_name_node_client()) {
     NameNode::ShutDown();
+  }
+
+  if(GlobalContext::am_i_scheduler_client()) {
     Scheduler::ShutDown();
   }
 

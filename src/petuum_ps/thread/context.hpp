@@ -89,6 +89,10 @@ public:
     return (client_id_ == get_name_node_client_id());
   }
 
+  static bool am_i_scheduler_client() {
+    return (client_id_ == get_scheduler_client_id());
+  }
+
   static int32_t get_scheduler_id() {
     return kSchedulerThreadIDOffset;
   }
