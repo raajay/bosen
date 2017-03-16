@@ -14,11 +14,14 @@ namespace petuum {
   class SchedulerThread : public Thread {
   public:
     SchedulerThread(pthread_barrier_t *init_barrier);
-    ~SchedulerThread();
+    ~SchedulerThread() {}
     virtual void *operator() ();
     virtual void ShutDown() {
       Join();
     }
+
+  protected:
+    virtual void InitWhenStart() {}
 
   private:
 
