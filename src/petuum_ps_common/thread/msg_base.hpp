@@ -33,7 +33,9 @@ enum MsgType {
   kServerPushRow = 18,
   kServerOpLogAck = 19,
   kBgHandleAppendOpLog = 20,
-  kMemTransfer = 50
+  kMemTransfer = 50,
+  kTransferRequest = 60,
+  kTransferResponse= 61
 };
 
 // Represent a message over wire that is very easy to serialize.
