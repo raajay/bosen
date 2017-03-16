@@ -17,7 +17,7 @@ namespace petuum {
   void *SchedulerThread::operator() () {
     ThreadContext::RegisterThread(my_id_);
 
-    SetupCommBus(); // TODO define & implement
+    SetupCommBus();
 
     // one this location has been hit, the thread that initialized the scheduler thread can proceed.
     // this ensure, that comm_bus is set up after the thread has been created.
@@ -33,6 +33,22 @@ namespace petuum {
   }
 
   void SchedulerThread::SetupCommBus() {
+    CommBus::Config comm_config;
+    comm_config.entity_id_ = my_id_;
+
+    if(GlobalContext::get_num_client() > 1) {
+      comm_config.ltype = CommBus::kInProc | CommBus::kInterProc;
+      HostInfo host_info = GlobalContext::get_scheduler_info();
+      comm_config.network_addr_ = "*:" + host_info.port;
+    } else {
+      comm_config.ltype = CommBus::kInProc;
+    }
+
+    // register the server thread with the commbus. This, basically,
+    // creates sockets for this thread, and updates some static variables
+    // in comm_bus.
+    comm_bus_->ThreadRegister(comm_config);
+    std::cout << "The scheduler is up and running!" << std::endl;
   }
 
   void SchedulerThread::InitScheduler() {

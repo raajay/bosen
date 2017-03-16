@@ -12,6 +12,7 @@ namespace petuum {
       pthread_barrier_init(&init_barrier_, NULL, 2);
       scheduler_thread_ = new SchedulerThread(&init_barrier_);
       scheduler_thread_->Start();
+      // wait until the scheduler thread has set up the commbus
       pthread_barrier_wait(&init_barrier_);
     }
 
