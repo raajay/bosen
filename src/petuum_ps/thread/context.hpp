@@ -415,7 +415,7 @@ public:
 
   static const int32_t kMaxNumThreadsPerClient = 1000;
   // num of server + name node thread per node <= 100
-  static const int32_t kBgThreadIDStartOffset = 100;
+  static const int32_t kBgThreadIDStartOffset = 101;
   static const int32_t kInitThreadIDOffset = 200;
   static const int32_t kServerThreadIDStartOffset = 1;
   static const int32_t kSchedulerThreadIDOffset = 900;
