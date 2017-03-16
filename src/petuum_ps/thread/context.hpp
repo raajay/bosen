@@ -202,7 +202,10 @@ public:
 
     for (auto host_iter = host_map.begin();
          host_iter != host_map.end(); ++host_iter) {
+
       HostInfo host_info = host_iter->second;
+
+      // the base port num to use for the host
       int port_num = std::stoi(host_info.port, 0, 10);
 
       if (host_iter->first == get_name_node_client_id()) {
@@ -212,6 +215,13 @@ public:
         std::stringstream ss;
         ss << port_num;
         host_info.port = ss.str();
+      }
+
+      if(host_iter->first == get_scheduler_client_id()) {
+          scheduler_host_info_ = host_info;
+          // increment the port number that can be used for that client
+          ++port_num;
+          std::stringstream ss; ss << port_num; host_info.port = ss.str();
       }
 
       for (int i = 0; i < num_comm_channels_per_client_; ++i) {
@@ -277,6 +287,10 @@ public:
 
   static HostInfo get_name_node_info() {
     return name_node_host_info_;
+  }
+
+  static HostInfo get_scheduler_info() {
+      return scheduler_host_info_;
   }
 
   static const std::vector<int32_t> &get_all_server_ids() {
