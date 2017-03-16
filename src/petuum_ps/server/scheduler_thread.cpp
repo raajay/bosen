@@ -49,12 +49,12 @@ namespace petuum {
     CommBus::Config comm_config;
     comm_config.entity_id_ = my_id_;
 
-    if(GlobalContext::get_num_client() > 1) {
-      comm_config.ltype = CommBus::kInProc | CommBus::kInterProc;
+    if(GlobalContext::get_num_clients() > 1) {
+      comm_config.ltype_ = CommBus::kInProc | CommBus::kInterProc;
       HostInfo host_info = GlobalContext::get_scheduler_info();
       comm_config.network_addr_ = "*:" + host_info.port;
     } else {
-      comm_config.ltype = CommBus::kInProc;
+      comm_config.ltype_ = CommBus::kInProc;
     }
 
     // register the server thread with the commbus. This, basically,
