@@ -205,7 +205,7 @@ public:
       HostInfo host_info = host_iter->second;
       int port_num = std::stoi(host_info.port, 0, 10);
 
-      if (host_iter->first == get_name_node_id()) {
+      if (host_iter->first == get_name_node_client_id()) {
         name_node_host_info_ = host_info;
 
         ++port_num;
