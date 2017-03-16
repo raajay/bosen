@@ -67,7 +67,9 @@ namespace petuum {
   void SchedulerThread::InitScheduler() {
   }
 
+
   bool SchedulerThread::HandlePreTransmitPing() {
+    VLOG(2) << "In HandlePreTransmitPing";
       return false;
   }
 }

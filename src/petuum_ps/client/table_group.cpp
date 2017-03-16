@@ -3,6 +3,7 @@
 #include <petuum_ps/thread/context.hpp>
 #include <petuum_ps/server/server_threads.hpp>
 #include <petuum_ps/server/name_node.hpp>
+#include <petuum_ps/server/scheduler.hpp>
 #include <petuum_ps/thread/bg_workers.hpp>
 #include <sstream>
 #include <iostream>
@@ -73,6 +74,7 @@ TableGroup::TableGroup(const TableGroupConfig &table_group_config,
 
   if (GlobalContext::am_i_name_node_client()) {
     NameNode::Init();
+    Scheduler::Init();
     ServerThreads::Init(local_id_min + 1);
   } else {
     ServerThreads::Init(local_id_min);
