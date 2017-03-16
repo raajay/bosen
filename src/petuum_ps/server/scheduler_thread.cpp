@@ -23,7 +23,7 @@ namespace petuum {
     // this ensure, that comm_bus is set up after the thread has been created.
     pthread_barrier_wait(init_barrier_);
 
-    InitScheduler(); // TODO define and implement
+    InitScheduler();
 
     zmq::message_t zmq_msg;
     int32_t sender_id;
@@ -65,6 +65,7 @@ namespace petuum {
   }
 
   void SchedulerThread::InitScheduler() {
+    // TODO implement this
   }
 
 
