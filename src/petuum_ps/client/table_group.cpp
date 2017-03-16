@@ -98,8 +98,10 @@ TableGroup::~TableGroup() {
   BgWorkers::AppThreadDeregister();
   ServerThreads::ShutDown();
 
-  if (GlobalContext::am_i_name_node_client())
+  if (GlobalContext::am_i_name_node_client()) {
     NameNode::ShutDown();
+    Scheduler::ShutDown();
+  }
 
   BgWorkers::ShutDown();
   GlobalContext::comm_bus->ThreadDeregister();
