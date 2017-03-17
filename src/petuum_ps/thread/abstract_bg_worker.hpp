@@ -69,6 +69,7 @@ protected:
   /* Functions Called From Main Loop -- BEGIN */
   void InitCommBus();
   void BgServerHandshake();
+  void BgSchedulerHandshake();
   void HandleCreateTables();
 
   // get connection from init thread
@@ -133,6 +134,7 @@ protected:
   size_t SendMsg(MsgBase *msg);
   void RecvMsg(zmq::message_t &zmq_msg);
   void ConnectToNameNodeOrServer(int32_t server_id);
+  void ConnectToScheduler();
 
   virtual ClientRow *CreateClientRow(int32_t clock, AbstractRow *row_data) = 0;
 

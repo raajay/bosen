@@ -29,11 +29,18 @@ namespace petuum {
     void SetupCommBus();
 
     // communication functions
+    int32_t GetConnection(bool *is_client, int32_t *client_id);
+    void SendToAllBgThreads(MsgBase* msg);
+
+
+    // communication functions
     bool HandlePreTransmitPing();
 
-    // the id of the scheduler thread
-    int32_t my_id_;
-    pthread_barrier_t *init_barrier_;
+    // internal data structures
+    int32_t my_id_;    // the id of the scheduler thread
+    pthread_barrier_t *init_barrier_; // a barrier to set up comm_buss
     CommBus *comm_bus_;
+    std::vector<int32_t> bg_worker_ids_;
+
   };
 }

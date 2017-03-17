@@ -241,6 +241,30 @@ void AbstractBgWorker::InitCommBus() {
   comm_bus_->ThreadRegister(comm_config);
 }
 
+  void AbstractBgWorker::BgSchedulerHandshake() {
+    // connect to scheduler
+    int32_t scheduler_id = GlobalContext::get_scheduler_id();
+    // this sends a ClientConnectMsg to the scheduler
+    ConnectToScheduler();
+    VLOG(2) << "Send a connect request to Scheduler:" << scheduler_id;
+
+    // wait for the scheduler to get back
+    {
+      zmq::message_t zmq_msg;
+      int32_t sender_id;
+      if(comm_bus_->IsLocalEntity(scheduler_id)) {
+        comm_bus_->RecvInProc(&sender_id, &zmq_msg);
+      } else {
+        comm_bus_->RecvInterProc(&sender_id, &zmq_msg);
+      }
+      MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
+      CHECK_EQ(sender_id, scheduler_id);
+      CHECK_EQ(msg_type, kConnectServer) << "sender_id = " << sender_id;
+      VLOG(2) << "Received a connect response from Scheduler:" << scheduler_id;
+    }
+    VLOG(2) << "Completed handshake with Scheduler";
+  }
+
 void AbstractBgWorker::BgServerHandshake() {
   {
     // connect to name node
@@ -929,6 +953,26 @@ void AbstractBgWorker::RecvMsg(zmq::message_t &zmq_msg) {
   int32_t sender_id;
   comm_bus_->RecvInProc(&sender_id, &zmq_msg);
 }
+
+  void AbstractBgWorker::ConnectToScheduler() {
+    ClientConnectMsg client_connect_msg;
+    client_connect_msg.get_client_id() = GlobalContext::get_client_id();
+    void *msg = client_connect_msg.get_mem();
+    int32_t msg_size = client_connect_msg.get_size();
+
+    int scheduler_id = GlobalContext::get_scheduler_id();
+    if(comm_bus_->IsLocalEntity(scheduler_id)) {
+      comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
+      VLOG(2) << "Init LOCAL handshake from bgworker=" << my_id_ << " to scheduler=" << scheduler_id;
+    } else {
+      HostInfo scheduler_info = GlobalContext::get_scheduler_info();
+      std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
+      comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
+      VLOG(2) << "Init handshake from bgworker=" << my_id_ << " to scheduler="
+              << scheduler_id << " at " << scheduler_addr;
+    }
+
+  }
 
 void AbstractBgWorker::ConnectToNameNodeOrServer(int32_t server_id) {
   ClientConnectMsg client_connect_msg;
