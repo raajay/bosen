@@ -124,7 +124,7 @@ namespace petuum {
     }
 
     CHECK_EQ(num_bgs, GlobalContext::get_num_total_comm_channels());
-    VLOG(2) << "Received connect request from all bg worker threads.";
+    VLOG(2) << "Received connect request from " << bg_worker_ids_.size() << " bg worker threads.";
 
     ConnectServerMsg connect_server_msg;
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&connect_server_msg));
