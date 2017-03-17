@@ -3,6 +3,7 @@
 #include <petuum_ps/thread/context.hpp>
 #include <petuum_ps/server/server_threads.hpp>
 #include <petuum_ps/server/name_node.hpp>
+#include <petuum_ps/server/scheduler.hpp>
 #include <petuum_ps/thread/bg_workers.hpp>
 #include <sstream>
 #include <iostream>
@@ -71,12 +72,15 @@ TableGroup::TableGroup(const TableGroupConfig &table_group_config,
   GlobalContext::comm_bus->ThreadRegister(comm_config);
   ThreadContext::RegisterThread(*init_thread_id);
 
-  if (GlobalContext::am_i_name_node_client()) {
-    NameNode::Init();
-    ServerThreads::Init(local_id_min + 1);
-  } else {
-    ServerThreads::Init(local_id_min);
+  if(GlobalContext::am_i_scheduler_client()) {
+    Scheduler::Init();
   }
+
+  if (GlobalContext::am_i_name_node_client())  {
+    NameNode::Init();
+  }
+
+  ServerThreads::Init();
 
   BgWorkers::Start(&tables_);
   BgWorkers::AppThreadRegister();
@@ -96,8 +100,13 @@ TableGroup::~TableGroup() {
   BgWorkers::AppThreadDeregister();
   ServerThreads::ShutDown();
 
-  if (GlobalContext::am_i_name_node_client())
+  if (GlobalContext::am_i_name_node_client()) {
     NameNode::ShutDown();
+  }
+
+  if(GlobalContext::am_i_scheduler_client()) {
+    Scheduler::ShutDown();
+  }
 
   BgWorkers::ShutDown();
   GlobalContext::comm_bus->ThreadDeregister();

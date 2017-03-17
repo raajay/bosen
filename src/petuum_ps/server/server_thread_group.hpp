@@ -6,7 +6,7 @@
 namespace petuum {
 class ServerThreadGroup {
 public:
-  ServerThreadGroup(int32_t server_id_st);
+  ServerThreadGroup();
   ~ServerThreadGroup();
 
   void Start();

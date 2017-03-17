@@ -3,9 +3,12 @@
 #include <petuum_ps/thread/context.hpp>
 
 namespace petuum {
-ServerThreadGroup::ServerThreadGroup(int32_t server_id_st_):
+ServerThreadGroup::ServerThreadGroup():
     server_thread_vec_(GlobalContext::get_num_comm_channels_per_client()) {
 
+  // we create barrier for n+1 threads (n=number of server threads we want to start).
+  // Thus, the next pthread_barrier wait will synchronize the current thread with all
+  // the server threads.
   pthread_barrier_init(&init_barrier_, NULL,
                        GlobalContext::get_num_comm_channels_per_client() + 1);
 

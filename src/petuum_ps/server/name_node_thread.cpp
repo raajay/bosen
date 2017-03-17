@@ -41,7 +41,7 @@ void NameNodeThread::SendToAllBgThreads(MsgBase *msg){
     size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
         bg_id, msg->get_mem(), msg->get_size());
     CHECK_EQ(sent_size, msg->get_size());
-  }
+ }
 }
 
 void NameNodeThread::SendToAllServers(MsgBase *msg){

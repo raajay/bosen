@@ -89,6 +89,19 @@ public:
     return (client_id_ == get_name_node_client_id());
   }
 
+  static bool am_i_scheduler_client() {
+    return (client_id_ == get_scheduler_client_id());
+  }
+
+  static int32_t get_scheduler_id() {
+    return kSchedulerThreadIDOffset;
+  }
+
+  static int32_t get_scheduler_client_id() {
+    // TODO : for now let us put the scheduler and name node together.
+    return 0;
+  }
+
   static int32_t get_bg_thread_id(int32_t client_id, int32_t comm_channel_idx) {
     return get_thread_id_min(client_id) + kBgThreadIDStartOffset
         + comm_channel_idx;
@@ -193,16 +206,26 @@ public:
 
     for (auto host_iter = host_map.begin();
          host_iter != host_map.end(); ++host_iter) {
+
       HostInfo host_info = host_iter->second;
+
+      // the base port num to use for the host
       int port_num = std::stoi(host_info.port, 0, 10);
 
-      if (host_iter->first == get_name_node_id()) {
+      if (host_iter->first == get_name_node_client_id()) {
         name_node_host_info_ = host_info;
 
         ++port_num;
         std::stringstream ss;
         ss << port_num;
         host_info.port = ss.str();
+      }
+
+      if(host_iter->first == get_scheduler_client_id()) {
+          scheduler_host_info_ = host_info;
+          // increment the port number that can be used for that client
+          ++port_num;
+          std::stringstream ss; ss << port_num; host_info.port = ss.str();
       }
 
       for (int i = 0; i < num_comm_channels_per_client_; ++i) {
@@ -268,6 +291,10 @@ public:
 
   static HostInfo get_name_node_info() {
     return name_node_host_info_;
+  }
+
+  static HostInfo get_scheduler_info() {
+      return scheduler_host_info_;
   }
 
   static const std::vector<int32_t> &get_all_server_ids() {
@@ -383,13 +410,15 @@ public:
   // server thread ids - 1~99
   // bg thread ids - 100~199
   // init thread id - 200
-  // app threads - 201~xxx
+  // app threads - 201~899
+  // scheduler thread - 900
 
   static const int32_t kMaxNumThreadsPerClient = 1000;
   // num of server + name node thread per node <= 100
-  static const int32_t kBgThreadIDStartOffset = 100;
+  static const int32_t kBgThreadIDStartOffset = 101;
   static const int32_t kInitThreadIDOffset = 200;
   static const int32_t kServerThreadIDStartOffset = 1;
+  static const int32_t kSchedulerThreadIDOffset = 900;
 private:
   static int32_t num_clients_;
 
