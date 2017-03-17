@@ -113,8 +113,7 @@ namespace petuum {
     // we expect connections from all bg workers
     int32_t num_expected_conns = GlobalContext::get_num_total_comm_channels();
 
-    for(int32_t num_connections = 0; num_connections < num_expected_conns;
-        ++num_connections) {
+    for(int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;
       bool is_client;
       int32_t sender_id = GetConnection(&is_client, &client_id);
