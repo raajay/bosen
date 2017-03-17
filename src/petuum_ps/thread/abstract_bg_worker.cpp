@@ -1005,6 +1005,7 @@ void *AbstractBgWorker::operator() () {
   InitCommBus();
 
   BgServerHandshake();
+  BgSchedulerHandshake();
 
   pthread_barrier_wait(init_barrier_);
 
