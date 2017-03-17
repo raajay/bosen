@@ -246,7 +246,7 @@ void AbstractBgWorker::InitCommBus() {
     int32_t scheduler_id = GlobalContext::get_scheduler_id();
     // this sends a ClientConnectMsg to the scheduler
     ConnectToScheduler();
-    VLOG(2) << "Send a connect request to Scheduler:" << scheduler_id;
+    VLOG(2) << "[thread:" << my_id_ << "] Send a connect request to the scheduler.";
 
     // wait for the scheduler to get back
     {
@@ -260,9 +260,8 @@ void AbstractBgWorker::InitCommBus() {
       MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
       CHECK_EQ(sender_id, scheduler_id);
       CHECK_EQ(msg_type, kConnectServer) << "sender_id = " << sender_id;
-      VLOG(2) << "Received a connect response from Scheduler:" << scheduler_id;
     }
-    VLOG(2) << "Completed handshake with Scheduler";
+    VLOG(2) << "[thread:" << my_id_ << "] Completed handshake with scheduler";
   }
 
 void AbstractBgWorker::BgServerHandshake() {
