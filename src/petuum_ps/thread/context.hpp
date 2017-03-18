@@ -18,6 +18,7 @@ namespace petuum {
 // In petuum PS, thread is treated as first-class citizen. Some globaly
 // shared thread information, such as ID, are stored in static variable to
 // avoid having passing some variables every where.
+
 class ThreadContext {
 public:
   static void RegisterThread(int32_t thread_id) {
@@ -61,76 +62,89 @@ private:
   // We do not use thread_local here because there's a bug in
   // g++ 4.8.1 or lower: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55800
   static __thread Info *thr_info_;
-};
+
+}; // class ThreadContext
 
 
-// Init must have "happens-before" relation with all other functions.
+// Init function must have "happens-before" relation with all other functions.
 // After Init(), accesses to all other functions are concurrent.
 class GlobalContext : boost::noncopyable {
 public:
-  // Functions that do not depend on Init()
+
+  // function does not depend on Init()
   static int32_t get_thread_id_min(int32_t client_id) {
-    return client_id*kMaxNumThreadsPerClient;
+    return client_id * kMaxNumThreadsPerClient;
   }
 
+  // function does not depend on Init()
   static int32_t get_thread_id_max(int32_t client_id) {
-    return (client_id + 1)*kMaxNumThreadsPerClient - 1;
+    return (client_id + 1) * kMaxNumThreadsPerClient - 1;
   }
 
+  // function does not depend on Init()
   static int32_t get_name_node_id() {
     return 0;
   }
 
+  // function does not depend on Init()
   static int32_t get_name_node_client_id() {
     return 0;
   }
 
-  static bool am_i_name_node_client() {
-    return (client_id_ == get_name_node_client_id());
-  }
-
-  static bool am_i_scheduler_client() {
-    return (client_id_ == get_scheduler_client_id());
-  }
-
+  // function does not depend on Init()
   static int32_t get_scheduler_id() {
     return kSchedulerThreadIDOffset;
   }
 
+  // function does not depend on Init()
   static int32_t get_scheduler_client_id() {
-    // TODO : for now let us put the scheduler and name node together.
-    return 0;
+    return 0; // namenode and scheduler are on the same node
   }
 
+  // depends on Init()
+  static bool am_i_name_node_client() {
+    return (client_id_ == get_name_node_client_id());
+  }
+
+  // depends on Init()
+  static bool am_i_scheduler_client() {
+    return (client_id_ == get_scheduler_client_id());
+  }
+
+  // function does not depend on Init()
   static int32_t get_bg_thread_id(int32_t client_id, int32_t comm_channel_idx) {
-    return get_thread_id_min(client_id) + kBgThreadIDStartOffset
-        + comm_channel_idx;
+    return get_thread_id_min(client_id) + kBgThreadIDStartOffset + comm_channel_idx;
   }
 
+  // function does not depend on Init()
   static int32_t get_head_bg_id(int32_t client_id) {
+    // the bg thread with index=0 is the head bg
     return get_bg_thread_id(client_id, 0);
   }
 
-  static int32_t get_server_thread_id(int32_t client_id,
-                                      int32_t comm_channel_idx) {
-    return get_thread_id_min(client_id) + kServerThreadIDStartOffset
-        + comm_channel_idx;
+  // function does not depend on Init()
+  static int32_t get_server_thread_id(int32_t client_id, int32_t comm_channel_idx) {
+    return get_thread_id_min(client_id) + kServerThreadIDStartOffset + comm_channel_idx;
   }
 
+  // depends on Init()
   static size_t get_server_row_candidate_factor() {
     return server_row_candidate_factor_;
   }
 
-  static void GetServerThreadIDs(int32_t comm_channel_idx,
-                                 std::vector<int32_t> *server_thread_ids) {
+  // depends on Init()
+  static void GetServerThreadIDs(int32_t comm_channel_idx, std::vector<int32_t> *server_thread_ids) {
     (*server_thread_ids).clear();
+    // TODO num_clients_ must be replaced by num_servers_ or rather just some
+    // container having the list of server clients.
     for (int32_t i = 0; i < num_clients_; ++i) {
       (*server_thread_ids).push_back(get_server_thread_id(i, comm_channel_idx));
     }
   }
 
+  // function does not depend on Init()
   static int32_t thread_id_to_client_id(int32_t thread_id) {
-    return thread_id/kMaxNumThreadsPerClient;
+    return thread_id / kMaxNumThreadsPerClient;
   }
 
   static int32_t get_serialized_table_separator() {
@@ -168,10 +182,8 @@ public:
       long server_idle_milli,
       int32_t server_row_candidate_factor) {
 
-    num_comm_channels_per_client_
-        = num_comm_channels_per_client;
-    num_total_comm_channels_
-        = num_comm_channels_per_client*num_clients;
+    num_comm_channels_per_client_ = num_comm_channels_per_client;
+    num_total_comm_channels_ = num_comm_channels_per_client*num_clients;
 
     num_app_threads_ = num_app_threads;
     num_table_threads_ = num_table_threads;
@@ -204,8 +216,7 @@ public:
 
     server_row_candidate_factor_ = server_row_candidate_factor;
 
-    for (auto host_iter = host_map.begin();
-         host_iter != host_map.end(); ++host_iter) {
+    for (auto host_iter = host_map.begin(); host_iter != host_map.end(); ++host_iter) {
 
       HostInfo host_info = host_iter->second;
 
@@ -239,8 +250,8 @@ public:
 
         server_ids_.push_back(server_id);
       }
-    }
-  }
+    } // end for over hosts
+  } // function Init()
 
   // Functions that depend on Init()
   static inline int32_t get_num_total_comm_channels() {
@@ -265,8 +276,7 @@ public:
 
   static inline int32_t get_head_table_thread_id() {
     int32_t init_thread_id = get_thread_id_min(client_id_) + kInitThreadIDOffset;
-    return (num_table_threads_ == num_app_threads_) ?
-        init_thread_id : init_thread_id + 1;
+    return (num_table_threads_ == num_app_threads_) ? init_thread_id : init_thread_id + 1;
   }
 
   static inline int32_t get_num_tables() {
@@ -282,10 +292,8 @@ public:
   }
 
   static HostInfo get_server_info(int32_t server_id) {
-    std::map<int32_t, HostInfo>::const_iterator iter
-      = server_map_.find(server_id);
-    CHECK(iter != server_map_.end()) << "id not found "
-                                     << server_id;
+    std::map<int32_t, HostInfo>::const_iterator iter = server_map_.find(server_id);
+    CHECK(iter != server_map_.end()) << "id not found " << server_id;
     return iter->second;
   }
 
@@ -314,15 +322,13 @@ public:
     return (row_id / num_comm_channels_per_client_) % num_clients_;
   }
 
-  static int32_t GetPartitionServerID(int32_t row_id,
-                                      int32_t comm_channel_idx) {
+  static int32_t GetPartitionServerID(int32_t row_id, int32_t comm_channel_idx) {
     int32_t client_id = GetPartitionClientID(row_id);
     return get_server_thread_id(client_id, comm_channel_idx);
   }
 
   static int32_t GetCommChannelIndexServer(int32_t server_id) {
-    int32_t index = server_id % kMaxNumThreadsPerClient
-                    - kServerThreadIDStartOffset;
+    int32_t index = server_id % kMaxNumThreadsPerClient - kServerThreadIDStartOffset;
     return index;
   }
 
@@ -345,15 +351,12 @@ public:
   // # locks in a StripedLock pool.
   static int32_t GetLockPoolSize() {
     static const int32_t kStripedLockExpansionFactor = 20;
-    return (num_app_threads_ + num_comm_channels_per_client_)
-        * kStripedLockExpansionFactor;
+    return (num_app_threads_ + num_comm_channels_per_client_) * kStripedLockExpansionFactor;
   }
 
   static int32_t GetLockPoolSize(size_t table_capacity) {
     static const int32_t kStripedLockReductionFactor = 1;
-    return (table_capacity <= 2*kStripedLockReductionFactor)
-        ? table_capacity
-        : table_capacity / kStripedLockReductionFactor;
+    return (table_capacity <= 2*kStripedLockReductionFactor) ? table_capacity : table_capacity / kStripedLockReductionFactor;
   }
 
   static int32_t get_snapshot_clock() {
@@ -419,6 +422,7 @@ public:
   static const int32_t kInitThreadIDOffset = 200;
   static const int32_t kServerThreadIDStartOffset = 1;
   static const int32_t kSchedulerThreadIDOffset = 900;
+
 private:
   static int32_t num_clients_;
 
@@ -462,6 +466,6 @@ private:
   static long server_idle_milli_;
 
   static int32_t server_row_candidate_factor_;
-};
+}; // class GlobalContext
 
 }   // namespace petuum
