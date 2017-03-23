@@ -11,6 +11,12 @@
 
 namespace petuum {
 
+  enum EntityType {
+    SERVER = 0,
+    WORKER = 1,
+    AGGREGATOR = 2
+  };
+
 enum ConsistencyModel {
   /**
    * Stale synchronous parallel.
