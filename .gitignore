@@ -71,6 +71,9 @@ GRTAGS
 # ycm config files
 .ycm_extra_conf*
 
+# sublime
+*.sublime-workspace
+
 # bin folders
 bin/
 
