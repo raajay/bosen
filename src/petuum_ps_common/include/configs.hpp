@@ -209,6 +209,16 @@ struct TableGroupConfig {
     ss << "  resume_clock: " << resume_clock << std::endl;
     ss << "  snapshot_dir: " << snapshot_dir << std::endl;
     ss << "  resume_dir: " << resume_dir << std::endl;
+    ss << "  ooc_path_prefix: " << ooc_path_prefix << std::endl;
+    ss << "  update_sort_policy: " << update_sort_policy << std::endl;
+    ss << "  bg_idle_milli: " << bg_idle_milli << std::endl;
+    ss << "  bandwidth_mbps: " << bandwidth_mbps << std::endl;
+    ss << "  oplog_push_upper_bound_kb: " << oplog_push_upper_bound_kb << std::endl;
+    ss << "  oplog_push_staleness_tolerance: " << oplog_push_staleness_tolerance << std::endl;
+    ss << "  thread_oplog_batch_size: " << thread_oplog_batch_size << std::endl;
+    ss << "  server_push_row_threshold: " << server_push_row_threshold << std::endl;
+    ss << "  server_idle_milli: " << server_idle_milli << std::endl;
+    ss << "  server_row_candidate_factor: " << server_row_candidate_factor << std::endl;
     return ss.str();
   }
 };

@@ -103,6 +103,9 @@ int main(int argc, char *argv[]) {
     table_group_config.snapshot_dir = FLAGS_snapshot_dir;
     table_group_config.resume_dir = FLAGS_resume_dir;
 
+    // display table group configuration
+    VLOG(0) << table_group_config.toString();
+
     // Configure Petuum PS tables
     petuum::PSTableGroup::RegisterRow<petuum::DenseRow<float> >(0);  // Register dense rows as ID 0
     petuum::PSTableGroup::Init(table_group_config, false);  // Initializing thread does not need table access
