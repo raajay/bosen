@@ -105,8 +105,9 @@ int main(int argc, char *argv[]) {
 
     // Configure Petuum PS tables
     petuum::PSTableGroup::RegisterRow<petuum::DenseRow<float> >(0);  // Register dense rows as ID 0
-
     petuum::PSTableGroup::Init(table_group_config, false);  // Initializing thread does not need table access
+
+
     // Common table settings
     petuum::ClientTableConfig table_config;
     table_config.table_info.row_type = 0; // Dense rows
@@ -152,7 +153,7 @@ int main(int argc, char *argv[]) {
     int cnter=0;
     while(true){
         infile>>data_file>>num_train_data;
-        std::cout << data_file << "    " << num_train_data << std::endl;
+        //std::cout << data_file << "    " << num_train_data << std::endl;
         if(FLAGS_client_id<=cnter)
             break;
         cnter++;
@@ -164,13 +165,15 @@ int main(int argc, char *argv[]) {
     VLOG(0) << "Number of app workers = " << FLAGS_num_worker_threads;
     VLOG(0) << "Staleness value = " << FLAGS_staleness;
     VLOG(0) << "Clock = " << ((table_group_config.aggressive_clock) ? "Aggressive" : "Conservative");
+    VLOG(0) << "Data file = " << data_file;
+    VLOG(0) << "Size of training data = " << num_train_data;
 
     //run dnn
     dnn mydnn(para,FLAGS_client_id, FLAGS_num_worker_threads, FLAGS_staleness,num_train_data);
     //load data
-    std::cout<<"client "<<FLAGS_client_id<<" starts to load "<<num_train_data<<" data from "<<data_file<<std::endl;
+    VLOG(0)<<"client "<<FLAGS_client_id<<" starts to load "<<num_train_data<<" data from "<<data_file;
     mydnn.load_data(data_file);
-    std::cout<<"client "<<FLAGS_client_id<<" load data ends"<<std::endl;
+    VLOG(0)<<"client "<<FLAGS_client_id<<" load data ends.";
 
 
     boost::thread_group worker_threads;
@@ -181,7 +184,8 @@ int main(int argc, char *argv[]) {
     petuum::PSTableGroup::WaitThreadRegister();
     worker_threads.join_all();
 
-    VLOG(1) << "All application threads on client:"<< FLAGS_client_id << "(except main) have completed";
+    VLOG(0) << "All application threads on client:"<< FLAGS_client_id << "(except main) have completed";
+
     if(FLAGS_client_id == 0) {
       std::cout<<"DNN training ends."<<std::endl;
     }

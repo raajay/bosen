@@ -188,6 +188,29 @@ struct TableGroupConfig {
   long server_idle_milli;
 
   long server_row_candidate_factor;
+
+  /**
+   * Stringify table group configs
+   */
+  std::string toString() {
+    std::stringstream ss;
+    ss << "TableGroupConfig:" << std::endl;
+    ss << "  num_comm_channels_per_client: " << num_comm_channels_per_client << std::endl;
+    ss << "  num_tables: " << num_tables << std::endl;
+    ss << "  num_total_clients: " << num_total_clients  << std::endl;
+    ss << "  num_local_app_threads: " << num_local_app_threads << std::endl;
+    ss << "  client_id: " << client_id << std::endl;
+    ss << "  entity_type: " << entity_type << std::endl;
+    ss << "  aggressive_clock: " << aggressive_clock << std::endl;
+    ss << "  consistency_model: " << consistency_model << std::endl;
+    ss << "  aggressive_cpu: " << aggressive_cpu << std::endl;
+    ss << "  server_ring_size: " << server_ring_size << std::endl;
+    ss << "  snapshot_clock: " << snapshot_clock << std::endl;
+    ss << "  resume_clock: " << resume_clock << std::endl;
+    ss << "  snapshot_dir: " << snapshot_dir << std::endl;
+    ss << "  resume_dir: " << resume_dir << std::endl;
+    return ss.str();
+  }
 };
 
 /**
