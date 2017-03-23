@@ -123,6 +123,11 @@ struct TableGroupConfig {
   int32_t client_id;
 
   /**
+   * My client type.
+   */
+  EntityType entity_type;
+
+  /**
    * If set to true, oplog send is triggered on every Clock() call.
    * If set to false, oplog is only sent if the process clock (representing all
    * app threads) has advanced.
@@ -132,7 +137,14 @@ struct TableGroupConfig {
    */
   bool aggressive_clock;
 
+  /**
+   * The type of consistency between workers. Currently, only support SSP
+   */
   ConsistencyModel consistency_model;
+
+  /**
+   * Determines the wait time on polling?
+   */
   int32_t aggressive_cpu;
 
   /**
