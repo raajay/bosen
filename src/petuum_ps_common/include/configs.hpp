@@ -14,7 +14,8 @@ namespace petuum {
   enum EntityType {
     SERVER = 0,
     WORKER = 1,
-    AGGREGATOR = 2
+    AGGREGATOR = 2,
+    ALL = 3
   };
 
 enum ConsistencyModel {
