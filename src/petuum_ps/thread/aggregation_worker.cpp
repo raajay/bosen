@@ -5,8 +5,8 @@ namespace petuum {
                                          pthread_barrier_t *init_barrier) :
     my_id_(id),
     my_comm_channel_idx_(comm_channel_idx),
-    init_barrier_(init_barrier),
-    comm_bus_(nullptr) {}
+    comm_bus_(nullptr),
+    init_barrier_(init_barrier) {}
 
 
   size_t AggregationWorker :: SendMsg(MsgBase *msg) {
