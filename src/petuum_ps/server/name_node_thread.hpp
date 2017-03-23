@@ -49,7 +49,7 @@ private:
     }
 
     bool RepliedToAllClients() const {
-      return (num_clients_replied_ == GlobalContext::get_num_clients());
+      return (num_clients_replied_ == GlobalContext::get_num_worker_clients());
     }
   };
 

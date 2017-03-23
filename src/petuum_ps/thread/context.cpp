@@ -24,6 +24,12 @@ std::map<int32_t, HostInfo> GlobalContext::server_map_;
 
 std::vector<int32_t> GlobalContext::server_ids_;
 
+std::vector<int32_t> GlobalContext::server_clients_;
+
+std::vector<int32_t> GlobalContext::worker_clients_;
+
+std::vector<int32_t> GlobalContext::aggregator_clients_;
+
 HostInfo GlobalContext::name_node_host_info_;
 
   HostInfo GlobalContext::scheduler_host_info_;

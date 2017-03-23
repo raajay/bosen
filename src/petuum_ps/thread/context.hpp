@@ -71,78 +71,45 @@ namespace petuum {
   class GlobalContext : boost::noncopyable {
   public:
 
-    // function does not depend on Init()
+    // ************** START -- Functions that DO NOT depend on Init()
+
     static int32_t get_thread_id_min(int32_t client_id) {
       return client_id * kMaxNumThreadsPerClient;
     }
 
-    // function does not depend on Init()
     static int32_t get_thread_id_max(int32_t client_id) {
       return (client_id + 1) * kMaxNumThreadsPerClient - 1;
     }
 
-    // function does not depend on Init()
     static int32_t get_name_node_id() {
       return 0;
     }
 
-    // function does not depend on Init()
     static int32_t get_name_node_client_id() {
-      return 0;
+      return kNameNodeClientId;
     }
 
-    // function does not depend on Init()
     static int32_t get_scheduler_id() {
       return kSchedulerThreadIDOffset;
     }
 
-    // function does not depend on Init()
     static int32_t get_scheduler_client_id() {
-      return 0; // namenode and scheduler are on the same node
+      return kSchedulerClientId;
     }
 
-    // depends on Init()
-    static bool am_i_name_node_client() {
-      return (client_id_ == get_name_node_client_id());
-    }
-
-    // depends on Init()
-    static bool am_i_scheduler_client() {
-      return (client_id_ == get_scheduler_client_id());
-    }
-
-    // function does not depend on Init()
     static int32_t get_bg_thread_id(int32_t client_id, int32_t comm_channel_idx) {
       return get_thread_id_min(client_id) + kBgThreadIDStartOffset + comm_channel_idx;
     }
 
-    // function does not depend on Init()
     static int32_t get_head_bg_id(int32_t client_id) {
       // the bg thread with index=0 is the head bg
       return get_bg_thread_id(client_id, 0);
     }
 
-    // function does not depend on Init()
     static int32_t get_server_thread_id(int32_t client_id, int32_t comm_channel_idx) {
       return get_thread_id_min(client_id) + kServerThreadIDStartOffset + comm_channel_idx;
     }
 
-    // depends on Init()
-    static size_t get_server_row_candidate_factor() {
-      return server_row_candidate_factor_;
-    }
-
-    // depends on Init()
-    static void GetServerThreadIDs(int32_t comm_channel_idx, std::vector<int32_t> *server_thread_ids) {
-      (*server_thread_ids).clear();
-      // TODO num_clients_ must be replaced by num_servers_ or rather just some
-      // container having the list of server clients.
-      for (int32_t i = 0; i < num_clients_; ++i) {
-        (*server_thread_ids).push_back(get_server_thread_id(i, comm_channel_idx));
-      }
-    }
-
-    // function does not depend on Init()
     static int32_t thread_id_to_client_id(int32_t thread_id) {
       return thread_id / kMaxNumThreadsPerClient;
     }
@@ -154,6 +121,22 @@ namespace petuum {
     static int32_t get_serialized_table_end() {
       return -2;
     }
+
+    static int32_t is_server_client(int32_t client_id) {
+      return client_id >= kServerClientMinId && client_id <= kServerClientMaxId;
+    }
+
+     static int32_t is_worker_client(int32_t client_id) {
+      return client_id >= kWorkerClientMinId && client_id <= kWorkerClientMaxId;
+     }
+
+     static int32_t is_aggregator_client(int32_t client_id) {
+      return client_id >= kAggregatorClientMinId && client_id <= kAggregatorClientMaxId;
+     }
+
+
+    // ************** END -- Functions that DO NOT depend on Init()
+
 
     // "server" is different from name node.
     // Name node is not considered as server.
@@ -184,39 +167,44 @@ namespace petuum {
 
       num_comm_channels_per_client_ = num_comm_channels_per_client;
       num_total_comm_channels_ = num_comm_channels_per_client*num_clients;
-
       num_app_threads_ = num_app_threads;
       num_table_threads_ = num_table_threads;
       num_tables_ = num_tables;
       num_clients_ = num_clients;
       host_map_ = host_map;
-
       client_id_ = client_id;
       server_ring_size_ = server_ring_size;
       consistency_model_ = consistency_model;
-
       local_id_min_ = get_thread_id_min(client_id);
       aggressive_cpu_ = aggressive_cpu;
-
       snapshot_clock_ = snapshot_clock;
       snapshot_dir_ = snapshot_dir;
       resume_clock_ = resume_clock;
       resume_dir_ = resume_dir;
       update_sort_policy_ = update_sort_policy;
       bg_idle_milli_ = bg_idle_milli;
-
       bandwidth_mbps_ = bandwidth_mbps;
       oplog_push_upper_bound_kb_ = oplog_push_upper_bound_kb;
       oplog_push_staleness_tolerance_ = oplog_push_staleness_tolerance;
       thread_oplog_batch_size_ = thread_oplog_batch_size;
-
       server_push_row_threshold_ = server_push_row_threshold;
-
       server_idle_milli_ = server_idle_milli;
-
       server_row_candidate_factor_ = server_row_candidate_factor;
 
+      // process host map information
       for (auto host_iter = host_map.begin(); host_iter != host_map.end(); ++host_iter) {
+
+        if(is_server_client(host_iter->first)) {
+          server_clients_.push_back(host_iter->first);
+        }
+
+        if(is_worker_client(host_iter->first)) {
+          worker_clients_.push_back(host_iter->first);
+        }
+
+        if(is_aggregator_client(host_iter->first)) {
+          aggregator_clients_.push_back(host_iter->first);
+        }
 
         HostInfo host_info = host_iter->second;
 
@@ -239,6 +227,9 @@ namespace petuum {
           host_info.port = ss.str();
         }
 
+        if(!is_server_client(host_iter->first)) {
+          continue;
+        }
         // update server host info
         for (int i = 0; i < num_comm_channels_per_client_; ++i) {
           int32_t server_id = get_server_thread_id(host_iter->first, i);
@@ -252,7 +243,48 @@ namespace petuum {
       } // end for -- over hosts
     } // end function -- Init()
 
-    // Functions that depend on Init()
+
+    // ********* START - Functions that depend on Init()
+
+    static bool am_i_name_node_client() {
+      return (client_id_ == get_name_node_client_id());
+    }
+
+    static bool am_i_scheduler_client() {
+      return (client_id_ == get_scheduler_client_id());
+    }
+
+    static bool am_i_server_client() {
+      return is_server_client(client_id_);
+    }
+
+    static bool am_i_worker_client() {
+      return is_worker_client(client_id_);
+    }
+
+    static bool am_i_aggregator_client() {
+      return is_aggregator_client(client_id_);
+    }
+
+    static size_t get_server_row_candidate_factor() {
+      return server_row_candidate_factor_;
+    }
+
+    /**
+     * Get the server thread ids on a particular channel across all clients.
+     * Each BgWorker will connect to server threads on its own channel.
+     */
+    static void GetServerThreadIDs(int32_t comm_channel_idx, std::vector<int32_t> *server_thread_ids) {
+      (*server_thread_ids).clear();
+      for(auto server_client_id : server_clients_) {
+        (*server_thread_ids).push_back(get_server_thread_id(server_client_id, comm_channel_idx));
+      }
+      // for (int32_t i = 0; i < num_clients_; ++i) {
+      //   (*server_thread_ids).push_back(get_server_thread_id(i, comm_channel_idx));
+      // }
+    }
+
+    // TODO: this has to be deprecated
     static inline int32_t get_num_total_comm_channels() {
       return num_total_comm_channels_;
     }
@@ -264,6 +296,14 @@ namespace petuum {
     // total number of application threads including init thread
     static inline int32_t get_num_app_threads() {
       return num_app_threads_;
+    }
+
+    static inline int32_t get_num_total_bg_threads() {
+      return get_num_comm_channels_per_client() * get_num_worker_clients();
+    }
+
+    static inline int32_t get_num_total_server_threads() {
+      return server_ids_.size();
     }
 
     // Total number of application threads that needs table access
@@ -286,8 +326,17 @@ namespace petuum {
       return num_clients_;
     }
 
+    static int32_t get_num_server_clients() {
+      return server_clients_.size();
+    }
+
+    static int32_t get_num_worker_clients() {
+      return worker_clients_.size();
+    }
+
     static int32_t get_num_total_servers() {
-      return num_comm_channels_per_client_ * num_clients_;
+      // this is the same as get_num_total_server_threads. TODO refactor
+      return num_comm_channels_per_client_ * server_clients_.size();
     }
 
     static HostInfo get_server_info(int32_t server_id) {
@@ -316,13 +365,9 @@ namespace petuum {
       return row_id % num_comm_channels_per_client_;
     }
 
-    // get the id of the server who is responsible for holding that row
-    static int32_t GetPartitionClientID(int32_t row_id) {
-      return (row_id / num_comm_channels_per_client_) % num_clients_;
-    }
-
+    // TODO: fix this
     static int32_t GetPartitionServerID(int32_t row_id, int32_t comm_channel_idx) {
-      int32_t client_id = GetPartitionClientID(row_id);
+      int32_t client_id = GetPartitionClientID(row_id); // use a private helper function
       return get_server_thread_id(client_id, comm_channel_idx);
     }
 
@@ -406,6 +451,9 @@ namespace petuum {
       return server_idle_milli_;
     }
 
+    // ********* END - Functions that depend on Init()
+
+
     static CommBus* comm_bus;
 
     // name node thread id - 0
@@ -416,55 +464,66 @@ namespace petuum {
     // scheduler thread - 900
 
     static const int32_t kMaxNumThreadsPerClient = 1000;
-    // num of server + name node thread per node <= 100
+    // num of server + name node threads per node <= 100
     static const int32_t kBgThreadIDStartOffset = 101;
     static const int32_t kInitThreadIDOffset = 200;
     static const int32_t kServerThreadIDStartOffset = 1;
+
     static const int32_t kSchedulerThreadIDOffset = 900;
 
-  private:
-    static int32_t num_clients_;
+    static const int32_t kNameNodeClientId = 0;
+    static const int32_t kSchedulerClientId = 0;
+    static const int32_t kServerClientMinId = 1;
+    static const int32_t kServerClientMaxId = 100;
+    static const int32_t kWorkerClientMinId = 101;
+    static const int32_t kWorkerClientMaxId = 200;
+    static const int32_t kAggregatorClientMinId = 201;
+    static const int32_t kAggregatorClientMaxId = 300;
 
+
+
+  private:
+    // private functions
+    // get the id of the server who is responsible for holding that row
+    static int32_t GetPartitionClientID(int32_t row_id) {
+      int index = (row_id / num_comm_channels_per_client_) % server_clients_.size();
+      return server_clients_[index];
+    }
+
+    // private variables
+    static int32_t client_id_;
+    static int32_t num_clients_;
     static int32_t num_comm_channels_per_client_;
     static int32_t num_total_comm_channels_;
-
-
     static int32_t num_app_threads_;
     static int32_t num_table_threads_;
     static int32_t num_tables_;
-
-    static std::map<int32_t, HostInfo> host_map_;
-    static std::map<int32_t, HostInfo> server_map_;
-    static HostInfo name_node_host_info_;
-    static HostInfo scheduler_host_info_;
-    static std::vector<int32_t> server_ids_;
-
-    static int32_t client_id_;
     static int32_t server_ring_size_;
-
     static ConsistencyModel consistency_model_;
     static int32_t local_id_min_;
     static bool aggressive_cpu_;
-
     static int32_t snapshot_clock_;
     static std::string snapshot_dir_;
     static int32_t resume_clock_;
     static std::string resume_dir_;
     static UpdateSortPolicy update_sort_policy_;
     static long bg_idle_milli_;
-
     static double bandwidth_mbps_;
     static size_t oplog_push_upper_bound_kb_;
     static int32_t oplog_push_staleness_tolerance_;
-
     static size_t thread_oplog_batch_size_;
     static size_t server_oplog_push_batch_size_;
-
     static size_t server_push_row_threshold_;
-
     static long server_idle_milli_;
-
     static int32_t server_row_candidate_factor_;
+    static std::map<int32_t, HostInfo> host_map_;
+    static std::map<int32_t, HostInfo> server_map_;
+    static HostInfo name_node_host_info_;
+    static HostInfo scheduler_host_info_;
+    static std::vector<int32_t> server_ids_;
+    static std::vector<int32_t> server_clients_;
+    static std::vector<int32_t> worker_clients_;
+    static std::vector<int32_t> aggregator_clients_;
   }; // class GlobalContext
 
 }   // namespace petuum

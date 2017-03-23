@@ -270,7 +270,7 @@ void AbstractBgWorker::BgServerHandshake() {
     int32_t name_node_id = GlobalContext::get_name_node_id();
     ConnectToNameNodeOrServer(name_node_id);
 
-    // wait for ConnectServerMsg
+    // wait for ConnectServerMsg from NameNode
     zmq::message_t zmq_msg;
     int32_t sender_id;
     if (comm_bus_->IsLocalEntity(name_node_id)) {
@@ -295,7 +295,7 @@ void AbstractBgWorker::BgServerHandshake() {
     int32_t num_started_servers = 0;
     for (num_started_servers = 0;
          // receive from all servers and name node
-         num_started_servers < GlobalContext::get_num_clients() + 1;
+         num_started_servers < GlobalContext::get_num_server_clients() + 1;
          ++num_started_servers) {
       zmq::message_t zmq_msg;
       int32_t sender_id;
@@ -303,6 +303,7 @@ void AbstractBgWorker::BgServerHandshake() {
       MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
 
       CHECK_EQ(msg_type, kClientStart);
+      VLOG(2) << "[thread:" << my_id_ << "] Received ClientStart from server:" << sender_id;
     }
   }
 }
@@ -1087,7 +1088,7 @@ void *AbstractBgWorker::operator() () {
         {
           ++num_shutdown_acked_servers;
           if (num_shutdown_acked_servers
-              == GlobalContext::get_num_clients() + 1) {
+              == GlobalContext::get_num_server_clients() + 1) {
 	    comm_bus_->ThreadDeregister();
             STATS_DEREGISTER_THREAD();
 	    return 0;

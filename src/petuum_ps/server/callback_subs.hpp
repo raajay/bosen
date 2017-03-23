@@ -35,6 +35,7 @@ public:
     return bit_changed;
   }
 
+//TODO: this needs fixing, do get_num_clients here mean the servers/workers
   bool AppendRowToBuffs(
       int32_t client_id_st,
       boost::unordered_map<int32_t, RecordBuff> *buffs,
@@ -57,6 +58,7 @@ public:
     return true;
   }
 
+//TODO: this needs fixing, do get_num_clients here mean the servers/workers
   void AccumSerializedSizePerClient(
       boost::unordered_map<int32_t, size_t> *client_size_map,
       size_t serialized_size) {

@@ -8,7 +8,17 @@
                 
             ],
             "folder_exclude_patterns": [
-                
+                ".idea",
+                "third_party",
+                "app/NMF",
+                "app/demo",
+                "app/dml",
+                "app/dnn_speech",
+                "app/kmeans",
+                "app/lda",
+                "app/mlr",
+                "app/rand_forest",
+                "app/sparsecoding"
             ]
         }
     ],

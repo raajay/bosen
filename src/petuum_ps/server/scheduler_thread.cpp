@@ -12,9 +12,11 @@ namespace petuum {
     my_id_(GlobalContext::get_scheduler_id()), // the id of the scheduler is by default 900
     init_barrier_(init_barrier),
     comm_bus_(GlobalContext::comm_bus),
-    bg_worker_ids_(GlobalContext::get_num_total_comm_channels())
+    bg_worker_ids_(GlobalContext::get_num_total_bg_threads())
   {
   }
+
+
 
   /*
    * operator(): The entry point for the main function for all threads.
@@ -51,6 +53,8 @@ namespace petuum {
     }
   }
 
+
+
   /*
    * SetupCommBus: Register the thread with comm_bus and use it for all further
    * communications.
@@ -74,6 +78,8 @@ namespace petuum {
     std::cout << "The scheduler is up and running!" << std::endl;
   }
 
+
+
   /*
    * GetConnection: Receive a connection initiating message from background threads.
    */
@@ -93,6 +99,8 @@ namespace petuum {
     return sender_id;
   }
 
+
+
   /*
    * SendToAllBgThreads: A utility function to broadcast message to all background threads.
    */
@@ -104,15 +112,15 @@ namespace petuum {
     }
   }
 
+
+
   /*
    * InitScheduler completes the handshake with all the background worker threads.
    */
   void SchedulerThread::InitScheduler() {
-    int32_t num_bgs = 0; // total number of background workers seen
-
-    // we expect connections from all bg workers
-    int32_t num_expected_conns = GlobalContext::get_num_total_comm_channels();
-
+    // we expect connections from all bg workers threads on all clients
+    int32_t num_expected_conns = GlobalContext::get_num_total_bg_threads();
+    int32_t num_bgs = 0; // total number of background worker threads seen                              
     for(int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;
       bool is_client;
@@ -122,12 +130,13 @@ namespace petuum {
       }
     }
 
-    CHECK_EQ(num_bgs, GlobalContext::get_num_total_comm_channels());
-    VLOG(2) << "Received connect request from " << bg_worker_ids_.size() << " bg worker threads.";
+    CHECK_EQ(num_bgs, GlobalContext::get_num_total_bg_threads());
+    VLOG(2) << "Received connect request from " << num_bgs << " bg worker threads.";
 
     ConnectServerMsg connect_server_msg;
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&connect_server_msg));
   }
+
 
 
   bool SchedulerThread::HandlePreTransmitPing() {

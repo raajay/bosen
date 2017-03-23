@@ -14,8 +14,7 @@ NameNodeThread::NameNodeThread(pthread_barrier_t *init_barrier):
     my_id_(0),
     init_barrier_(init_barrier),
     comm_bus_(GlobalContext::comm_bus),
-    bg_worker_ids_(GlobalContext::get_num_clients()
-                   *GlobalContext::get_num_comm_channels_per_client()),
+    bg_worker_ids_(GlobalContext::get_num_total_bg_threads()),
     num_shutdown_bgs_(0) {
 }
 
@@ -56,10 +55,11 @@ void NameNodeThread::SendToAllServers(MsgBase *msg){
 void NameNodeThread::InitNameNode() {
   int32_t num_bgs = 0;
   int32_t num_servers = 0;
-  int32_t num_expected_conns = 2*GlobalContext::get_num_total_comm_channels();
-
-  for (int32_t num_connections = 0; num_connections < num_expected_conns;
-    ++num_connections) {
+  //int32_t num_expected_conns = 2*GlobalContext::get_num_total_comm_channels();
+  int32_t num_expected_conns = (GlobalContext::get_num_total_bg_threads() + 
+                                GlobalContext::get_num_total_server_threads()); 
+    
+  for (int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
     int32_t client_id;
     bool is_client;
     int32_t sender_id = GetConnection(&is_client, &client_id);
@@ -71,9 +71,10 @@ void NameNodeThread::InitNameNode() {
     }
   }
 
-  CHECK_EQ(num_bgs, GlobalContext::get_num_total_comm_channels());
+  CHECK_EQ(num_bgs, GlobalContext::get_num_total_bg_threads());
   server_obj_.Init(0, bg_worker_ids_);
 
+  // Note that we send two types of messages to the bg worker threads
   ConnectServerMsg connect_server_msg;
   SendToAllBgThreads(reinterpret_cast<MsgBase*>(&connect_server_msg));
 
@@ -93,12 +94,15 @@ bool NameNodeThread::HaveCreatedAllTables() {
   return true;
 }
 
+
+/**
+ * Once all the tables are created at the server, we notify
+ * all the workers the success notification.
+ */
 void NameNodeThread::SendCreatedAllTablesMsg() {
   CreatedAllTablesMsg created_all_tables_msg;
-  int32_t num_clients = GlobalContext::get_num_clients();
-
-  for (int client_idx = 0; client_idx < num_clients; ++client_idx) {
-
+  int32_t num_worker_clients = GlobalContext::get_num_worker_clients();
+  for (int client_idx = 0; client_idx < num_worker_clients; ++client_idx) {
     int32_t head_bg_id = GlobalContext::get_head_bg_id(client_idx);
     size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
         head_bg_id, created_all_tables_msg.get_mem(),
@@ -107,29 +111,35 @@ void NameNodeThread::SendCreatedAllTablesMsg() {
   }
 }
 
+
 bool NameNodeThread::HandleShutDownMsg() {
   // When num_shutdown_bgs reaches the total number of bg threads, the server
   // reply to each bg with a ShutDownReply message
   ++num_shutdown_bgs_;
-  if(num_shutdown_bgs_ == GlobalContext::get_num_total_comm_channels()){
+  if(num_shutdown_bgs_ == GlobalContext::get_num_total_bg_threads()) {
     ServerShutDownAckMsg shut_down_ack_msg;
     size_t msg_size = shut_down_ack_msg.get_size();
-    int i;
-    for(i = 0; i < GlobalContext::get_num_total_comm_channels(); ++i){
+
+    for(int i = 0; i < GlobalContext::get_num_total_bg_threads(); ++i){
       int32_t bg_id = bg_worker_ids_[i];
       size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
           bg_id, shut_down_ack_msg.get_mem(), msg_size);
       CHECK_EQ(msg_size, sent_size);
     }
+
     return true;
   }
   return false;
 }
 
+
 void NameNodeThread::HandleCreateTable (int32_t sender_id,
   CreateTableMsg &create_table_msg) {
   int32_t table_id = create_table_msg.get_table_id();
+
+
   if (create_table_map_.count(table_id) == 0) {
+    // create a new TableInfo if this the first request for the table.
     TableInfo table_info;
     table_info.table_staleness = create_table_msg.get_staleness();
     table_info.row_type = create_table_msg.get_row_type();
@@ -137,6 +147,7 @@ void NameNodeThread::HandleCreateTable (int32_t sender_id,
     table_info.oplog_dense_serialized = create_table_msg.get_oplog_dense_serialized();
     table_info.row_oplog_type = create_table_msg.get_row_oplog_type();
     table_info.dense_row_oplog_capacity = create_table_msg.get_dense_row_oplog_capacity();
+
     VLOG(5) << "Calling CreateTable from instantiation of Server("
         << &server_obj_ << ") for table=" << table_id << " in name_node_thread";
     server_obj_.CreateTable(table_id, table_info);
@@ -144,7 +155,10 @@ void NameNodeThread::HandleCreateTable (int32_t sender_id,
     create_table_map_.insert(std::make_pair(table_id, CreateTableInfo())); // access it to call default constructor
     SendToAllServers(reinterpret_cast<MsgBase*>(&create_table_msg));
   }
+
+
   if (create_table_map_[table_id].ReceivedFromAllServers()) {
+    // if the current table is already created, let the bg worker know that.
     CreateTableReplyMsg create_table_reply_msg;
     create_table_reply_msg.get_table_id() = create_table_msg.get_table_id();
     size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
@@ -152,13 +166,20 @@ void NameNodeThread::HandleCreateTable (int32_t sender_id,
         create_table_reply_msg.get_size());
     CHECK_EQ(sent_size, create_table_reply_msg.get_size());
     ++create_table_map_[table_id].num_clients_replied_;
-    if (HaveCreatedAllTables())
+
+    if (HaveCreatedAllTables()) {
       SendCreatedAllTablesMsg();
+    }
+
   } else {
     // to be sent later
     create_table_map_[table_id].bgs_to_reply_.push(sender_id);
   }
-}
+
+
+} // end function -- HandleCreateTable
+
+
 
 void NameNodeThread::HandleCreateTableReply(
   CreateTableReplyMsg &create_table_reply_msg){
@@ -178,10 +199,15 @@ void NameNodeThread::HandleCreateTableReply(
       CHECK_EQ(sent_size, create_table_reply_msg.get_size());
       ++create_table_map_[table_id].num_clients_replied_;
     }
-    if (HaveCreatedAllTables())
+
+    if (HaveCreatedAllTables()) {
       SendCreatedAllTablesMsg();
+    }
+
   }
 }
+
+
 
 void NameNodeThread::SetUpCommBus() {
   CommBus::Config comm_config;
@@ -198,6 +224,8 @@ void NameNodeThread::SetUpCommBus() {
   comm_bus_->ThreadRegister(comm_config);
   std::cout << "NameNode is ready to accept connections!" << std::endl;
 }
+
+
 
 void *NameNodeThread::operator() () {
   ThreadContext::RegisterThread(my_id_);
