@@ -247,10 +247,10 @@ namespace petuum {
           std::stringstream ss; ss << port_num;
           host_info.port = ss.str();
           server_ids_.push_back(server_id);
-        }
+        } // end for -- over number of comm channels
 
-      } // end for over hosts
-    } // function Init()
+      } // end for -- over hosts
+    } // end function -- Init()
 
     // Functions that depend on Init()
     static inline int32_t get_num_total_comm_channels() {
