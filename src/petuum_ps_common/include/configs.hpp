@@ -64,6 +64,7 @@ struct TableGroupConfig {
       num_tables(1),
       num_total_clients(1),
       num_local_app_threads(2),
+      entity_type(ALL), // by default all the clients have server and worker threads
       aggressive_clock(false),
       aggressive_cpu(false),
       snapshot_clock(-1),
