@@ -194,12 +194,13 @@ int main(int argc, char *argv[]) {
       VLOG(0) << "DNN training ends." << std::endl;
     }
 
-  } else { // if -- am i worker client
+  } else { // corresponding if -- am i worker client
     // if this process is just the namenode/scheduler (or) server, we should pause.
-
   }
 
-  // Cleanup and output runtime
+  // Cleanup and output runtime. Shutdown will block until all the spawned
+  // threads (server threads, bg threads, namenode threads) terminate. This is
+  // required because we do not want the process to terminate.
   petuum::PSTableGroup::ShutDown();
 
   return 0;
