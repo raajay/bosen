@@ -85,6 +85,7 @@ public:
       --num_clients_subscribed_;
   }
 
+  /*
   bool AppendRowToBuffs(int32_t client_id_st,
     boost::unordered_map<int32_t, RecordBuff> *buffs,
     const void *row_data, size_t row_size, int32_t row_id,
@@ -92,6 +93,7 @@ public:
     return callback_subs_.AppendRowToBuffs(client_id_st, buffs, row_data,
       row_size, row_id, failed_client_id);
   }
+  */
 
   bool IsDirty() {
     return dirty_;
@@ -101,18 +103,22 @@ public:
     dirty_ = false;
   }
 
+  /*
   void AccumSerializedSizePerClient(
       boost::unordered_map<int32_t, size_t> *client_size_map) {
     callback_subs_.AccumSerializedSizePerClient(
         client_size_map, SerializedSize());
   }
+  */
 
+  /*
   void AppendRowToBuffs(
       boost::unordered_map<int32_t, RecordBuff> *buffs,
       const void *row_data, size_t row_size, int32_t row_id) {
     callback_subs_.AppendRowToBuffs(buffs, row_data,
       row_size, row_id);
   }
+  */
 
   double get_importance() {
     return importance_;

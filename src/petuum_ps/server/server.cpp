@@ -183,20 +183,18 @@ namespace petuum {
     return bg_version_map_[bg_thread_id];
   }
 
+  /* -- Removed since we do not support SSPPush for now
   size_t Server::CreateSendServerPushRowMsgs(PushMsgSendFunc PushMsgSend,
                                              bool clock_changed) {
+    // the below maps are indexed by actual client id's as opposed to client index
     boost::unordered_map<int32_t, RecordBuff> buffs;
     boost::unordered_map<int32_t, ServerPushRowMsg*> msg_map;
 
     accum_oplog_count_ = 0;
-
     size_t accum_send_bytes = 0;
-
-    int32_t comm_channel_idx
-      = GlobalContext::GetCommChannelIndexServer(server_id_);
+    int32_t comm_channel_idx = GlobalContext::GetCommChannelIndexServer(server_id_);
 
     // Create a message for each bg thread
-    // TODO this needs to be replaced by the worker clients
     for(auto client_id : GlobalContext::get_worker_client_ids()) {
       ServerPushRowMsg *msg = new ServerPushRowMsg(push_row_msg_data_size_);
       msg_map[client_id] = msg;
@@ -204,6 +202,7 @@ namespace petuum {
                                   RecordBuff(msg->get_data(), push_row_msg_data_size_)));
     }
 
+    // send data from all tables (we will conditionally send rows)
     int32_t num_tables_left = GlobalContext::get_num_tables();
     for (auto table_iter = tables_.begin(); table_iter != tables_.end(); table_iter++) {
 
@@ -284,7 +283,10 @@ namespace petuum {
     }
     return accum_send_bytes;
   }
+  */
 
+
+  /* -- Removed since we do not support SSPPush
   size_t Server::CreateSendServerPushRowMsgsPartial(
                                                     PushMsgSendFunc PushMsgSend) {
     boost::unordered_map<int32_t, RecordBuff> buffs;
@@ -302,9 +304,7 @@ namespace petuum {
       = GlobalContext::GetCommChannelIndexServer(server_id_);
 
     // Create a message for each bg thread
-    int32_t client_id = 0;
-    for (client_id = 0;
-         client_id < GlobalContext::get_num_clients(); ++client_id) {
+    for (auto client_id : GlobalContext::get_worker_client_ids()) {
       client_buff_size[client_id] = 0;
     }
 
@@ -403,6 +403,7 @@ namespace petuum {
 
     return accum_send_bytes;
   }
+  */
 
   bool Server::AccumedOpLogSinceLastPush() {
     return accum_oplog_count_ > 0;

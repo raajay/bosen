@@ -9,6 +9,7 @@
 
 namespace petuum {
 
+  /*
 bool ServerTable::AppendTableToBuffs(
     int32_t client_id_st,
     boost::unordered_map<int32_t, RecordBuff> *buffs,
@@ -55,6 +56,7 @@ bool ServerTable::AppendTableToBuffs(
   delete[] tmp_row_buff_;
   return true;
 }
+  */
 
 void ServerTable::SortCandidateVectorRandom(
     std::vector<CandidateServerRow> *candidate_row_vector) {
@@ -83,6 +85,7 @@ void ServerTable::SortCandidateVectorImportance(
             });
 }
 
+  /*
 void ServerTable::GetPartialTableToSend(
     boost::unordered_map<int32_t, ServerRow*> *rows_to_send,
     boost::unordered_map<int32_t, size_t> *client_size_map,
@@ -125,7 +128,9 @@ void ServerTable::GetPartialTableToSend(
       break;
   }
 }
+  */
 
+  /*
 void ServerTable::AppendRowsToBuffsPartial(
     boost::unordered_map<int32_t, RecordBuff> *buffs,
     const boost::unordered_map<int32_t, ServerRow*> &rows_to_send) {
@@ -170,6 +175,7 @@ void ServerTable::MakeSnapShotFileName(
      << ".db";
   *filename = ss.str();
 }
+  */
 
 void ServerTable::TakeSnapShot(
     const std::string &snapshot_dir,

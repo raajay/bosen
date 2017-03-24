@@ -285,12 +285,14 @@ namespace petuum {
       // }
     }
 
-    // TODO: this has to be deprecated
+    /**
+    // deprecated since we split into workers, aggregators and servers
     static inline int32_t get_num_total_comm_channels() {
       return num_total_comm_channels_;
     }
+    */
 
-    static int32_t get_num_comm_channels_per_client() {
+    static inline int32_t get_num_comm_channels_per_client() {
       return num_comm_channels_per_client_;
     }
 
@@ -306,6 +308,13 @@ namespace petuum {
     static inline int32_t get_num_total_server_threads() {
       return server_ids_.size();
     }
+
+    /*
+    static inline int32_t get_num_total_servers() {
+      // this is the same as get_num_total_server_threads.
+      return num_comm_channels_per_client_ * server_clients_.size();
+    }
+    */
 
     // Total number of application threads that needs table access
     // num_app_threads = num_table_threads_ or num_app_threads_
@@ -323,21 +332,16 @@ namespace petuum {
       return num_tables_;
     }
 
-    static int32_t get_num_clients() {
+    static inline int32_t get_num_clients() {
       return num_clients_;
     }
 
-    static int32_t get_num_server_clients() {
+    static inline int32_t get_num_server_clients() {
       return server_clients_.size();
     }
 
-    static int32_t get_num_worker_clients() {
+    static inline int32_t get_num_worker_clients() {
       return worker_clients_.size();
-    }
-
-    static int32_t get_num_total_servers() {
-      // this is the same as get_num_total_server_threads. TODO refactor
-      return num_comm_channels_per_client_ * server_clients_.size();
     }
 
     static HostInfo get_server_info(int32_t server_id) {
@@ -366,6 +370,16 @@ namespace petuum {
       return server_clients_;
     }
 
+    static int32_t get_worker_client_index(int client_id) {
+      int32_t num_worker_clients = get_num_worker_clients();
+      for(int32_t index = 0; index < num_worker_clients; index++) {
+        if(client_id == worker_clients_[index]) {
+          return index;
+        }
+      }
+      return num_worker_clients;
+    }
+
     static int32_t get_client_id() {
       return client_id_;
     }
@@ -374,10 +388,9 @@ namespace petuum {
       return row_id % num_comm_channels_per_client_;
     }
 
-    // TODO: fix this
     static int32_t GetPartitionServerID(int32_t row_id, int32_t comm_channel_idx) {
-      int32_t client_id = GetPartitionClientID(row_id); // use a private helper function
-      return get_server_thread_id(client_id, comm_channel_idx);
+      int32_t server_client_id = GetPartitionServerClientID(row_id); // use a private helper function
+      return get_server_thread_id(server_client_id, comm_channel_idx);
     }
 
     static int32_t GetCommChannelIndexServer(int32_t server_id) {
@@ -490,11 +503,10 @@ namespace petuum {
     static const int32_t kAggregatorClientMaxId = 300;
 
 
-
   private:
     // private functions
     // get the id of the server who is responsible for holding that row
-    static int32_t GetPartitionClientID(int32_t row_id) {
+    static int32_t GetPartitionServerClientID(int32_t row_id) {
       int index = (row_id / num_comm_channels_per_client_) % server_clients_.size();
       return server_clients_[index];
     }

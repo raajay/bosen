@@ -62,104 +62,107 @@ DEFINE_string(stats_path, "", "Statistics output file");
 // Main function
 int main(int argc, char *argv[]) {
 
-    google::ParseCommandLineFlags(&argc, &argv, true);
-    google::InitGoogleLogging(argv[0]);
+  google::ParseCommandLineFlags(&argc, &argv, true);
+  google::InitGoogleLogging(argv[0]);
 
-    //load dnn parameters
-    dnn_paras para;
-    load_dnn_paras(para, FLAGS_parafile.c_str());
+  //load dnn parameters
+  dnn_paras para;
+  load_dnn_paras(para, FLAGS_parafile.c_str());
+  VLOG(0) << "client " << FLAGS_client_id << " starts working..." << std::endl;
+  std::cout<<"client "<<FLAGS_client_id << " starts working..." << std::endl;
+  std::cout<<"Staleness parameter=" << FLAGS_staleness << std::endl;
 
-    std::cout<<"client "<<FLAGS_client_id<< " starts working..."<<std::endl;
-    std::cout<<"Staleness parameter=" << FLAGS_staleness << std::endl;
+  // Configure Petuum PS
+  petuum::TableGroupConfig table_group_config;
+  // Global params
+  //  table_group_config.num_total_server_threads = FLAGS_num_clients;  // 1 server thread per client
+  table_group_config.num_comm_channels_per_client = FLAGS_num_clients;
+  //  table_group_config.num_total_bg_threads = FLAGS_num_clients;  // 1 background thread per client
+  table_group_config.num_total_clients = FLAGS_num_clients;
+  table_group_config.num_tables = (para.num_layers-1)*2;  // tables storing weights and biases
 
-    // Configure Petuum PS
-    petuum::TableGroupConfig table_group_config;
-    // Global params
-    //  table_group_config.num_total_server_threads = FLAGS_num_clients;  // 1 server thread per client
-    table_group_config.num_comm_channels_per_client = FLAGS_num_clients;
-    //  table_group_config.num_total_bg_threads = FLAGS_num_clients;  // 1 background thread per client
-    table_group_config.num_total_clients = FLAGS_num_clients;
-    table_group_config.num_tables = (para.num_layers-1)*2;  // tables storing weights and biases
-
-    // Single-node-PS versus regular distributed PS
+  // Single-node-PS versus regular distributed PS
 #ifdef PETUUM_SINGLE_NODE
-    table_group_config.ooc_path_prefix = "dnn_sn.localooc";
-    table_group_config.consistency_model = petuum::LocalOOC;
+  table_group_config.ooc_path_prefix = "dnn_sn.localooc";
+  table_group_config.consistency_model = petuum::LocalOOC;
 #else
-    petuum::GetHostInfos(FLAGS_hostfile, &table_group_config.host_map);
-    //  petuum::GetServerIDsFromHostMap(&table_group_config.server_ids, table_group_config.host_map);
-    table_group_config.consistency_model = petuum::SSP;
+  petuum::GetHostInfos(FLAGS_hostfile, &table_group_config.host_map);
+  //  petuum::GetServerIDsFromHostMap(&table_group_config.server_ids, table_group_config.host_map);
+  table_group_config.consistency_model = petuum::SSP;
 #endif
-    // Local parameters for this process
-    //  table_group_config.num_local_server_threads = 1;
-    //  table_group_config.num_local_bg_threads = 1;
-    table_group_config.num_local_app_threads = FLAGS_num_worker_threads + 1;  // +1 for main() thread
-    table_group_config.client_id = FLAGS_client_id;
-    table_group_config.stats_path = FLAGS_stats_path;
-    table_group_config.aggressive_clock = false; // make clock conservative by default
-    // snapshots
-    table_group_config.snapshot_clock = FLAGS_snapshot_clock;
-    table_group_config.resume_clock = FLAGS_resume_clock;
-    table_group_config.snapshot_dir = FLAGS_snapshot_dir;
-    table_group_config.resume_dir = FLAGS_resume_dir;
+  // Local parameters for this process
+  //  table_group_config.num_local_server_threads = 1;
+  //  table_group_config.num_local_bg_threads = 1;
+  table_group_config.num_local_app_threads = FLAGS_num_worker_threads + 1;  // +1 for main() thread
+  table_group_config.client_id = FLAGS_client_id;
+  table_group_config.stats_path = FLAGS_stats_path;
+  table_group_config.aggressive_clock = false; // make clock conservative by default
+  // snapshots
+  table_group_config.snapshot_clock = FLAGS_snapshot_clock;
+  table_group_config.resume_clock = FLAGS_resume_clock;
+  table_group_config.snapshot_dir = FLAGS_snapshot_dir;
+  table_group_config.resume_dir = FLAGS_resume_dir;
 
-    // display table group configuration
-    VLOG(0) << table_group_config.toString();
+  // display table group configuration
+  VLOG(0) << table_group_config.toString();
 
-    // Configure Petuum PS tables
-    petuum::PSTableGroup::RegisterRow<petuum::DenseRow<float> >(0);  // Register dense rows as ID 0
-    petuum::PSTableGroup::Init(table_group_config, false);  // Initializing thread does not need table access
+  // Configure Petuum PS tables
+  petuum::PSTableGroup::RegisterRow<petuum::DenseRow<float> >(0);  // Register dense rows as ID 0
+  petuum::PSTableGroup::Init(table_group_config, false);  // Initializing thread does not need table access
 
+  // By this time Global Context is initialized, the background workers and
+  // servers that are initialized.
 
-    // Common table settings
-    petuum::ClientTableConfig table_config;
+  if (petuum::GlobalContext::am_i_worker_client()) {
+    // Only on worker clients, we will initiate create tables
+    // Only on worker clients, we will launch application threads that read the data and run ML algorithm.
+
+    // We create the tables.
+    petuum::ClientTableConfig table_config; // Common table settings
     table_config.table_info.row_type = 0; // Dense rows
     table_config.oplog_capacity = 100;
 
-    //create weight tables
-    for(int i=0;i<para.num_layers-1;i++) {
-        table_config.table_info.table_staleness = FLAGS_staleness;
-        table_config.table_info.row_capacity = para.num_units_ineach_layer[i];
-        table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
-        table_config.table_info.oplog_dense_serialized = false;
-        table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i];
+    //create DNN weight tables
+    for(int i = 0; i < para.num_layers-1; i++) {
+      table_config.table_info.table_staleness = FLAGS_staleness;
+      table_config.table_info.row_capacity = para.num_units_ineach_layer[i];
+      table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
+      table_config.table_info.oplog_dense_serialized = false;
+      table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i];
 
 #ifdef PETUUM_SINGLE_NODE
-        table_config.process_cache_capacity = std::min(FLAGS_ps_row_in_memory_limit, para.num_units_ineach_layer[i+1]);
+      table_config.process_cache_capacity = std::min(FLAGS_ps_row_in_memory_limit, para.num_units_ineach_layer[i+1]);
 #else
-        table_config.process_cache_capacity = para.num_units_ineach_layer[i+1];
+      table_config.process_cache_capacity = para.num_units_ineach_layer[i+1];
 #endif
-        CHECK(petuum::PSTableGroup::CreateTable(i,table_config)) << "Failed to create weight table!" ;
+      CHECK(petuum::PSTableGroup::CreateTable(i,table_config)) << "Failed to create weight table!" ;
     }
 
-    //create biases tables
-    for(int i=0;i<para.num_layers-1;i++) {
-        table_config.table_info.table_staleness = FLAGS_staleness;
-        table_config.table_info.row_capacity = para.num_units_ineach_layer[i+1];
-        table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
-        table_config.table_info.oplog_dense_serialized = false;
-        table_config.process_cache_capacity = 1;
-        table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i+1];
-        CHECK(petuum::PSTableGroup::CreateTable(i+para.num_layers-1,table_config)) << "Failed to create bias table!";
+    //create DNN biases tables
+    for(int i = 0; i < para.num_layers-1; i++) {
+      table_config.table_info.table_staleness = FLAGS_staleness;
+      table_config.table_info.row_capacity = para.num_units_ineach_layer[i+1];
+      table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
+      table_config.table_info.oplog_dense_serialized = false;
+      table_config.process_cache_capacity = 1;
+      table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i+1];
+      CHECK(petuum::PSTableGroup::CreateTable(i+para.num_layers-1,table_config)) << "Failed to create bias table!";
     }
+
     // Finished creating tables
     petuum::PSTableGroup::CreateTableDone();
 
-    //read input data
+    // Read the training data in all worker clients.
     char data_file[512];
-    //std::ifstream infile;
-    //infile.open(FLAGS_data_ptt_file);
-
+    int num_train_data = 0;
+    int client_index = petuum::GlobalContext::get_worker_client_index(FLAGS_client_id);
     petuum::io::ifstream infile(FLAGS_data_ptt_file);
-    std::cout << FLAGS_data_ptt_file << std::endl;
-    int num_train_data;
+    VLOG(0) << "data_partition_file: " << FLAGS_data_ptt_file;
     int cnter=0;
-    while(true){
-        infile>>data_file>>num_train_data;
-        //std::cout << data_file << "    " << num_train_data << std::endl;
-        if(FLAGS_client_id<=cnter)
-            break;
-        cnter++;
+    while (true) {
+      infile >> data_file >> num_train_data;
+      if (client_index <= cnter) break;
+      cnter++;
     }
     infile.close();
 
@@ -169,32 +172,35 @@ int main(int argc, char *argv[]) {
     VLOG(0) << "Staleness value = " << FLAGS_staleness;
     VLOG(0) << "Clock = " << ((table_group_config.aggressive_clock) ? "Aggressive" : "Conservative");
     VLOG(0) << "Data file = " << data_file;
-    VLOG(0) << "Size of training data = " << num_train_data;
+    VLOG(0) << "Expected size of training data = " << num_train_data;
 
     //run dnn
-    dnn mydnn(para,FLAGS_client_id, FLAGS_num_worker_threads, FLAGS_staleness,num_train_data);
+    dnn mydnn(para, FLAGS_client_id, FLAGS_num_worker_threads, FLAGS_staleness, num_train_data);
     //load data
     VLOG(0)<<"client "<<FLAGS_client_id<<" starts to load "<<num_train_data<<" data from "<<data_file;
     mydnn.load_data(data_file);
     VLOG(0)<<"client "<<FLAGS_client_id<<" load data ends.";
 
-
-    boost::thread_group worker_threads;
+    // start application threads -- which will then use background(bg) worker threads to work.
+    boost::thread_group worker_threads; // these are application workers
     for (int i = 0; i < FLAGS_num_worker_threads; ++i) {
-        worker_threads.create_thread(
-                boost::bind(&dnn::run, boost::ref(mydnn), FLAGS_model_weight_file, FLAGS_model_bias_file));
+      worker_threads.create_thread(boost::bind(&dnn::run, boost::ref(mydnn), FLAGS_model_weight_file, FLAGS_model_bias_file));
     }
-    petuum::PSTableGroup::WaitThreadRegister();
-    worker_threads.join_all();
-
+    petuum::PSTableGroup::WaitThreadRegister(); // this is a barrier for all application to get initialized.
+    worker_threads.join_all(); // then, we allow threads (in particular the run function) to run till completion.
     VLOG(0) << "All application threads on client:"<< FLAGS_client_id << "(except main) have completed";
 
     if(FLAGS_client_id == 0) {
-      std::cout<<"DNN training ends."<<std::endl;
+      VLOG(0) << "DNN training ends." << std::endl;
     }
 
-    // Cleanup and output runtime
-    petuum::PSTableGroup::ShutDown();
+  } else { // if -- am i worker client
+    // if this process is just the namenode/scheduler (or) server, we should pause.
 
-    return 0;
+  }
+
+  // Cleanup and output runtime
+  petuum::PSTableGroup::ShutDown();
+
+  return 0;
 }

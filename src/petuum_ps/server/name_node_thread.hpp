@@ -45,7 +45,7 @@ private:
     }
 
     bool ReceivedFromAllServers() const {
-      return (num_servers_replied_ == GlobalContext::get_num_total_servers());
+      return (num_servers_replied_ == GlobalContext::get_num_total_server_threads());
     }
 
     bool RepliedToAllClients() const {

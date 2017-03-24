@@ -50,11 +50,13 @@ public:
   typedef void (*PushMsgSendFunc)(int32_t bg_id, ServerPushRowMsg *msg,
                                   bool is_last, int32_t version,
                                   int32_t server_min_clock);
+  /* -- Removed since we do not support SSPPush
   size_t CreateSendServerPushRowMsgs(PushMsgSendFunc PushMsgSender,
                                      bool clock_changed = true);
 
   size_t CreateSendServerPushRowMsgsPartial(
       PushMsgSendFunc PushMsgSend);
+  */
 
   bool AccumedOpLogSinceLastPush();
 

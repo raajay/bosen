@@ -116,10 +116,12 @@ public:
     return table_info_.oplog_dense_serialized;
   }
 
+  /*
   bool AppendTableToBuffs(
       int32_t client_id_st,
       boost::unordered_map<int32_t, RecordBuff> *buffs,
       int32_t *failed_client_id, bool resume);
+  */
 
   static void SortCandidateVectorRandom(
       std::vector<CandidateServerRow> *candidate_row_vector);
@@ -127,14 +129,18 @@ public:
   static void SortCandidateVectorImportance(
       std::vector<CandidateServerRow> *candidate_row_vector);
 
+  /*
   void GetPartialTableToSend(
     boost::unordered_map<int32_t, ServerRow*> *rows_to_send,
     boost::unordered_map<int32_t, size_t> *client_size_map,
     size_t num_rows_threshold);
+  */
 
+  /*
   void AppendRowsToBuffsPartial(
     boost::unordered_map<int32_t, RecordBuff> *buffs,
     const boost::unordered_map<int32_t, ServerRow*> &rows_to_send);
+  */
 
   void MakeSnapShotFileName(const std::string &snapshot_dir, int32_t server_id,
                             int32_t table_id, int32_t clock,

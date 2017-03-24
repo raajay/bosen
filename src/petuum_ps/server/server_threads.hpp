@@ -5,13 +5,13 @@
 
 namespace petuum {
 
-class ServerThreads {
-public:
-  static void Init();
-  static void ShutDown();
+  class ServerThreads {
+  public:
+    static void Init();
+    static void ShutDown();
 
-private:
-  static ServerThreadGroup *server_thread_group_;
-};
+  private:
+    static ServerThreadGroup *server_thread_group_;
+  };
 
 }

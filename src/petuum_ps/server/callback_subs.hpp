@@ -35,7 +35,8 @@ public:
     return bit_changed;
   }
 
-//TODO: this needs fixing, do get_num_clients here mean the servers/workers
+// this needs fixing, do get_num_clients here mean the servers/workers
+  /*
   bool AppendRowToBuffs(
       int32_t client_id_st,
       boost::unordered_map<int32_t, RecordBuff> *buffs,
@@ -57,8 +58,10 @@ public:
     //VLOG(0) << "Return true";
     return true;
   }
+  */
 
-//TODO: this needs fixing, do get_num_clients here mean the servers/workers
+// this needs fixing, do get_num_clients here mean the servers/workers
+  /*
   void AccumSerializedSizePerClient(
       boost::unordered_map<int32_t, size_t> *client_size_map,
       size_t serialized_size) {
@@ -71,7 +74,10 @@ public:
       }
     }
   }
+  */
 
+
+  /*
   void AppendRowToBuffs(
       boost::unordered_map<int32_t, RecordBuff> *buffs,
       const void *row_data, size_t row_size, int32_t row_id) {
@@ -87,6 +93,7 @@ public:
       }
     }
   }
+  */
 
 private:
   std::bitset<PETUUM_MAX_NUM_CLIENTS> subscriptions_;
