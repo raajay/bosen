@@ -18,7 +18,9 @@
                 "app/lda",
                 "app/mlr",
                 "app/rand_forest",
-                "app/sparsecoding"
+                "app/sparsecoding",
+                "cmake",
+                "docker"
             ]
         }
     ],
