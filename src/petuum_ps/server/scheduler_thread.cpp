@@ -120,7 +120,7 @@ namespace petuum {
   void SchedulerThread::InitScheduler() {
     // we expect connections from all bg workers threads on all clients
     int32_t num_expected_conns = GlobalContext::get_num_total_bg_threads();
-    int32_t num_bgs = 0; // total number of background worker threads seen                              
+    int32_t num_bgs = 0; // total number of background worker threads
     for(int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;
       bool is_client;

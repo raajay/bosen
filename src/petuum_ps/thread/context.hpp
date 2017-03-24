@@ -1,4 +1,5 @@
 // author: jinliang
+// author: raajay
 
 #pragma once
 
@@ -355,6 +356,14 @@ namespace petuum {
 
     static const std::vector<int32_t> &get_all_server_ids() {
       return server_ids_;
+    }
+
+    static const std::vector<int32_t> &get_worker_client_ids() {
+      return worker_clients_;
+    }
+
+    static const std::vector<int32_t> &get_server_client_ids() {
+      return server_clients_;
     }
 
     static int32_t get_client_id() {

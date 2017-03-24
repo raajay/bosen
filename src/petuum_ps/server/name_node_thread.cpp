@@ -55,10 +55,9 @@ void NameNodeThread::SendToAllServers(MsgBase *msg){
 void NameNodeThread::InitNameNode() {
   int32_t num_bgs = 0;
   int32_t num_servers = 0;
-  //int32_t num_expected_conns = 2*GlobalContext::get_num_total_comm_channels();
-  int32_t num_expected_conns = (GlobalContext::get_num_total_bg_threads() + 
-                                GlobalContext::get_num_total_server_threads()); 
-    
+  int32_t num_expected_conns = (GlobalContext::get_num_total_bg_threads() +
+                                GlobalContext::get_num_total_server_threads());
+
   for (int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
     int32_t client_id;
     bool is_client;
@@ -101,12 +100,11 @@ bool NameNodeThread::HaveCreatedAllTables() {
  */
 void NameNodeThread::SendCreatedAllTablesMsg() {
   CreatedAllTablesMsg created_all_tables_msg;
-  int32_t num_worker_clients = GlobalContext::get_num_worker_clients();
-  for (int client_idx = 0; client_idx < num_worker_clients; ++client_idx) {
-    int32_t head_bg_id = GlobalContext::get_head_bg_id(client_idx);
-    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
-        head_bg_id, created_all_tables_msg.get_mem(),
-        created_all_tables_msg.get_size());
+  for (auto client_id : GlobalContext::get_worker_client_ids()) {
+    int32_t head_bg_id = GlobalContext::get_head_bg_id(client_id);
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(head_bg_id,
+                                                           created_all_tables_msg.get_mem(),
+                                                           created_all_tables_msg.get_size());
     CHECK_EQ(sent_size, created_all_tables_msg.get_size());
   }
 }
