@@ -14,37 +14,45 @@ namespace petuum {
 
   Server::~Server() {}
 
-  void Server::Init(int32_t server_id,
-                    const std::vector<int32_t> &bg_ids) {
-    VLOG(5) << "Initializing an instance of class Server ("
-            << this << ") on server=" << server_id;
+  // Each server thread has its own copy of Server object.
+  void Server::Init(int32_t server_id, const std::vector<int32_t> &bg_ids) {
+    VLOG(5) << "Initializing an instance of class Server (" << this << ") on server=" << server_id;
+
+    // bg_clock is vector clock. We set it to be zero for all bg threads (one
+    // from each worker client)
     for (auto iter = bg_ids.cbegin(); iter != bg_ids.cend(); iter++){
-      bg_clock_.AddClock(*iter, 0);
-      bg_version_map_[*iter] = -1;
+      bg_clock_.AddClock(*iter, 0); // the clock is 0 initially
+      bg_version_map_[*iter] = -1; // the version -1 initially
     }
+
     push_row_msg_data_size_ = kPushRowMsgSizeInit;
     server_id_ = server_id;
     accum_oplog_count_ = 0;
+
   }
 
 
   void Server::CreateTable(int32_t table_id, TableInfo &table_info){
+
+    // Each Server object is responsible of different parts of all tables. Thus,
+    // a copy of all tables is maintained.
+
     auto ret = tables_.emplace(table_id, ServerTable(table_info));
     CHECK(ret.second);
     // Displaying the address of the created ServerTable
-    VLOG(5) << "Emplace ServerTable(" << &(ret.first->second)
-            << ") in Server(" << this << ")";
+    VLOG(5) << "Emplace ServerTable(" << &(ret.first->second) << ") in Server(" << this << ")";
 
     if (GlobalContext::get_resume_clock() > 0) {
-      boost::unordered_map<int32_t, ServerTable>::iterator
-        table_iter = tables_.find(table_id);
+      boost::unordered_map<int32_t, ServerTable>::iterator table_iter = tables_.find(table_id);
       table_iter->second.ReadSnapShot(GlobalContext::get_resume_dir(),
                                       server_id_, table_id,
                                       GlobalContext::get_resume_clock());
     }
-  }
+  } // end func -- CreateTable
 
 
+
+  // Find a row indexed by table and row id. If no row exists, create a new row and return.
   ServerRow *Server::FindCreateRow(int32_t table_id, int32_t row_id){
     // access ServerTable via reference to avoid copying
     auto iter = tables_.find(table_id);
@@ -56,8 +64,13 @@ namespace petuum {
     }
     server_row = server_table.CreateRow(row_id);
     return server_row;
-  }
+  } // end func -- FindCreateRow
 
+
+
+  // Push the vector clock for a particular bg_id to the specified value. On
+  // pushing the clock of a single bg_thread, if the min_value of th vector
+  // clock changes, then return true. Also, see if we have to take a snapshot.
 
   bool Server::ClockUntil(int32_t bg_id, int32_t clock) {
     int new_clock = bg_clock_.TickUntil(bg_id, clock);
@@ -65,16 +78,15 @@ namespace petuum {
 
       // take snapshot of all tables if configured to. That is all is happening
       // here. Always returns true.
-      if (GlobalContext::get_snapshot_clock() <= 0
-          || new_clock % GlobalContext::get_snapshot_clock() != 0) {
+      if (GlobalContext::get_snapshot_clock() <= 0 || new_clock % GlobalContext::get_snapshot_clock() != 0) {
         return true;
       }
 
-      for (auto table_iter = tables_.begin();
-           table_iter != tables_.end(); table_iter++) {
+      for (auto table_iter = tables_.begin(); table_iter != tables_.end(); table_iter++) {
         table_iter->second.TakeSnapShot(GlobalContext::get_snapshot_dir(),
                                         server_id_,
-                                        table_iter->first, new_clock);
+                                        table_iter->first,
+                                        new_clock);
       }
       return true;
     }
@@ -83,6 +95,8 @@ namespace petuum {
   }
 
 
+  // Update an internal data structure to cache all row requests. One row requests are cached, they
+  // are replied to only when the clock moves on an update.
   void Server::AddRowRequest(int32_t bg_id, int32_t table_id, int32_t row_id,
                              int32_t clock) {
 
@@ -103,6 +117,8 @@ namespace petuum {
     clock_bg_row_requests_[clock][bg_id].push_back(server_row_request);
   }
 
+
+  // Look at the cache of row request, and return those that are satisfied upon the clock moving.
   void Server::GetFulfilledRowRequests(std::vector<ServerRowRequest> *requests) {
     int32_t clock = bg_clock_.get_min_clock();
     requests->clear();
@@ -110,21 +126,24 @@ namespace petuum {
 
     if(iter == clock_bg_row_requests_.end())
       return;
-    boost::unordered_map<int32_t,
-                         std::vector<ServerRowRequest> > &bg_row_requests = iter->second;
 
-    for (auto bg_iter = bg_row_requests.begin(); bg_iter != bg_row_requests.end();
-         bg_iter++) {
-      requests->insert(requests->end(), bg_iter->second.begin(),
-                       bg_iter->second.end());
+    boost::unordered_map<int32_t, std::vector<ServerRowRequest> > &bg_row_requests = iter->second;
+
+    for (auto bg_iter = bg_row_requests.begin(); bg_iter != bg_row_requests.end(); bg_iter++) {
+      requests->insert(requests->end(), bg_iter->second.begin(), bg_iter->second.end());
     }
 
     clock_bg_row_requests_.erase(clock);
   }
 
-  void Server::ApplyOpLogUpdateVersion(
-                                       const void *oplog, size_t oplog_size, int32_t bg_thread_id,
+
+
+  // This is the key function, one where the internal table is update with values sent from the server.
+  void Server::ApplyOpLogUpdateVersion(const void *oplog,
+                                       size_t oplog_size,
+                                       int32_t bg_thread_id,
                                        uint32_t version) {
+
     CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
     bg_version_map_[bg_thread_id] = version;
 
@@ -142,44 +161,48 @@ namespace petuum {
     const int32_t * column_ids; // the variable pointer points to const memory
     int32_t num_updates;
     bool started_new_table;
-    const void *updates = oplog_reader.Next(&table_id, &row_id, &column_ids,
-                                            &num_updates, &started_new_table);
+    const void *updates = oplog_reader.Next(&table_id, &row_id, &column_ids, &num_updates, &started_new_table);
 
     ServerTable *server_table;
     if (updates != 0) {
       auto table_iter = tables_.find(table_id);
-      CHECK(table_iter != tables_.end())
-        << "Not found table_id = " << table_id;
+      CHECK(table_iter != tables_.end()) << "Not found table_id = " << table_id;
       server_table = &(table_iter->second);
     }
 
     while (updates != 0) {
+
       ++accum_oplog_count_;
-      bool found
-        = server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
+      bool found = server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
 
       if (!found) {
         server_table->CreateRow(row_id);
         server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
       }
 
-      updates = oplog_reader.Next(&table_id, &row_id, &column_ids,
-                                  &num_updates, &started_new_table);
+      updates = oplog_reader.Next(&table_id, &row_id, &column_ids, &num_updates, &started_new_table);
 
-      if (updates == 0)
+      if (updates == 0) {
         break;
+      }
+
       if (started_new_table) {
         auto table_iter = tables_.find(table_id);
-        CHECK(table_iter != tables_.end())
-          << "Not found table_id = " << table_id;
+        CHECK(table_iter != tables_.end()) << "Not found table_id = " << table_id;
         server_table = &(table_iter->second);
       }
-    }
-  }
+
+    } // end while -- as long as updates are valid.
+
+  } // end func -- apply oplog update
+
+
 
   int32_t Server::GetMinClock() {
     return bg_clock_.get_min_clock();
   }
+
+
 
   int32_t Server::GetBgVersion(int32_t bg_thread_id) {
     return bg_version_map_[bg_thread_id];
