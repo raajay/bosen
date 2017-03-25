@@ -9,11 +9,11 @@ namespace petuum {
 
   bool ServerThread::WaitMsgBusy(int32_t *sender_id, zmq::message_t *zmq_msg,
                                  long timeout_milli __attribute__ ((unused)) ) {
-    bool received = (GlobalContext::comm_bus->*(
-                                                GlobalContext::comm_bus->RecvAsyncAny_))(sender_id, zmq_msg);
+    bool received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvAsyncAny_))
+      (sender_id, zmq_msg);
     while (!received) {
-      received = (GlobalContext::comm_bus->*(
-                                             GlobalContext::comm_bus->RecvAsyncAny_))(sender_id, zmq_msg);
+      received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvAsyncAny_))
+        (sender_id, zmq_msg);
     }
     return true;
   }
@@ -28,9 +28,8 @@ namespace petuum {
 
   bool ServerThread::WaitMsgTimeOut(int32_t *sender_id, zmq::message_t *zmq_msg,
                                     long timeout_milli) {
-    bool received = (GlobalContext::comm_bus->*(
-                                                GlobalContext::comm_bus->RecvTimeOutAny_))(
-                                                                                           sender_id, zmq_msg, timeout_milli);
+    bool received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvTimeOutAny_))
+      (sender_id, zmq_msg, timeout_milli);
     return received;
   }
 
@@ -95,11 +94,12 @@ namespace petuum {
 
   void ServerThread::SendToAllBgThreads(MsgBase *msg) {
     for (const auto &bg_worker_id : bg_worker_ids_) {
-      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
-                                                             bg_worker_id, msg->get_mem(), msg->get_size());
+      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))
+        (bg_worker_id, msg->get_mem(), msg->get_size());
       CHECK_EQ(sent_size, msg->get_size());
     }
   }
+
 
   void ServerThread::InitServer() {
     ConnectToNameNode();
@@ -126,8 +126,8 @@ namespace petuum {
       size_t msg_size = shut_down_ack_msg.get_size();
       for (int i = 0; i < GlobalContext::get_num_worker_clients(); ++i) {
         int32_t bg_id = bg_worker_ids_[i];
-        size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(bg_id,
-                                                               shut_down_ack_msg.get_mem(), msg_size);
+        size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))
+          (bg_id, shut_down_ack_msg.get_mem(), msg_size);
         CHECK_EQ(msg_size, sent_size);
       }
       return true;
@@ -142,8 +142,8 @@ namespace petuum {
     // I'm not name node
     CreateTableReplyMsg create_table_reply_msg;
     create_table_reply_msg.get_table_id() = create_table_msg.get_table_id();
-    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(sender_id,
-                                                           create_table_reply_msg.get_mem(), create_table_reply_msg.get_size());
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))
+      (sender_id, create_table_reply_msg.get_mem(), create_table_reply_msg.get_size());
     CHECK_EQ(sent_size, create_table_reply_msg.get_size());
 
     TableInfo table_info;
@@ -177,13 +177,18 @@ namespace petuum {
     ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
     RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(sender_id));
 
-    ReplyRowRequest(sender_id, server_row, table_id, row_id, server_clock,
-                    version);
+    ReplyRowRequest(sender_id, server_row, table_id, row_id, server_clock, version);
   }
 
-  void ServerThread::ReplyRowRequest(int32_t bg_id, ServerRow *server_row,
-                                     int32_t table_id, int32_t row_id,
-                                     int32_t server_clock, uint32_t version) {
+
+
+  void ServerThread::ReplyRowRequest(int32_t bg_id,
+                                     ServerRow *server_row,
+                                     int32_t table_id,
+                                     int32_t row_id,
+                                     int32_t server_clock,
+                                     uint32_t version) {
+
     size_t row_size = server_row->SerializedSize();
 
     ServerRowRequestReplyMsg server_row_request_reply_msg(row_size);
@@ -199,49 +204,71 @@ namespace petuum {
     MemTransfer::TransferMem(comm_bus_, bg_id, &server_row_request_reply_msg);
   }
 
+
+
   void ServerThread::HandleOpLogMsg(int32_t sender_id,
                                     ClientSendOpLogMsg &client_send_oplog_msg) {
+
+    // this is a message that we get from a client, when all the app threads have clocked.
     bool is_clock = client_send_oplog_msg.get_is_clock();
 
+    // TODO (raajay) what is the difference between version and bg clock
     uint32_t version = client_send_oplog_msg.get_version();
+
+    // the value of the clock at the client.
     int32_t bg_clock = client_send_oplog_msg.get_bg_clock();
 
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
     STATS_SERVER_ACCUM_APPLY_OPLOG_BEGIN();
-    server_obj_.ApplyOpLogUpdateVersion(
-                                        client_send_oplog_msg.get_data(), client_send_oplog_msg.get_avai_size(),
-                                        sender_id, version);
+    server_obj_.ApplyOpLogUpdateVersion(client_send_oplog_msg.get_data(),
+                                        client_send_oplog_msg.get_avai_size(),
+                                        sender_id,
+                                        version);
     STATS_SERVER_ACCUM_APPLY_OPLOG_END();
+
 
     bool clock_changed = false;
     if (is_clock) {
       clock_changed = server_obj_.ClockUntil(sender_id, bg_clock);
+
       if (clock_changed) {
+
         std::vector<ServerRowRequest> requests;
         server_obj_.GetFulfilledRowRequests(&requests);
+
+        // for backlogged requests, find those that can be answered since clock changed.
+        // subscribe the to specific rows that the request, and forward them?
         for (auto request_iter = requests.begin();
              request_iter != requests.end(); request_iter++) {
+
           int32_t table_id = request_iter->table_id;
           int32_t row_id = request_iter->row_id;
           int32_t bg_id = request_iter->bg_id;
           uint32_t version = server_obj_.GetBgVersion(bg_id);
           ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
-          RowSubscribe(server_row,
-                       GlobalContext::thread_id_to_client_id(bg_id));
+
+          // this is a dummy function for SSP. Hmm...
+          RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(bg_id));
+
           int32_t server_clock = server_obj_.GetMinClock();
-          ReplyRowRequest(bg_id, server_row, table_id, row_id, server_clock,
-                          version);
+          ReplyRowRequest(bg_id, server_row, table_id, row_id, server_clock, version);
         }
+
         STATS_SERVER_CLOCK();
-      }
-    }
+
+      } // end if -- clock changed
+
+    } // end if -- is clock
 
     if (clock_changed) {
+      // XXX (raajay): the below does nothing when SSP consistency is desired.
+      // Used only for SSPPush, which we discontinued.
       ServerPushRow(clock_changed);
     } else {
       SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
     }
+
   }
 
   long ServerThread::ServerIdleWork() {
@@ -264,6 +291,9 @@ namespace petuum {
 
     pthread_barrier_wait(init_barrier_);
 
+    // waits for bg worker threads from each worker client to connect. One bg
+    // thread from each worker client will connect with a server thread. Each bg
+    // worker is also notified that it can start.
     InitServer();
 
     zmq::message_t zmq_msg;
@@ -275,7 +305,7 @@ namespace petuum {
 
 
     // like the bg thread, the server thread also goes on an infinite loop.
-    // It processes one message at a time; TODO shouldn't we have separate queues for
+    // It processes one message at a time; TODO (raajay) shouldn't we have separate queues for
     // control and data messages.
 
     while(1) {
@@ -318,12 +348,15 @@ namespace petuum {
         }
       case kRowRequest:
         {
+          // here, handle a clients request for new data
           RowRequestMsg row_request_msg(msg_mem);
           HandleRowRequest(sender_id, row_request_msg);
         }
         break;
       case kClientSendOpLog:
         {
+          // here, we decide what to do with the oplog (update) that the client
+          // sends.
           ClientSendOpLogMsg client_send_oplog_msg(msg_mem);
 
           HandleOpLogMsg(sender_id, client_send_oplog_msg);

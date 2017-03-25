@@ -63,6 +63,8 @@ namespace petuum {
     int new_clock = bg_clock_.TickUntil(bg_id, clock);
     if(new_clock) {
 
+      // take snapshot of all tables if configured to. That is all is happening
+      // here. Always returns true.
       if (GlobalContext::get_snapshot_clock() <= 0
           || new_clock % GlobalContext::get_snapshot_clock() != 0) {
         return true;

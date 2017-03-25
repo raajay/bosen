@@ -54,4 +54,4 @@ namespace petuum {
     }
   }
 
-}
+} // end namespace -- petuum
