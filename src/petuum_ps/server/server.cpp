@@ -407,8 +407,10 @@ namespace petuum {
   }
   */
 
+  /*
   bool Server::AccumedOpLogSinceLastPush() {
     return accum_oplog_count_ > 0;
   }
+  */
 
 }  // namespace petuum

@@ -61,9 +61,9 @@ public:
 
   size_t CreateSendServerPushRowMsgsPartial(
       PushMsgSendFunc PushMsgSend);
-  */
 
   bool AccumedOpLogSinceLastPush();
+  */
 
 private:
   VectorClock bg_clock_;
