@@ -21,4 +21,4 @@ namespace petuum {
         scheduler_thread_->ShutDown();
         delete scheduler_thread_;
     }
-}
+} // end namespace -- petuum

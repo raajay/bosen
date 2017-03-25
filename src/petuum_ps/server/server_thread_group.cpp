@@ -16,11 +16,13 @@ namespace petuum {
     case SSP:
       {
         int idx = 0;
+        int32_t client_id = GlobalContext::get_client_id();
         for (auto &server_thread : server_thread_vec_) {
-          server_thread = new ServerThread(
-                                           GlobalContext::get_server_thread_id(
-                                                                               GlobalContext::get_client_id(), idx),
-                                           &init_barrier_);
+          int32_t server_thread_id = GlobalContext::get_server_thread_id(client_id, idx);
+          server_thread = new ServerThread(server_thread_id, &init_barrier_);
+          //server_thread = new ServerThread(
+          //    GlobalContext::get_server_thread_id(
+          //        GlobalContext::get_client_id(), idx), &init_barrier_);
           ++idx;
         }
         VLOG(5) << "Created " << idx << " ServerThread instances";
