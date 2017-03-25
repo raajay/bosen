@@ -33,18 +33,19 @@ namespace petuum {
 
     ServerRow & operator = (ServerRow & other) = delete;
 
-    void ApplyBatchInc(
-                       const int32_t *column_ids,
-                       const void *update_batch, int32_t num_updates) {
+    void ApplyBatchInc(const int32_t *column_ids,
+                       const void *update_batch,
+                       int32_t num_updates) {
       row_data_->ApplyBatchIncUnsafe(column_ids, update_batch, num_updates);
       dirty_ = true;
     }
 
-    void ApplyBatchIncAccumImportance(
-                                      const int32_t *column_ids,
-                                      const void *update_batch, int32_t num_updates) {
-      double importance = row_data_->ApplyBatchIncUnsafeGetImportance(
-                                                                      column_ids, update_batch, num_updates);
+    void ApplyBatchIncAccumImportance(const int32_t *column_ids,
+                                      const void *update_batch,
+                                      int32_t num_updates) {
+      double importance = row_data_->ApplyBatchIncUnsafeGetImportance(column_ids,
+                                                                      update_batch,
+                                                                      num_updates);
       AccumImportance(importance);
       dirty_ = true;
     }
@@ -57,8 +58,9 @@ namespace petuum {
     void ApplyDenseBatchIncAccumImportance(const void *update_batch,
                                            int32_t num_updates) {
       double importance
-        = row_data_->ApplyDenseBatchIncUnsafeGetImportance(
-                                                           update_batch, 0, num_updates);
+        = row_data_->ApplyDenseBatchIncUnsafeGetImportance(update_batch,
+                                                           0,
+                                                           num_updates);
       AccumImportance(importance);
       dirty_ = true;
     }
