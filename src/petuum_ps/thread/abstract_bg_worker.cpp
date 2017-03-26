@@ -1045,8 +1045,7 @@ namespace petuum {
         {
           ++num_connected_app_threads;
 
-          CHECK(num_connected_app_threads
-                <= GlobalContext::get_num_app_threads())
+          CHECK(num_connected_app_threads <= GlobalContext::get_num_app_threads())
             << "num_connected_app_threads = " << num_connected_app_threads
             << " get_num_app_threads() = "
             << GlobalContext::get_num_app_threads();
@@ -1112,8 +1111,8 @@ namespace petuum {
       case kServerOpLogAck:
         {
           ServerOpLogAckMsg server_oplog_ack_msg(msg_mem);
-          row_request_oplog_mgr_->ServerAcknowledgeVersion(
-                                                           sender_id, server_oplog_ack_msg.get_ack_version());
+          row_request_oplog_mgr_->ServerAcknowledgeVersion(sender_id,
+                                                           server_oplog_ack_msg.get_ack_version());
         }
         break;
       case kBgHandleAppendOpLog:
