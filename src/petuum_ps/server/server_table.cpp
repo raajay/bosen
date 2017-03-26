@@ -163,6 +163,7 @@ void ServerTable::AppendRowsToBuffsPartial(
 
   delete[] tmp_row_buff_;
 }
+  */
 
 void ServerTable::MakeSnapShotFileName(
     const std::string &snapshot_dir,
@@ -175,7 +176,6 @@ void ServerTable::MakeSnapShotFileName(
      << ".db";
   *filename = ss.str();
 }
-  */
 
 void ServerTable::TakeSnapShot(
     const std::string &snapshot_dir,
