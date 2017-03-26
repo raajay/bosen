@@ -3,6 +3,7 @@
 import os
 from os.path import dirname, join
 import time
+import sys
 
 #hostfile_name = "machinefiles/localserver"
 
@@ -20,10 +21,17 @@ ssh_cmd = (
     "-o UserKnownHostsFile=/dev/null "
     )
 
-# Get host IPs
+# Get client: host IPs
 with open(hostfile, "r") as f:
   hostlines = f.read().splitlines()
-host_ips = [line.split()[1] for line in hostlines]
+  host_ips = {}
+  for line in hostlines:
+    parts = line.strip().split()
+    if len(parts) != 3:
+      print "wrong format for host file"
+      sys.exit()
+    host_ips[int(parts[0])] = parts[1]
+    # host_ips = [line.split()[1] for line in hostlines]
 
 # env variables required by run_local.py
 env_variables = [
@@ -47,7 +55,8 @@ for var in env_variables:
     env_params += "%s=%s " % (var, value)
 
 fp = open("./cmds.log", "w")
-for client_id, ip in enumerate(host_ips):
+# for client_id, ip in enumerate(host_ips):
+for client_id, ip in host_ips.iteritems():
   cmd = ssh_cmd + ip + " "
   cmd += "\'" + env_params + "python " + join(app_dir, "script/run_local.py")
   cmd += " %d %s\'" % (client_id, hostfile)
