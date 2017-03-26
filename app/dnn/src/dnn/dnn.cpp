@@ -268,12 +268,12 @@ void dnn::train(mat * weights, mat * biases)
     } // until now we are just creating a bunch of matrices in the heap (thread local) to store
     // the different variables (no get/set to local buffers are not processed yet.).
 
-    int * idxes_batch=new int[size_minibatch];
+    int * idxes_batch = new int[size_minibatch];
 
     // epoch by definition is the number of passes over the ENTIRE data.
     // If each thread processes <size_minibatch> data, and there are <n> threads,
     // then we need (num_train_data/n/size_minibatch), iterations to complete one epoch
-    int inner_iter=num_train_data/num_worker_threads/size_minibatch;
+    int inner_iter = std::max(num_train_data / num_worker_threads /size_minibatch, 1);
     if((*thread_id) == 0) {
         VLOG(2) << "Value of inner_iter = " << inner_iter;
     }
