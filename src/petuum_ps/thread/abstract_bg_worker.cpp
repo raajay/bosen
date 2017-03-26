@@ -684,6 +684,7 @@ namespace petuum {
     return serialized_size;
   }
 
+
   void AbstractBgWorker::RecvAppInitThreadConnection(int32_t *num_connected_app_threads) {
     zmq::message_t zmq_msg;
     int32_t sender_id;
@@ -694,8 +695,9 @@ namespace petuum {
     CHECK(*num_connected_app_threads <= GlobalContext::get_num_app_threads());
   }
 
-  void AbstractBgWorker::CheckForwardRowRequestToServer(
-                                                        int32_t app_thread_id, RowRequestMsg &row_request_msg) {
+
+  void AbstractBgWorker::CheckForwardRowRequestToServer(int32_t app_thread_id,
+                                                        RowRequestMsg &row_request_msg) {
 
     int32_t table_id = row_request_msg.get_table_id();
     int32_t row_id = row_request_msg.get_row_id();
@@ -952,6 +954,7 @@ namespace petuum {
 
   }
 
+
   void AbstractBgWorker::ConnectToNameNodeOrServer(int32_t server_id) {
     ClientConnectMsg client_connect_msg;
     client_connect_msg.get_client_id() = GlobalContext::get_client_id();
@@ -960,7 +963,7 @@ namespace petuum {
 
     if (comm_bus_->IsLocalEntity(server_id)) {
       comm_bus_->ConnectTo(server_id, msg, msg_size);
-      VLOG(5) << "Init LOCAL handshake from bgworker=" << my_id_ << " to server=" << server_id;
+      VLOG(2) << "Init LOCAL handshake from bgworker=" << my_id_ << " to server=" << server_id;
     } else {
       HostInfo server_info;
       if (server_id == GlobalContext::get_name_node_id())
@@ -970,10 +973,11 @@ namespace petuum {
 
       std::string server_addr = server_info.ip + ":" + server_info.port;
       comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
-      VLOG(5) << "Init handshake from bgworker=" << my_id_ << " to server="
+      VLOG(2) << "Init handshake from bgworker=" << my_id_ << " to server="
               << server_id << " at " << server_addr;
     }
   }
+
 
   void *AbstractBgWorker::operator() () {
     STATS_REGISTER_THREAD(kBgThread);
@@ -991,7 +995,10 @@ namespace petuum {
     int32_t num_deregistered_app_threads = 0;
     int32_t num_shutdown_acked_servers = 0;
 
+    VLOG(0) << "Prepare to connect with app threads";
     RecvAppInitThreadConnection(&num_connected_app_threads);
+    VLOG(0) << "Bg Worker thread:" << my_id_ << " connected with "
+            << num_connected_app_threads << " app threads.";
 
     if(my_comm_channel_idx_ == 0){
       HandleCreateTables();

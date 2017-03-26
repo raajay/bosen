@@ -74,6 +74,7 @@ namespace petuum {
       std::string name_node_addr = name_node_info.ip + ":" + name_node_info.port;
       comm_bus_->ConnectTo(name_node_id, name_node_addr, msg, msg_size);
     }
+    VLOG(1) << "Successfully connect to namenode.";
   }
 
   int32_t ServerThread::GetConnection(bool *is_client, int32_t *client_id) {
@@ -89,6 +90,7 @@ namespace petuum {
       CHECK_EQ(msg_type, kServerConnect);
       *is_client = false;
     }
+    VLOG(1) << "[Thread:" << my_id_ << " ] Received connection from thread:" << sender_id;
     return sender_id;
   }
 
@@ -104,7 +106,8 @@ namespace petuum {
   void ServerThread::InitServer() {
     ConnectToNameNode();
 
-    for (int32_t num_bgs = 0; num_bgs < GlobalContext::get_num_worker_clients(); ++num_bgs) {
+    int32_t num_bgs;
+    for (num_bgs = 0; num_bgs < GlobalContext::get_num_worker_clients(); ++num_bgs) {
       int32_t client_id;
       bool is_client;
       int32_t bg_id = GetConnection(&is_client, &client_id);
@@ -114,8 +117,11 @@ namespace petuum {
 
     server_obj_.Init(my_id_, bg_worker_ids_);
     ClientStartMsg client_start_msg;
+    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to "
+            << num_bgs << " bg threads.";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
   }
+
 
   bool ServerThread::HandleShutDownMsg() {
     // When num_shutdown_bgs reaches the total number of clients, the server
