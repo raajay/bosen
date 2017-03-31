@@ -44,7 +44,12 @@
 #include <petuum_ps/thread/context.hpp>
 //#include <petuum_ps_common/util/stats.hpp>
 
-dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, int num_train_data){
+dnn::dnn(dnn_paras para,
+         int client_id,
+         int num_worker_threads,
+         int staleness,
+         int num_train_data) {
+
     num_layers=para.num_layers;
     num_units_ineach_layer=new int[num_layers];
     for(int i=0;i<num_layers;i++){
@@ -153,14 +158,18 @@ void dnn::sgd_mini_batch(int * idxes_batch,
         biases[rnd_idx].BatchInc(0,update_batch);
     }
     VLOG(2) << "BatchInc tables took " << update_tables_timer.elapsed() << " s";
-
-
 }
 
 
 
-void dnn::compute_gradient_single_data(int idx_data,float *** local_weights, float ** local_biases, float *** delta_weights, float ** delta_biases, float ** z, float ** delta)
-{
+void dnn::compute_gradient_single_data(int idx_data,
+                                       float *** local_weights,
+                                       float ** local_biases,
+                                       float *** delta_weights,
+                                       float ** delta_biases,
+                                       float ** z,
+                                       float ** delta) {
+
     copy_vec(z[0], input_features[idx_data], num_units_ineach_layer[0]);
 
     //forward propagation
@@ -191,8 +200,12 @@ void dnn::compute_gradient_single_data(int idx_data,float *** local_weights, flo
 
 
 
-void dnn::forward_activation(int index_lower_layer, float ** local_weights, float * local_bias, float * visible, float * hidden)
-{
+void dnn::forward_activation(int index_lower_layer,
+                             float ** local_weights,
+                             float * local_bias,
+                             float * visible,
+                             float * hidden) {
+
     int num_units_hidden=num_units_ineach_layer[index_lower_layer+1];
     int num_units_visible=num_units_ineach_layer[index_lower_layer];
     matrix_vector_multiply(local_weights, visible, hidden, num_units_hidden, num_units_visible);
@@ -206,8 +219,10 @@ void dnn::forward_activation(int index_lower_layer, float ** local_weights, floa
 
 
 //compute error at output layer
-void dnn::compute_error_output_layer(float * error_output_layer, float * activation_output_layer,int idx_data)
-{
+void dnn::compute_error_output_layer(float * error_output_layer,
+                                     float * activation_output_layer,
+                                     int idx_data) {
+
     int num_units_output_layer=num_units_ineach_layer[num_layers-1];
     int label=output_labels[idx_data];
     for(int k=0;k<num_units_output_layer;k++){
@@ -219,8 +234,12 @@ void dnn::compute_error_output_layer(float * error_output_layer, float * activat
 }
 
 
-void dnn::backward_error_computation(int index_lower_index, float ** local_weights, float * activation, float * error_lower_layer, float * error_higher_layer)
-{
+void dnn::backward_error_computation(int index_lower_index,
+                                     float ** local_weights,
+                                     float * activation,
+                                     float * error_lower_layer,
+                                     float * error_higher_layer) {
+
     int num_j=num_units_ineach_layer[index_lower_index+1];
     int num_k=num_units_ineach_layer[index_lower_index+2];
     memset(error_lower_layer, 0, sizeof(float)* num_j);
@@ -233,8 +252,10 @@ void dnn::backward_error_computation(int index_lower_index, float ** local_weigh
     }
 }
 
-void dnn::train(mat * weights, mat * biases)
-{
+
+void dnn::train(mat * weights,
+                mat * biases) {
+
     //z stores forward activations, delta stores backward errors
     //allocate z and delta buffers
     float ** z=new float*[num_layers];
@@ -411,7 +432,11 @@ void dnn::train(mat * weights, mat * biases)
     delete []delta_biases;
 }
 
-float dnn::compute_loss(float *** weights, float ** biases) {
+
+
+float dnn::compute_loss(float *** weights,
+                        float ** biases) {
+
     float ** z=new float*[num_layers];
     for(int i=0;i<num_layers;i++)
         z[i]=new float[num_units_ineach_layer[i]];
@@ -438,7 +463,9 @@ float dnn::compute_loss(float *** weights, float ** biases) {
 }
 
 
-float dnn::compute_cross_entropy_loss(float * output, int idx_data) {
+float dnn::compute_cross_entropy_loss(float * output,
+                                      int idx_data) {
+
     float los=0;
     int label=output_labels[idx_data];
     if(std::abs(output[label])<1e-10)
@@ -448,7 +475,10 @@ float dnn::compute_cross_entropy_loss(float * output, int idx_data) {
 }
 
 
-void dnn::save_model(mat * weights, mat *biases, const char * mdl_weight_file, const char * mdl_bias_file) {
+void dnn::save_model(mat * weights,
+                     mat *biases,
+                     const char * mdl_weight_file,
+                     const char * mdl_bias_file) {
 
     //save weight matrices
     //std::ofstream outfile;
@@ -509,7 +539,9 @@ void dnn::load_data(char * data_file) {
 }
 
 
-void dnn::init_paras(mat *weights,mat *biases ) {
+void dnn::init_paras(mat *weights,
+                     mat *biases ) {
+
     //init weights and biases randomly
     VLOG(0) << "Starting parameter initialization.";
     for(int i=0;i<num_layers-1;i++){
@@ -541,7 +573,9 @@ void dnn::init_paras(mat *weights,mat *biases ) {
 
 
 // run the whole learning process of DNN
-void dnn::run(std::string model_weight_file, std::string model_bias_file) {
+void dnn::run(std::string model_weight_file,
+              std::string model_bias_file) {
+
     // assign id to threads
     if (!thread_id.get()) {
         thread_id.reset(new int(thread_counter++));
