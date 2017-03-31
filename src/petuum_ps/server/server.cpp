@@ -138,7 +138,7 @@ namespace petuum {
 
 
 
-  // This is the key function, one where the internal table is update with values sent from the server.
+  // This is the key function, one where the internal table is updated with values sent from the client.
   void Server::ApplyOpLogUpdateVersion(const void *oplog,
                                        size_t oplog_size,
                                        int32_t bg_thread_id,

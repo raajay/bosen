@@ -667,6 +667,8 @@ namespace petuum {
       }
     }
 
+    VLOG(5) << "Total oplog size sent at clock:" << client_clock_
+            << " equals " << accum_size << " bytes.";
     STATS_BG_ADD_PER_CLOCK_OPLOG_SIZE(accum_size);
 
     return accum_size;
@@ -741,6 +743,8 @@ namespace petuum {
 
     // Version in request denotes the update version that the row on server can
     // see. Which should be 1 less than the current version number.
+    // raajay: version_ is the latest version that is pushed to the server from this client.
+    // which means the request can be for one less than that?
     row_request.version = version_ - 1;
 
     bool should_be_sent
@@ -870,8 +874,7 @@ namespace petuum {
     }
   }
 
-  void AbstractBgWorker::HandleServerRowRequestReply(
-                                                     int32_t server_id,
+  void AbstractBgWorker::HandleServerRowRequestReply(int32_t server_id,
                                                      ServerRowRequestReplyMsg &server_row_request_reply_msg) {
 
     int32_t table_id = server_row_request_reply_msg.get_table_id();
@@ -886,8 +889,7 @@ namespace petuum {
     row_request_oplog_mgr_->ServerAcknowledgeVersion(server_id, version);
 
     RowAccessor row_accessor;
-    ClientRow *client_row = client_table->get_process_storage().Find(
-                                                                     row_id, &row_accessor);
+    ClientRow *client_row = client_table->get_process_storage().Find(row_id, &row_accessor);
 
     const void *data = server_row_request_reply_msg.get_row_data();
     size_t row_size = server_row_request_reply_msg.get_row_size();
@@ -902,8 +904,7 @@ namespace petuum {
 
     std::vector<int32_t> app_thread_ids;
     int32_t clock_to_request
-      = row_request_oplog_mgr_->InformReply(
-                                            table_id, row_id, clock, version_, &app_thread_ids);
+      = row_request_oplog_mgr_->InformReply(table_id, row_id, clock, version_, &app_thread_ids);
 
     if (clock_to_request >= 0) {
       RowRequestMsg row_request_msg;
@@ -911,11 +912,11 @@ namespace petuum {
       row_request_msg.get_row_id() = row_id;
       row_request_msg.get_clock() = clock_to_request;
 
-      int32_t server_id = GlobalContext::GetPartitionServerID(
-                                                              row_id, my_comm_channel_idx_);
+      int32_t server_id = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
 
       size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(server_id,
-                                                             row_request_msg.get_mem(), row_request_msg.get_size());
+                                                             row_request_msg.get_mem(),
+                                                             row_request_msg.get_size());
       CHECK_EQ(sent_size, row_request_msg.get_size());
     }
 
@@ -924,7 +925,8 @@ namespace petuum {
 
     for (int i = 0; i < (int) app_thread_ids.size(); ++i) {
       size_t sent_size = comm_bus_->SendInProc(app_thread_ids[i],
-                                               row_request_reply_msg.get_mem(), row_request_reply_msg.get_size());
+                                               row_request_reply_msg.get_mem(),
+                                               row_request_reply_msg.get_size());
       CHECK_EQ(sent_size, row_request_reply_msg.get_size());
     }
   }

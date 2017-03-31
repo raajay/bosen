@@ -65,6 +65,7 @@ BgOpLog *SSPBgWorker::PrepareOpLogsToSend() {
 
     if (table_pair.second->get_no_oplog_replay()) {
       // TODO (raajay): I do not understand what no-replay means?
+      // code path does not go through this condition
 
       if (table_pair.second->get_oplog_type() == Sparse ||
           table_pair.second->get_oplog_type() == Dense)
@@ -302,16 +303,14 @@ void SSPBgWorker::CheckAndApplyOldOpLogsToRowData(
   if (version + 1 < version_) {
     int32_t version_st = version + 1;
     int32_t version_end = version_ - 1;
-    ApplyOldOpLogsToRowData(table_id, row_id, version_st, version_end,
-                            row_data);
+    ApplyOldOpLogsToRowData(table_id, row_id, version_st, version_end, row_data);
   }
 }
 
 void SSPBgWorker::ApplyOldOpLogsToRowData(
     int32_t table_id, int32_t row_id, uint32_t version_st,
     uint32_t version_end, AbstractRow *row_data) {
-  STATS_BG_ACCUM_SERVER_PUSH_VERSION_DIFF_ADD(
-      version_end - version_st + 1);
+  STATS_BG_ACCUM_SERVER_PUSH_VERSION_DIFF_ADD(version_end - version_st + 1);
 
   BgOpLog *bg_oplog
       = row_request_oplog_mgr_->OpLogIterInit(version_st, version_end);
