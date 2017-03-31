@@ -411,8 +411,7 @@ void dnn::train(mat * weights, mat * biases)
     delete []delta_biases;
 }
 
-float dnn::compute_loss(float *** weights, float ** biases)
-{
+float dnn::compute_loss(float *** weights, float ** biases) {
     float ** z=new float*[num_layers];
     for(int i=0;i<num_layers;i++)
         z[i]=new float[num_units_ineach_layer[i]];
@@ -439,8 +438,7 @@ float dnn::compute_loss(float *** weights, float ** biases)
 }
 
 
-float dnn::compute_cross_entropy_loss(float * output, int idx_data)
-{
+float dnn::compute_cross_entropy_loss(float * output, int idx_data) {
     float los=0;
     int label=output_labels[idx_data];
     if(std::abs(output[label])<1e-10)
@@ -450,7 +448,7 @@ float dnn::compute_cross_entropy_loss(float * output, int idx_data)
 }
 
 
-void dnn::save_model(mat * weights, mat *biases, const char * mdl_weight_file, const char * mdl_bias_file){
+void dnn::save_model(mat * weights, mat *biases, const char * mdl_weight_file, const char * mdl_bias_file) {
 
     //save weight matrices
     //std::ofstream outfile;
@@ -489,7 +487,8 @@ void dnn::save_model(mat * weights, mat *biases, const char * mdl_weight_file, c
     outfile2.close();
 }
 
-void dnn::load_data(char * data_file){
+
+void dnn::load_data(char * data_file) {
     int feadim=num_units_ineach_layer[0];
 
     input_features=new float*[num_train_data];
@@ -509,7 +508,8 @@ void dnn::load_data(char * data_file){
     infile.close();
 }
 
-void dnn::init_paras(mat *weights,mat *biases ){
+
+void dnn::init_paras(mat *weights,mat *biases ) {
     //init weights and biases randomly
     VLOG(0) << "Starting parameter initialization.";
     for(int i=0;i<num_layers-1;i++){
@@ -541,8 +541,7 @@ void dnn::init_paras(mat *weights,mat *biases ){
 
 
 // run the whole learning process of DNN
-void dnn::run(std::string model_weight_file, std::string model_bias_file)
-{
+void dnn::run(std::string model_weight_file, std::string model_bias_file) {
     // assign id to threads
     if (!thread_id.get()) {
         thread_id.reset(new int(thread_counter++));
@@ -600,15 +599,3 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
     delete[]biases;
     petuum::PSTableGroup::DeregisterThread();
 }
-
-
-
-
-
-
-
-
-
-
-
-
