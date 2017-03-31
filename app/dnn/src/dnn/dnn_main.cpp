@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
     table_config.oplog_capacity = 100;
 
     //create DNN weight tables
-    for(int i = 0; i < para.num_layers-1; i++) {
+    for(int i = 0; i < para.num_layers - 1; i++) {
       table_config.table_info.table_staleness = FLAGS_staleness;
       table_config.table_info.row_capacity = para.num_units_ineach_layer[i];
       table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
@@ -136,17 +136,21 @@ int main(int argc, char *argv[]) {
       table_config.process_cache_capacity = para.num_units_ineach_layer[i+1];
 #endif
       CHECK(petuum::PSTableGroup::CreateTable(i,table_config)) << "Failed to create weight table!" ;
+      VLOG(2) << "Create weight table with " << table_config.process_cache_capacity
+              << " rows and " << table_config.table_info.row_capacity << " columns.";
     }
 
     //create DNN biases tables
-    for(int i = 0; i < para.num_layers-1; i++) {
+    for(int i = 0; i < para.num_layers - 1; i++) {
       table_config.table_info.table_staleness = FLAGS_staleness;
-      table_config.table_info.row_capacity = para.num_units_ineach_layer[i+1];
+      table_config.table_info.row_capacity = para.num_units_ineach_layer[i + 1];
       table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
       table_config.table_info.oplog_dense_serialized = false;
       table_config.process_cache_capacity = 1;
-      table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i+1];
-      CHECK(petuum::PSTableGroup::CreateTable(i+para.num_layers-1,table_config)) << "Failed to create bias table!";
+      table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i + 1];
+      CHECK(petuum::PSTableGroup::CreateTable(i + para.num_layers-1,table_config)) << "Failed to create bias table!";
+      VLOG(2) << "Create bias table with " << table_config.process_cache_capacity
+              << " rows and " << table_config.table_info.row_capacity << " columns.";
     }
 
     // Finished creating tables

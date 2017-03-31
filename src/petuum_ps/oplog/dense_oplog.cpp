@@ -132,7 +132,7 @@ namespace petuum {
       row_oplog = CreateAndInsertRowOpLog(row_id);
 
     return row_oplog;
-  }
+  } // end function -- FindInsertOpLog
 
   bool DenseOpLog::GetEraseOpLog(int32_t row_id,
                                  AbstractRowOpLog **row_oplog_ptr) {
@@ -146,7 +146,7 @@ namespace petuum {
     oplog_vec_[GetVecIndex(row_id)] = 0;
     *row_oplog_ptr = row_oplog;
     return true;
-  }
+  } // end function -- GetEraseOpLog
 
   bool DenseOpLog::GetEraseOpLogIf(int32_t row_id,
                                    GetOpLogTestFunc test,
@@ -167,7 +167,7 @@ namespace petuum {
     oplog_vec_[GetVecIndex(row_id)] = 0;
     *row_oplog_ptr = row_oplog;
     return true;
-  }
+  } // end function -- GetEraseOpLogIf
 
   bool DenseOpLog::GetInvalidateOpLogMeta(int32_t row_id,
                                           RowOpLogMeta *row_oplog_meta) {
@@ -184,7 +184,7 @@ namespace petuum {
     meta_row_oplog->InvalidateMeta();
     meta_row_oplog->ResetImportance();
     return true;
-  }
+  } // end function -- GetInvalidateOpLogMeta
 
   AbstractAppendOnlyBuffer *DenseOpLog::GetAppendOnlyBuffer(int32_t comm_channel_idx) {
     LOG(FATAL) << "Unsupported operation for OpLogType";
@@ -198,7 +198,7 @@ namespace petuum {
   AbstractRowOpLog *DenseOpLog::FindRowOpLog(int32_t row_id) {
     int32_t vec_index = GetVecIndex(row_id);
     return oplog_vec_[vec_index];
-  }
+  } // end function -- FindRowOpLog
 
   AbstractRowOpLog *DenseOpLog::CreateAndInsertRowOpLog(int32_t row_id) {
     int32_t vec_index = GetVecIndex(row_id);
@@ -206,13 +206,13 @@ namespace petuum {
                                                   dense_row_oplog_capacity_);
     oplog_vec_[vec_index] = row_oplog;
     return row_oplog;
-  }
+  } // end function -- CreateAndInsertRowOpLog
 
   int32_t DenseOpLog::GetVecIndex(int32_t row_id) {
 #ifdef PETUUM_CHECK_DENSE_STORAGE_RANGE
     CHECK_LT(row_id, capacity_);
 #endif
     return row_id % capacity_;
-  }
+  } // end function -- GetVecIndex
 
 } // end namespace -- petuum
