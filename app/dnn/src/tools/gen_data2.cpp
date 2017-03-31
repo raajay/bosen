@@ -34,55 +34,65 @@
 
 int main(int argc, char * argv[])
 {
-  if(argc!=7){
-    std::cout<<" usage: gen_data <num_train_data> <dim_feature> <num_classes> <num_partitions> <save_dir> <partition_id>"<<std::endl;
+  if(argc != 7) {
+    std::cout << " usage: gen_data <num_train_data> <dim_feature> <num_classes> <num_partitions> <save_dir> <partition_id>" << std::endl;
     return 0;
   }
+
   srand(time(NULL));
   int num_train_data=atoi(argv[1]);
   int dim_feature=atoi(argv[2]);
   int num_classes=atoi(argv[3]);
   int num_partitions=atoi(argv[4]);
   int partition_id = atoi(argv[6]);
+
   if (partition_id >= num_partitions || partition_id < 0) {
-      std::cout << "<partition_id> should be between 0 and <num_partitions> - 1. "
-          << "num_partitions = " << num_partitions << ", partition_id = " << partition_id << std::endl;
+      std::cout << "<partition_id> should be between 0 and <num_partitions> - 1. " << "num_partitions = "
+                << num_partitions << ", partition_id = " << partition_id << std::endl;
       return 0;
   }
 
-  char meta_file[512];
-  sprintf(meta_file, "%s/data_ptt_file.txt",argv[5]);
-  std::ofstream out;
-  out.open(meta_file);
-  for(int p=0;p<num_partitions;p++){
+  char partition_file[512];
+  sprintf(partition_file, "%s/data_ptt_file.txt",argv[5]);
+  std::ofstream partition_file_fout;
+  partition_file_fout.open(partition_file);
+
+  for(int p = 0; p < num_partitions; p++) {
+
     char data_file[512];
     sprintf(data_file, "%s/%d_data.txt", argv[5], p);
-    std::ofstream outfile;
+
     int num_train_data_inptt;
-    if(p<num_partitions-1)
-      num_train_data_inptt=num_train_data/num_partitions;
-    else
-      num_train_data_inptt=num_train_data/num_partitions+num_train_data%num_partitions;
-    out<<data_file<<"\t"<<num_train_data_inptt<<std::endl;
+
+    if(p < num_partitions - 1) {
+      num_train_data_inptt = num_train_data / num_partitions;
+    } else {
+      num_train_data_inptt = num_train_data / num_partitions + num_train_data % num_partitions;
+    }
+
+    partition_file_fout << data_file << "\t" << num_train_data_inptt << std::endl;
     // (raajay): We put the if condition here so that data descriptor file is
     // populated in the same manner in all the clients.
     if (p != partition_id) {
         continue;
     }
+
     //generate features and labels
-    outfile.open(data_file);
-    for(int d=0;d<num_train_data_inptt;d++){
-      int label=rand()%num_classes;
-      outfile<<label<<"\t";
-      for(int f=0;f<dim_feature;f++){
-        float v=(rand()%1000)/10000.0;
-        outfile<<v<<" ";
+    std::ofstream data_file_fout;
+    data_file_fout.open(data_file);
+    for(int d = 0; d < num_train_data_inptt; d++) {
+      int label = rand() % num_classes;
+      data_file_fout << label << "\t";
+      for(int f = 0; f < dim_feature; f++) {
+        float v = (rand() %1000) / 10000.0;
+        data_file_fout << v << " ";
       }
-      outfile<<std::endl;
-    }
-    outfile.close();
-  }
-  out.close();
+      data_file_fout<<std::endl;
+    } // end for -- over training data in a single partition
+    data_file_fout.close();
+
+  } // end for -- over all the partitions
+  partition_file_fout.close();
   return 0;
 }
 
