@@ -288,6 +288,8 @@ void SSPBgWorker::PrepareOpLogsAppendOnlyNoReplay(
 void SSPBgWorker::TrackBgOpLog(BgOpLog *bg_oplog) {
   bool tracked = row_request_oplog_mgr_->AddOpLog(version_, bg_oplog);
   ++version_;
+  VLOG(5) << "Increment version of bgworker:" << my_id_ << " to " << version_;
+  // the below version does nothing.
   row_request_oplog_mgr_->InformVersionInc();
   if (!tracked) {
     delete bg_oplog;

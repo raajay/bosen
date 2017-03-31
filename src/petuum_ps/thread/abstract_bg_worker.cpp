@@ -406,9 +406,15 @@ namespace petuum {
     STATS_BG_ACCUM_CLOCK_END_OPLOG_SERIALIZE_END();
 
     clock_has_pushed_ = client_clock_;
+    // send the information to the server with info on whether the clock has
+    // advanced (or) if the client is just pushing updates aggressively.
     SendOpLogMsgs(clock_advanced);
+    // increments the current version of the bgworker, and keeps track of the
+    // oplog in ssp_row_request_oplog_manager
+    // note that the version number is incremented even if the clock has not advanced.
     TrackBgOpLog(bg_oplog);
     return 0;
+    // the clock (client_clock_) is immediately incremented after this function completes
   }
 
   void AbstractBgWorker::HandleServerPushRow(int32_t sender_id, void *msg_mem) {
@@ -1054,6 +1060,8 @@ namespace petuum {
       case kAppThreadDereg:
         {
           ++num_deregistered_app_threads;
+          // when all the app thread have de-registered, send a shut down message to namenode,
+          // scheduler and all the servers.
           if (num_deregistered_app_threads
               == GlobalContext::get_num_app_threads()) {
             ClientShutDownMsg msg;
@@ -1071,8 +1079,8 @@ namespace petuum {
       case kServerShutDownAck:
         {
           ++num_shutdown_acked_servers;
-          if (num_shutdown_acked_servers
-              == GlobalContext::get_num_server_clients() + 1) {
+          // if all them ack your shutdown, only then de-register and terminate out of the infinite loop
+          if (num_shutdown_acked_servers == GlobalContext::get_num_server_clients() + 1) {
             comm_bus_->ThreadDeregister();
             STATS_DEREGISTER_THREAD();
             return 0;
@@ -1081,20 +1089,24 @@ namespace petuum {
         break;
       case kRowRequest:
         {
+          // app thread typically sends a row request, you job is to forward it to the server.
           RowRequestMsg row_request_msg(msg_mem);
           CheckForwardRowRequestToServer(sender_id, row_request_msg);
         }
         break;
       case kServerRowRequestReply:
         {
+          // server responds with the information of rows requested
           ServerRowRequestReplyMsg server_row_request_reply_msg(msg_mem);
           HandleServerRowRequestReply(sender_id, server_row_request_reply_msg);
         }
         break;
       case kBgClock:
         {
+          // clock message is sent from the app thread using the static function defined in bgworkers.
           timeout_milli = HandleClockMsg(true);
           ++client_clock_;
+          VLOG(5) << "Increment client clock in bgworker:" << my_id_ << " to " << client_clock_;
           STATS_BG_CLOCK();
         }
         break;
@@ -1105,11 +1117,13 @@ namespace petuum {
         break;
       case kServerPushRow:
         {
+          // this is required only for SSP Push (ignore for our setting)
           HandleServerPushRow(sender_id, msg_mem);
         }
         break;
       case kServerOpLogAck:
         {
+          // this is sent by the server to acknowledge the receipt of an oplog
           ServerOpLogAckMsg server_oplog_ack_msg(msg_mem);
           row_request_oplog_mgr_->ServerAcknowledgeVersion(sender_id,
                                                            server_oplog_ack_msg.get_ack_version());
