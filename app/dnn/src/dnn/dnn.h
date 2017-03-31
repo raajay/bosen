@@ -64,6 +64,7 @@ private :
   //misc
   int staleness;//staleness value
   int client_id;//id of the client (machine)
+  int client_index; // the index of the client
 
   int num_smps_evaluate;//when evaluating objective function, randomly sample <num_smps_evaluate> points to evaluate the objective function
   int num_iters_evaluate;//every <num_iters_evaluate> iterations, evaluate the objective function

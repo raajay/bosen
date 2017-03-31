@@ -41,6 +41,7 @@
 #include <cmath>
 #include <io/general_fstream.hpp>
 #include <petuum_ps_common/util/high_resolution_timer.hpp>
+#include <petuum_ps/thread/context.hpp>
 //#include <petuum_ps_common/util/stats.hpp>
 
 dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, int num_train_data){
@@ -49,14 +50,15 @@ dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, in
     for(int i=0;i<num_layers;i++){
         num_units_ineach_layer[i]=para.num_units_ineach_layer[i];
     }
-    num_epochs=para.epochs;
+    num_epochs = para.epochs;
     stepsize=para.stepsize;
     size_minibatch=para.size_minibatch;
     this->num_worker_threads=num_worker_threads;
     process_barrier.reset(new boost::barrier(num_worker_threads));
     thread_counter=0;
 
-    this->client_id=client_id;
+    this->client_id = client_id;
+    this->client_index = petuum::GlobalContext::get_worker_client_index(client_id);
     this->staleness=staleness;
     this->num_train_data=num_train_data;
     num_smps_evaluate=para.num_smps_evaluate;
@@ -66,8 +68,18 @@ dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, in
 
 
 
-void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float *** local_weights, float ** local_biases , float *** delta_weights, float ** delta_biases, float ** z, float ** delta, int ** rand_idxes_weight, int * rand_idxes_bias)
-{
+void dnn::sgd_mini_batch(int * idxes_batch,
+                         mat* weights,
+                         mat* biases,
+                         float *** local_weights,
+                         float ** local_biases ,
+                         float *** delta_weights,
+                         float ** delta_biases,
+                         float ** z,
+                         float ** delta,
+                         int ** rand_idxes_weight,
+                         int * rand_idxes_bias) {
+
     //delta_weights accumuluates the gradients of weight matrices, delta_biases accumulates the gradients of bias vectors
     //set delta_weights and delta_biases buffer to zero
     for(int l=0;l<num_layers-1;l++){
@@ -320,7 +332,7 @@ void dnn::train(mat * weights, mat * biases)
             it++;
 
             //evalutate objective function
-            if(it%num_iters_evaluate==0&&client_id==0&&(*thread_id)==0) {
+            if(it%num_iters_evaluate == 0 && client_index == 0 && (*thread_id)==0) {
 
                 petuum::RowAccessor row_acc;
                 //fetch parameters
@@ -346,7 +358,7 @@ void dnn::train(mat * weights, mat * biases)
                         local_biases[l][j]=r[j];
                 }
                 float loss=compute_loss(local_weights, local_biases);
-                if(client_id==0&&(*thread_id)==0)
+                if(client_index == 0 && (*thread_id)==0)
                     std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
             }
 
@@ -558,7 +570,7 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
     // is an abstract_table_group_->tables static variable in each
     // client.However, each client is responsible only for a sub-set of
     // parameters in each table.
-    if (client_id==0&&(*thread_id) == 0){
+    if (client_index == 0 && (*thread_id) == 0) {
         std::cout<<"init parameters"<<std::endl;
         petuum::HighResolutionTimer init_paras_timer;
         init_paras(weights, biases);
@@ -568,8 +580,9 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
     process_barrier->wait(); // Why do we have process level barrier? Shouldn't it be all workers across all clients?
 
     // do DNN training
-    if (client_id==0&&(*thread_id) == 0)
-        std::cout<<"training starts"<<std::endl;
+    if (client_index == 0 && (*thread_id) == 0) {
+      std::cout<<"training starts"<<std::endl;
+    }
     train(weights, biases);
 
     // Run additional iterations to let stale values finish propagating
@@ -578,7 +591,7 @@ void dnn::run(std::string model_weight_file, std::string model_bias_file)
     }
 
     //save model
-    if(client_id==0&&(*thread_id)==0)
+    if(client_index == 0 && (*thread_id) ==0 )
     {
         save_model(weights, biases, model_weight_file.c_str(), model_bias_file.c_str());
     }

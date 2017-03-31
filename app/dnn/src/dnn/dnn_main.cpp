@@ -68,8 +68,8 @@ int main(int argc, char *argv[]) {
   //load dnn parameters
   dnn_paras para;
   load_dnn_paras(para, FLAGS_parafile.c_str());
-  VLOG(0) << "client " << FLAGS_client_id << " starts working..." << std::endl;
-  std::cout<<"client "<<FLAGS_client_id << " starts working..." << std::endl;
+  VLOG(0) << "daemon " << FLAGS_client_id << " starts working..." << std::endl;
+  std::cout<<"daemon "<<FLAGS_client_id << " starts working..." << std::endl;
   std::cout<<"Staleness parameter=" << FLAGS_staleness << std::endl;
 
   // Configure Petuum PS
