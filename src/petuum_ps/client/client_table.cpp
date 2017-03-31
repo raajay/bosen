@@ -180,7 +180,9 @@ void ClientTable::Inc(int32_t row_id, int32_t column_id, const void *update) {
 void ClientTable::BatchInc(int32_t row_id, const int32_t* column_ids,
   const void* updates, int32_t num_updates) {
   STATS_APP_SAMPLE_BATCH_INC_BEGIN(table_id_);
-  consistency_controller_->BatchInc(row_id, column_ids, updates,
+  consistency_controller_->BatchInc(row_id,
+                                    column_ids,
+                                    updates,
                                     num_updates);
   STATS_APP_SAMPLE_BATCH_INC_END(table_id_);
 }
