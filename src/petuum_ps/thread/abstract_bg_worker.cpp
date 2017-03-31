@@ -762,10 +762,14 @@ namespace petuum {
     }
   }
 
-  void AbstractBgWorker::UpdateExistingRow(
-                                           int32_t table_id,
-                                           int32_t row_id, ClientRow *client_row, ClientTable *client_table,
-                                           const void *data, size_t row_size, uint32_t version) {
+  void AbstractBgWorker::UpdateExistingRow(int32_t table_id,
+                                           int32_t row_id,
+                                           ClientRow *client_row,
+                                           ClientTable *client_table,
+                                           const void *data,
+                                           size_t row_size,
+                                           uint32_t version) {
+
     AbstractRow *row_data = client_row->GetRowDataPtr();
     if (client_table->get_oplog_type() == Sparse
         || client_table->get_oplog_type() == Dense) {
@@ -793,6 +797,7 @@ namespace petuum {
         }
       }
       row_data->ReleaseWriteLock();
+
     } else if (client_table->get_oplog_type() == AppendOnly) {
       row_data->GetWriteLock();
       row_data->ResetRowData(data, row_size);
