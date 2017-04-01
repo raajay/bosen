@@ -631,10 +631,16 @@ namespace petuum {
     }
   }
 
+
+
   size_t AbstractBgWorker::SendOpLogMsgs(bool clock_advanced) {
     size_t accum_size = 0;
+
     for (const auto &server_id : server_ids_) {
+
+      // server_oplog_msg_msp will be populated in CreateOpLogMsgs
       auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
+
       if (oplog_msg_iter != server_oplog_msg_map_.end()) {
 
         // if there is data that needs to be sent to the server, we send it along
@@ -765,6 +771,8 @@ namespace petuum {
     }
   }
 
+
+
   void AbstractBgWorker::UpdateExistingRow(int32_t table_id,
                                            int32_t row_id,
                                            ClientRow *client_row,
@@ -774,8 +782,9 @@ namespace petuum {
                                            uint32_t version) {
 
     AbstractRow *row_data = client_row->GetRowDataPtr();
-    if (client_table->get_oplog_type() == Sparse
-        || client_table->get_oplog_type() == Dense) {
+
+    if (client_table->get_oplog_type() == Sparse || client_table->get_oplog_type() == Dense) {
+
       AbstractOpLog &table_oplog = client_table->get_oplog();
       OpLogAccessor oplog_accessor;
       bool oplog_found = table_oplog.FindAndLock(row_id, &oplog_accessor);
@@ -802,6 +811,7 @@ namespace petuum {
       row_data->ReleaseWriteLock();
 
     } else if (client_table->get_oplog_type() == AppendOnly) {
+
       row_data->GetWriteLock();
       row_data->ResetRowData(data, row_size);
       auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
