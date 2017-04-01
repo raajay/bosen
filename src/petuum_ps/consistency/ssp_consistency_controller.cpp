@@ -8,8 +8,7 @@
 
 namespace petuum {
 
-  SSPConsistencyController::SSPConsistencyController(
-                                                     const TableInfo& info,
+  SSPConsistencyController::SSPConsistencyController(const TableInfo& info,
                                                      int32_t table_id,
                                                      AbstractProcessStorage& process_storage,
                                                      AbstractOpLog& oplog,
@@ -17,6 +16,7 @@ namespace petuum {
                                                      boost::thread_specific_ptr<ThreadTable> &thread_cache,
                                                      TableOpLogIndex &oplog_index,
                                                      int32_t row_oplog_type) :
+
     AbstractConsistencyController(table_id, process_storage, sample_row),
     staleness_(info.table_staleness),
     thread_cache_(thread_cache),
@@ -37,7 +37,9 @@ namespace petuum {
   }
 
 
-  ClientRow *SSPConsistencyController::Get(int32_t row_id, RowAccessor* row_accessor) {
+  ClientRow *SSPConsistencyController::Get(int32_t row_id,
+                                           RowAccessor* row_accessor) {
+
     STATS_APP_SAMPLE_SSP_GET_BEGIN(table_id_);
 
     // Look for row_id in process_storage_.
@@ -88,6 +90,7 @@ namespace petuum {
   } // end function -- Get
 
 
+
   void SSPConsistencyController::Inc(int32_t row_id,
                                      int32_t column_id,
                                      const void* delta) {
@@ -131,6 +134,7 @@ namespace petuum {
                               oplog_delta,
                               deltas_uint8 + sample_row_->get_update_size()*i);
     }
+    VLOG(10) << "Create an OpLog from updates. OpLog=" << oplog_;
     STATS_APP_SAMPLE_BATCH_INC_OPLOG_END();
 
     // TODO (Raajay) these updates are also synced into the process_storage_. This
@@ -146,6 +150,7 @@ namespace petuum {
                                                  updates,
                                                  num_updates);
     }
+    VLOG(10) << "Update process storage with updates. Storage=" << process_storage_;
     STATS_APP_SAMPLE_BATCH_INC_PROCESS_STORAGE_END();
   } // end function -- BatchInc
 
