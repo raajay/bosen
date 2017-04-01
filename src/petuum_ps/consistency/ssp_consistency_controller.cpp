@@ -134,7 +134,6 @@ namespace petuum {
                               oplog_delta,
                               deltas_uint8 + sample_row_->get_update_size()*i);
     }
-    VLOG(10) << "Create an OpLog from updates. OpLog=" << oplog_;
     STATS_APP_SAMPLE_BATCH_INC_OPLOG_END();
 
     // TODO (Raajay) these updates are also synced into the process_storage_. This
@@ -150,7 +149,6 @@ namespace petuum {
                                                  updates,
                                                  num_updates);
     }
-    VLOG(10) << "Update process storage with updates. Storage=" << process_storage_;
     STATS_APP_SAMPLE_BATCH_INC_PROCESS_STORAGE_END();
   } // end function -- BatchInc
 
