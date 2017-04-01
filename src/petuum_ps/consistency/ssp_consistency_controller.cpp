@@ -290,6 +290,7 @@ namespace petuum {
                             num_updates);
   } // end function -- ThreadBatchInc
 
+
   void SSPConsistencyController::ThreadDenseBatchInc(int32_t row_id,
                                                      const void *updates,
                                                      int32_t index_st,
@@ -306,7 +307,6 @@ namespace petuum {
                               oplog_,
                               sample_row_);
   } // end function -- FlushThreadCache
-
 
 
   void SSPConsistencyController::Clock() {

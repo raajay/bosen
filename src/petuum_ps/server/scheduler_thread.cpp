@@ -12,10 +12,7 @@ namespace petuum {
     my_id_(GlobalContext::get_scheduler_id()), // the id of the scheduler is by default 900
     init_barrier_(init_barrier),
     comm_bus_(GlobalContext::comm_bus),
-    bg_worker_ids_(GlobalContext::get_num_total_bg_threads())
-  {
-  }
-
+    bg_worker_ids_(GlobalContext::get_num_total_bg_threads()) {}
 
 
   /*
@@ -143,6 +140,7 @@ namespace petuum {
 
   bool SchedulerThread::HandlePreTransmitPing() {
     VLOG(2) << "In HandlePreTransmitPing";
-      return false;
+    return false;
   }
-}
+
+} // end namespace -- petuum
