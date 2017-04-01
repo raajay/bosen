@@ -123,7 +123,8 @@ namespace petuum {
     thread_cache_->IndexUpdate(row_id);
 
     // (raajay) create and insert an oplog. The oplog now holds the values that
-    // are sent in updates.
+    // are sent in updates. If an oplog for the same row is already present, then
+    // the values in the OpLog are updated.
     OpLogAccessor oplog_accessor;
     oplog_.FindInsertOpLog(row_id, &oplog_accessor);
 
