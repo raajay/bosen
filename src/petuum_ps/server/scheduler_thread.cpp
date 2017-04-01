@@ -26,12 +26,14 @@ namespace petuum {
 
     SetupCommBus();
 
-    // one this location has been hit, the thread that initialized the scheduler thread can proceed.
-    // this ensure, that comm_bus is set up after the thread has been created.
+    // one this location has been hit, the thread that initialized the scheduler
+    // thread can proceed. this ensure, that comm_bus is set up after the thread
+    // has been created.
     pthread_barrier_wait(init_barrier_);
 
-    // this function waits till all background threads have sent their request to connect.
-    // it also responds to each background thread with a 'OK' response.
+    // this function waits till all background threads have sent their request
+    // to connect. it also responds to each background thread with a 'OK'
+    // response.
     InitScheduler();
 
     zmq::message_t zmq_msg;
