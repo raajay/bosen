@@ -7,7 +7,8 @@
 
 namespace petuum {
 
-  bool ServerThread::WaitMsgBusy(int32_t *sender_id, zmq::message_t *zmq_msg,
+  bool ServerThread::WaitMsgBusy(int32_t *sender_id,
+                                 zmq::message_t *zmq_msg,
                                  long timeout_milli __attribute__ ((unused)) ) {
     bool received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvAsyncAny_))
       (sender_id, zmq_msg);
@@ -18,7 +19,10 @@ namespace petuum {
     return true;
   }
 
-  bool ServerThread::WaitMsgSleep(int32_t *sender_id, zmq::message_t *zmq_msg,
+
+
+  bool ServerThread::WaitMsgSleep(int32_t *sender_id,
+                                  zmq::message_t *zmq_msg,
                                   long timeout_milli __attribute__ ((unused)) ) {
     (GlobalContext::comm_bus->*(
                                 GlobalContext::comm_bus->RecvAny_))(sender_id, zmq_msg);
@@ -26,16 +30,24 @@ namespace petuum {
     return true;
   }
 
-  bool ServerThread::WaitMsgTimeOut(int32_t *sender_id, zmq::message_t *zmq_msg,
+
+
+  bool ServerThread::WaitMsgTimeOut(int32_t *sender_id,
+                                    zmq::message_t *zmq_msg,
                                     long timeout_milli) {
+
     bool received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvTimeOutAny_))
       (sender_id, zmq_msg, timeout_milli);
     return received;
   }
 
+
+
   void ServerThread::InitWhenStart() {
     SetWaitMsg();
   }
+
+
 
   void ServerThread::SetWaitMsg() {
     if (GlobalContext::get_aggressive_cpu()) {
@@ -44,6 +56,8 @@ namespace petuum {
       WaitMsg_ = WaitMsgSleep;
     }
   }
+
+
 
   void ServerThread::SetUpCommBus() {
     CommBus::Config comm_config;
@@ -59,6 +73,8 @@ namespace petuum {
 
     comm_bus_->ThreadRegister(comm_config);
   }
+
+
 
   void ServerThread::ConnectToNameNode() {
     int32_t name_node_id = GlobalContext::get_name_node_id();
@@ -77,7 +93,10 @@ namespace petuum {
     VLOG(1) << "Successfully connect to namenode.";
   }
 
-  int32_t ServerThread::GetConnection(bool *is_client, int32_t *client_id) {
+
+
+  int32_t ServerThread::GetConnection(bool *is_client,
+                                      int32_t *client_id) {
     int32_t sender_id;
     zmq::message_t zmq_msg;
     (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
@@ -93,6 +112,9 @@ namespace petuum {
     VLOG(1) << "[Thread:" << my_id_ << " ] Received connection from thread:" << sender_id;
     return sender_id;
   }
+
+
+
 
   void ServerThread::SendToAllBgThreads(MsgBase *msg) {
     for (const auto &bg_worker_id : bg_worker_ids_) {
@@ -141,6 +163,8 @@ namespace petuum {
     return false;
   }
 
+
+
   void ServerThread::HandleCreateTable(int32_t sender_id,
                                        CreateTableMsg &create_table_msg) {
     int32_t table_id = create_table_msg.get_table_id();
@@ -166,6 +190,8 @@ namespace petuum {
             << &server_obj_ << ") for table=" << table_id << " in server_thread=" << my_id_;
     server_obj_.CreateTable(table_id, table_info);
   }
+
+
 
   void ServerThread::HandleRowRequest(int32_t sender_id,
                                       RowRequestMsg &row_request_msg) {

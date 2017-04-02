@@ -936,6 +936,7 @@ namespace petuum {
     CHECK(table_iter != tables_->end()) << "Cannot find table " << table_id;
     ClientTable *client_table = table_iter->second;
 
+    // (raajay) for SSP the below function does nothing.
     row_request_oplog_mgr_->ServerAcknowledgeVersion(server_id, version);
 
     RowAccessor row_accessor;

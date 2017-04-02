@@ -147,6 +147,8 @@ namespace petuum {
                                        uint32_t version) {
 
     CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
+    // Update the version from a single bg thread that has been applied to the
+    // model.
     bg_version_map_[bg_thread_id] = version;
 
     if (oplog_size == 0)
