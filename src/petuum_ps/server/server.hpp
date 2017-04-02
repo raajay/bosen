@@ -14,76 +14,79 @@
 #include <petuum_ps/thread/ps_msgs.hpp>
 
 namespace petuum {
-struct ServerRowRequest {
-public:
-  int32_t bg_id; // requesting bg thread id
-  int32_t table_id;
-  int32_t row_id;
-  int32_t clock;
-};
 
-// 1. Manage the table storage on server;
-// 2. Manage the pending reads;
-// 3. Manage the vector clock for clients
-// 4. (TODO): manage OpLogs that need acknowledgements
+  struct ServerRowRequest {
+  public:
+    int32_t bg_id; // requesting bg thread id
+    int32_t table_id;
+    int32_t row_id;
+    int32_t clock;
+  };
 
-class Server {
-public:
-  Server();
-  ~Server();
+  // 1. Manage the table storage on server;
+  // 2. Manage the pending reads;
+  // 3. Manage the vector clock for clients
+  // 4. (TODO): manage OpLogs that need acknowledgements
 
-  void Init(int32_t server_id, const std::vector<int32_t> &bg_ids);
+  class Server {
+  public:
+    Server();
+    ~Server();
 
-  void CreateTable(int32_t table_id, TableInfo &table_info);
+    void Init(int32_t server_id, const std::vector<int32_t> &bg_ids);
 
-  ServerRow *FindCreateRow(int32_t table_id, int32_t row_id);
+    void CreateTable(int32_t table_id, TableInfo &table_info);
 
-  bool ClockUntil(int32_t bg_id, int32_t clock);
+    ServerRow *FindCreateRow(int32_t table_id, int32_t row_id);
 
-  void AddRowRequest(int32_t bg_id, int32_t table_id, int32_t row_id, int32_t clock);
+    bool ClockUntil(int32_t bg_id, int32_t clock);
 
-  void GetFulfilledRowRequests(std::vector<ServerRowRequest> *requests);
+    void AddRowRequest(int32_t bg_id, int32_t table_id, int32_t row_id, int32_t clock);
 
-  void ApplyOpLogUpdateVersion(const void *oplog, size_t oplog_size,
-                               int32_t bg_thread_id, uint32_t version);
+    void GetFulfilledRowRequests(std::vector<ServerRowRequest> *requests);
 
-  // Accessors
-  int32_t GetMinClock();
-  int32_t GetBgVersion(int32_t bg_thread_id);
+    void ApplyOpLogUpdateVersion(const void *oplog, size_t oplog_size,
+                                 int32_t bg_thread_id, uint32_t version);
 
-  /* -- Removed since we do not support SSPPush
-  typedef void (*PushMsgSendFunc)(int32_t bg_id, ServerPushRowMsg *msg,
-                                  bool is_last, int32_t version,
-                                  int32_t server_min_clock);
+    // Accessors
+    int32_t GetMinClock();
+    int32_t GetBgVersion(int32_t bg_thread_id);
+    int32_t GetAsyncModelVersion();
 
-  size_t CreateSendServerPushRowMsgs(PushMsgSendFunc PushMsgSender,
-                                     bool clock_changed = true);
+    /* -- Removed since we do not support SSPPush
+       typedef void (*PushMsgSendFunc)(int32_t bg_id, ServerPushRowMsg *msg,
+       bool is_last, int32_t version,
+       int32_t server_min_clock);
 
-  size_t CreateSendServerPushRowMsgsPartial(
-      PushMsgSendFunc PushMsgSend);
+       size_t CreateSendServerPushRowMsgs(PushMsgSendFunc PushMsgSender,
+       bool clock_changed = true);
 
-  bool AccumedOpLogSinceLastPush();
-  */
+       size_t CreateSendServerPushRowMsgsPartial(
+       PushMsgSendFunc PushMsgSend);
 
-private:
-  VectorClock bg_clock_;
+       bool AccumedOpLogSinceLastPush();
+    */
 
-  boost::unordered_map<int32_t, ServerTable> tables_;
+  private:
+    VectorClock bg_clock_;
 
-  // mapping <clock, table id> to an array of row requests
-  std::map<int32_t,
-    boost::unordered_map<int32_t,
-      std::vector<ServerRowRequest> > > clock_bg_row_requests_;
+    int32_t async_version_; // (raajay) we add this to maintain async version number
 
-  // latest oplog version that I have received from a bg thread
-  std::map<int32_t, uint32_t> bg_version_map_;
+    boost::unordered_map<int32_t, ServerTable> tables_;
 
-  // Assume a single row does not exceed this size!
-  static const size_t kPushRowMsgSizeInit = 4*k1_Mi;
+    // mapping <clock, table id> to an array of row requests
+    std::map<int32_t, boost::unordered_map<int32_t, std::vector<ServerRowRequest> > > clock_bg_row_requests_;
 
-  size_t push_row_msg_data_size_;
-  int32_t server_id_;
-  size_t accum_oplog_count_;
-};
+    // latest oplog version that I have received from a bg thread
+    std::map<int32_t, uint32_t> bg_version_map_;
+
+    // Assume a single row does not exceed this size!
+    static const size_t kPushRowMsgSizeInit = 4*k1_Mi;
+
+    size_t push_row_msg_data_size_;
+    int32_t server_id_;
+    size_t accum_oplog_count_;
+
+  }; // end class -- Server
 
 }  // namespace petuum

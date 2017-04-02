@@ -25,6 +25,9 @@ namespace petuum {
       bg_version_map_[*iter] = -1; // the version -1 initially
     }
 
+    // we start with async version -1, it will be incremented to 0, when we init the parameters.
+    async_version_ = -1;
+
     push_row_msg_data_size_ = kPushRowMsgSizeInit;
     server_id_ = server_id;
     accum_oplog_count_ = 0;
@@ -154,6 +157,8 @@ namespace petuum {
     if (oplog_size == 0)
       return;
 
+    async_version_++; // increment the global version of the model
+
     SerializedOpLogReader oplog_reader(oplog, tables_);
     bool to_read = oplog_reader.Restart();
 
@@ -216,6 +221,10 @@ namespace petuum {
 
   int32_t Server::GetBgVersion(int32_t bg_thread_id) {
     return bg_version_map_[bg_thread_id];
+  }
+
+  int32_t Server::GetAsyncModelVersion() {
+    return async_version_;
   }
 
   /* -- Removed since we do not support SSPPush for now
