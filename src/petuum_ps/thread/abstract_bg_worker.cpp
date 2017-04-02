@@ -571,64 +571,96 @@ namespace petuum {
 
   void AbstractBgWorker::CreateOpLogMsgs(const BgOpLog *bg_oplog) {
 
+    // bg_oplog contains the collection of oplogs that needs to be sent from this bg worker.
+    // the data structure arranges oplogs on a per table basis.
+
+
+    // prepare oplogs function, would have calculated how much data needs to be
+    // sent to each server. This value is stored in server_table_oplog_size_map
+    // which is a two-dimensional hashmap. the first dimension is the server and
+    // second dimension is server. Thus, we can split the total data sent to a
+    // server along the table dimension. what we are doing below is, converting
+    // the oplogs organized per table and then per server (in bg oplog
+    // partition) into one giant message that can be sent to the server.
+
     std::map<int32_t, std::map<int32_t, void*> > table_server_mem_map;
 
     for (auto server_iter = server_table_oplog_size_map_.begin();
          server_iter != server_table_oplog_size_map_.end(); server_iter++) {
+
+
+      // a class that helps serialize all data destined to a server.
       OpLogSerializer oplog_serializer;
       int32_t server_id = server_iter->first;
-      size_t server_oplog_msg_size
-        = oplog_serializer.Init(server_iter->second);
+      // we initialize it with the total size of data that will be sent to a specific server.
+      size_t server_oplog_msg_size = oplog_serializer.Init(server_iter->second);
 
       if (server_oplog_msg_size == 0) {
         server_oplog_msg_map_.erase(server_id);
         continue;
       }
 
-      server_oplog_msg_map_[server_id]
-        = new ClientSendOpLogMsg(server_oplog_msg_size);
 
+      server_oplog_msg_map_[server_id] = new ClientSendOpLogMsg(server_oplog_msg_size);
+
+      // if we look at oplog serializer code, it basically sets and internal
+      // pointer to memory location in ClientSendOpLogMsg's data field.
       oplog_serializer.AssignMem(server_oplog_msg_map_[server_id]->get_data());
 
+
+      // oplog serializer helps write the correct information to data field in the oplog message
       for (const auto &table_pair : (*tables_)) {
+
         int32_t table_id = table_pair.first;
-        uint8_t *table_ptr
-          = reinterpret_cast<uint8_t*>(oplog_serializer.GetTablePtr(table_id));
+        uint8_t *table_ptr = reinterpret_cast<uint8_t*>(oplog_serializer.GetTablePtr(table_id));
 
         if (table_ptr == 0) {
           table_server_mem_map[table_id].erase(server_id);
           continue;
         }
 
-        // table id
+        // table id -- store table_id at the table_ptr location
         *(reinterpret_cast<int32_t*>(table_ptr)) = table_id;
 
-        // table update size
-        *(reinterpret_cast<size_t*>(table_ptr + sizeof(int32_t)))
-          = table_pair.second->get_sample_row()->get_update_size();
+        // table update size -- store table update size at the table_prt + one int32 location
+        // some understanding of the serialization is also happening here.
+        *(reinterpret_cast<size_t*>(table_ptr + sizeof(int32_t))) = table_pair.second->get_sample_row()->get_update_size();
 
-        // offset for table rows
-        table_server_mem_map[table_id][server_id]
-          = table_ptr + sizeof(int32_t) + sizeof(size_t);
+        // offset for table rows -- store the offset for each table and each
+        // server. This is the offset into oplog msg's memory.
+        table_server_mem_map[table_id][server_id] = table_ptr + sizeof(int32_t) + sizeof(size_t);
       }
-    }
+
+    } // end for -- over the servers; keys in server_table_oplog_size_map_
+
+
+    // here the re-arranging of the different dimensions happen. We use the
+    // bg_oplog data structure that partitions oplog into tables and server to
+    // write into locations pointed in the table_server_mem_map.
 
     for (const auto &table_pair : (*tables_)) {
+
       int32_t table_id = table_pair.first;
       ClientTable *table = table_pair.second;
+
       if (table->get_no_oplog_replay()) {
+
         auto serializer_iter = row_oplog_serializer_map_.find(table_id);
         CHECK(serializer_iter != row_oplog_serializer_map_.end());
 
         RowOpLogSerializer *row_oplog_serializer = serializer_iter->second;
         row_oplog_serializer->SerializeByServer(&(table_server_mem_map[table_id]));
+
       } else {
+
         BgOpLogPartition *oplog_partition = bg_oplog->Get(table_id);
-        oplog_partition->SerializeByServer(
-                                           &(table_server_mem_map[table_id]),
+        // the second argument to function is an indicator to notify is the serialization is dense or sparse
+        oplog_partition->SerializeByServer(&(table_server_mem_map[table_id]),
                                            table_pair.second->oplog_dense_serialized());
       }
-    }
+
+    } // end for -- over all the tables
+
   }
 
 

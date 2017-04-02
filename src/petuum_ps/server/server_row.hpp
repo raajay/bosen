@@ -50,7 +50,8 @@ namespace petuum {
       dirty_ = true;
     }
 
-    void ApplyDenseBatchInc(const void *update_batch, int32_t num_updates) {
+    void ApplyDenseBatchInc(const void *update_batch,
+                            int32_t num_updates) {
       row_data_->ApplyDenseBatchIncUnsafe(update_batch, 0, num_updates);
       dirty_ = true;
     }

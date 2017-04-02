@@ -36,10 +36,11 @@ namespace petuum {
       tmp_row_buff_size_ (kTmpRowBuffSizeInit),
       sample_row_(ClassRegistry<AbstractRow>::GetRegistry().CreateObject(table_info.row_type)) {
 
-      if (table_info.oplog_dense_serialized)
+      if (table_info.oplog_dense_serialized) {
         ApplyRowBatchInc_ = ApplyRowDenseBatchInc;
-      else
+      } else {
         ApplyRowBatchInc_ = ApplyRowBatchInc;
+      }
 
       ResetImportance_ = ResetImportanceNoOp;
       SortCandidateVector_ = SortCandidateVectorRandom;
@@ -121,8 +122,11 @@ namespace petuum {
      * Apply a oplog to row on the table. If a row is not found, then return
      * false indicating failure.
      */
-    bool ApplyRowOpLog (int32_t row_id, const int32_t *column_ids,
-                        const void *updates, int32_t num_updates) {
+    bool ApplyRowOpLog (int32_t row_id,
+                        const int32_t *column_ids,
+                        const void *updates,
+                        int32_t num_updates) {
+
       auto row_iter = storage_.find(row_id);
       if (row_iter == storage_.end())
         return false;

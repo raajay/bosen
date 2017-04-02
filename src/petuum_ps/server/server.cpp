@@ -138,7 +138,9 @@ namespace petuum {
 
 
 
-  // This is the key function, one where the internal table is updated with values sent from the client.
+  // (raajay) This is a key function, one where the internal tables are updated
+  // with values sent from the client. It is important to note that the client
+  // message will contain updates to all the tables.
   void Server::ApplyOpLogUpdateVersion(const void *oplog,
                                        size_t oplog_size,
                                        int32_t bg_thread_id,
@@ -161,10 +163,13 @@ namespace petuum {
     const int32_t * column_ids; // the variable pointer points to const memory
     int32_t num_updates;
     bool started_new_table;
+
+    // read the first few bytes of the message. It will populate the arguments.
     const void *updates = oplog_reader.Next(&table_id, &row_id, &column_ids, &num_updates, &started_new_table);
 
     ServerTable *server_table;
     if (updates != 0) {
+      // find the pointer to the server table at the server.
       auto table_iter = tables_.find(table_id);
       CHECK(table_iter != tables_.end()) << "Not found table_id = " << table_id;
       server_table = &(table_iter->second);
@@ -173,8 +178,10 @@ namespace petuum {
     while (updates != 0) {
 
       ++accum_oplog_count_;
-      bool found = server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
 
+      // Apply or Create and apply the row op log. This will basically increment
+      // the values at the server.
+      bool found = server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
       if (!found) {
         server_table->CreateRow(row_id);
         server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
@@ -186,13 +193,14 @@ namespace petuum {
         break;
       }
 
+      // if we have started a new table, change the table that is being updated internally
       if (started_new_table) {
         auto table_iter = tables_.find(table_id);
         CHECK(table_iter != tables_.end()) << "Not found table_id = " << table_id;
         server_table = &(table_iter->second);
       }
 
-    } // end while -- as long as updates are valid.
+    } // end while -- as long as updates are available
 
   } // end func -- apply oplog update
 

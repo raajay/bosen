@@ -235,6 +235,7 @@ namespace petuum {
 
 
     bool clock_changed = false;
+
     if (is_clock) {
       clock_changed = server_obj_.ClockUntil(sender_id, bg_clock);
 
@@ -267,6 +268,7 @@ namespace petuum {
 
     } // end if -- is clock
 
+
     if (clock_changed) {
       // XXX (raajay): the below does nothing when SSP consistency is desired.
       // Used only for SSPPush, which we discontinued.
@@ -277,15 +279,20 @@ namespace petuum {
 
   }
 
+
   long ServerThread::ServerIdleWork() {
     return 0;
   }
+
 
   long ServerThread::ResetServerIdleMilli() {
     return 0;
   }
 
+
+  // null function
   void ServerThread::SendOpLogAckMsg(int32_t bg_id, uint32_t version) { }
+
 
   void *ServerThread::operator() () {
 

@@ -129,6 +129,7 @@ public:
 
   /**
    * @param update_batch contains an update for each each element within the
+
    * capacity of the row, in the order of increasing column_ids.
    */
   virtual double ApplyDenseBatchIncUnsafeGetImportance(
