@@ -50,9 +50,15 @@ namespace petuum {
     bool HandleShutDownMsg();
     void HandleCreateTable(int32_t sender_id, CreateTableMsg &create_table_msg);
     void HandleRowRequest(int32_t sender_id, RowRequestMsg &row_request_msg);
-    void ReplyRowRequest(int32_t bg_id, ServerRow *server_row,
-                         int32_t table_id, int32_t row_id, int32_t server_clock,
-                         uint32_t version);
+
+    void ReplyRowRequest(int32_t bg_id,
+                         ServerRow *server_row,
+                         int32_t table_id,
+                         int32_t row_id,
+                         int32_t server_clock,
+                         uint32_t version,
+                         int32_t global_model_version);
+
     void HandleOpLogMsg(int32_t sender_id,
                         ClientSendOpLogMsg &client_send_oplog_msg);
 

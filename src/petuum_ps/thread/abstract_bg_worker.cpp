@@ -693,7 +693,7 @@ namespace petuum {
         // If there is no gradient update to be sent to the server, then we just send them
         // a clock message notifying the server that client has moved its clock (we also tell
         // the server the iteration (clock) that generated the data).
-        ClientSendOpLogMsg clock_oplog_msg(0);
+        ClientSendOpLogMsg clock_oplog_msg(0); // create a message with zero data size
         clock_oplog_msg.get_is_clock() = clock_advanced;
         clock_oplog_msg.get_client_id() = GlobalContext::get_client_id();
         clock_oplog_msg.get_version() = version_;
@@ -817,29 +817,48 @@ namespace petuum {
 
     if (client_table->get_oplog_type() == Sparse || client_table->get_oplog_type() == Dense) {
 
+
+      // 1. if oplog for this row is available in the table, then lock it
       AbstractOpLog &table_oplog = client_table->get_oplog();
       OpLogAccessor oplog_accessor;
       bool oplog_found = table_oplog.FindAndLock(row_id, &oplog_accessor);
 
+      // 2. Lock the data entry in the process storage
       row_data->GetWriteLock();
+
+      // 3. Reset all the entries in process storage; essentially it will
+      // overwrite it with values from the server.
       row_data->ResetRowData(data, row_size);
 
+      // then apply all the oplogs that have not peen applied.
+
+      // 4. From the oplogs that have been sent from the client, and those that
+      // have been applied to the model, add the values to row_data. The value of argument
+      // version is the maximum version that have been applied to the model at the server.
       bool no_oplog_replay = client_table->get_no_oplog_replay();
-
-      if (!no_oplog_replay)
+      if (!no_oplog_replay) {
         CheckAndApplyOldOpLogsToRowData(table_id, row_id, version, row_data);
+      }
 
+      // 5. Are these the oplog values that have been computed, but not yet
+      // sent? I guess yes; previously in Check and Apply Old Oplogs we apply
+      // only those that have been already sent from the client.
       if (oplog_found && !no_oplog_replay) {
         STATS_BG_ACCUM_SERVER_PUSH_OPLOG_ROW_APPLIED_ADD_ONE();
+
         int32_t column_id;
         const void *update;
         update = oplog_accessor.get_row_oplog()->BeginIterateConst(&column_id);
+
         while (update != 0) {
           STATS_BG_ACCUM_SERVER_PUSH_UPDATE_APPLIED_ADD_ONE();
           row_data->ApplyIncUnsafe(column_id, update);
           update = oplog_accessor.get_row_oplog()->NextConst(&column_id);
         }
+
       }
+
+      // lets keep taking and releasing the locks with in the if else statements
       row_data->ReleaseWriteLock();
 
     } else if (client_table->get_oplog_type() == AppendOnly) {
@@ -847,6 +866,7 @@ namespace petuum {
       row_data->GetWriteLock();
       row_data->ResetRowData(data, row_size);
       auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
+
       if (buff_iter != append_only_row_oplog_buffer_map_.end()) {
         AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer = buff_iter->second;
 
@@ -863,11 +883,16 @@ namespace petuum {
           }
         }
       }
+
       row_data->ReleaseWriteLock();
+
     } else {
+
       LOG(FATAL) << "Unknown oplog type " << client_table->get_oplog_type();
     }
-  }
+  } // end function - Update Existing Row
+
+
 
   void AbstractBgWorker::InsertNonexistentRow(int32_t table_id, int32_t row_id,
                                               ClientTable *client_table, const void *data,
@@ -946,6 +971,7 @@ namespace petuum {
     size_t row_size = server_row_request_reply_msg.get_row_size();
 
     if (client_row != 0) {
+      // internal private function defined in this class.
       UpdateExistingRow(table_id, row_id, client_row, client_table, data,
                         row_size, version);
       client_row->SetClock(clock);
@@ -958,6 +984,7 @@ namespace petuum {
       = row_request_oplog_mgr_->InformReply(table_id, row_id, clock, version_, &app_thread_ids);
 
     if (clock_to_request >= 0) {
+
       RowRequestMsg row_request_msg;
       row_request_msg.get_table_id() = table_id;
       row_request_msg.get_row_id() = row_id;
@@ -975,12 +1002,16 @@ namespace petuum {
     RowRequestReplyMsg row_request_reply_msg;
 
     for (int i = 0; i < (int) app_thread_ids.size(); ++i) {
+
       size_t sent_size = comm_bus_->SendInProc(app_thread_ids[i],
                                                row_request_reply_msg.get_mem(),
                                                row_request_reply_msg.get_size());
       CHECK_EQ(sent_size, row_request_reply_msg.get_size());
     }
-  }
+
+  } // end function - Handle Row Request reply msg
+
+
 
   size_t AbstractBgWorker::SendMsg(MsgBase *msg) {
     size_t sent_size = comm_bus_->SendInProc(my_id_, msg->get_mem(),

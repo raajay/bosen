@@ -199,6 +199,7 @@ namespace petuum {
     int32_t row_id = row_request_msg.get_row_id();
     int32_t clock = row_request_msg.get_clock();
     int32_t server_clock = server_obj_.GetMinClock();
+
     if (server_clock < clock) {
       // not fresh enough, wait
       server_obj_.AddRowRequest(sender_id, table_id, row_id, clock);
@@ -206,10 +207,18 @@ namespace petuum {
     }
 
     uint32_t version = server_obj_.GetBgVersion(sender_id);
+    int32_t global_model_version = server_obj_.GetAsyncModelVersion();
+
     ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
     RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(sender_id));
 
-    ReplyRowRequest(sender_id, server_row, table_id, row_id, server_clock, version);
+    ReplyRowRequest(sender_id,
+                    server_row,
+                    table_id,
+                    row_id,
+                    server_clock,
+                    version,
+                    global_model_version);
   }
 
 
@@ -219,7 +228,8 @@ namespace petuum {
                                      int32_t table_id,
                                      int32_t row_id,
                                      int32_t server_clock,
-                                     uint32_t version) {
+                                     uint32_t version,
+                                     int32_t global_model_version) {
 
     size_t row_size = server_row->SerializedSize();
 
@@ -228,6 +238,7 @@ namespace petuum {
     server_row_request_reply_msg.get_row_id() = row_id;
     server_row_request_reply_msg.get_clock() = server_clock;
     server_row_request_reply_msg.get_version() = version;
+    server_row_request_reply_msg.get_global_model_version() = global_model_version;
 
     row_size = server_row->Serialize(server_row_request_reply_msg.get_row_data());
 
@@ -279,13 +290,21 @@ namespace petuum {
           int32_t row_id = request_iter->row_id;
           int32_t bg_id = request_iter->bg_id;
           uint32_t version = server_obj_.GetBgVersion(bg_id);
+          int32_t global_model_version = server_obj_.GetAsyncModelVersion();
+
           ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
 
           // this is a dummy function for SSP. Hmm...
           RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(bg_id));
 
           int32_t server_clock = server_obj_.GetMinClock();
-          ReplyRowRequest(bg_id, server_row, table_id, row_id, server_clock, version);
+          ReplyRowRequest(bg_id,
+                          server_row,
+                          table_id,
+                          row_id,
+                          server_clock,
+                          version,
+                          global_model_version);
         }
 
         STATS_SERVER_CLOCK();
@@ -296,7 +315,7 @@ namespace petuum {
 
 
     if (clock_changed) {
-      // XXX (raajay): the below does nothing when SSP consistency is desired.
+      // (raajay): the below does nothing when SSP consistency is desired.
       // Used only for SSPPush, which we discontinued.
       ServerPushRow(clock_changed);
     } else {

@@ -167,8 +167,7 @@ namespace petuum {
     bool new_create = oplog_.FindInsertOpLog(row_id, &oplog_accessor);
 
     if (new_create) {
-      oplog_accessor.get_row_oplog()->OverwriteWithDenseUpdate(
-                                                               updates, index_st, num_updates);
+      oplog_accessor.get_row_oplog()->OverwriteWithDenseUpdate(updates, index_st, num_updates);
     } else {
       const uint8_t* deltas_uint8 = reinterpret_cast<const uint8_t*>(updates);
       (this->*DenseBatchIncOpLog_)(&oplog_accessor, deltas_uint8,
@@ -180,8 +179,7 @@ namespace petuum {
     RowAccessor row_accessor;
     ClientRow *client_row = process_storage_.Find(row_id, &row_accessor);
     if (client_row != 0) {
-      client_row->GetRowDataPtr()->ApplyDenseBatchInc(
-                                                      updates, index_st, num_updates);
+      client_row->GetRowDataPtr()->ApplyDenseBatchInc(updates, index_st, num_updates);
     }
     STATS_APP_SAMPLE_BATCH_INC_PROCESS_STORAGE_END();
   } // end function -- DenseBatchInc
