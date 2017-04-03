@@ -712,7 +712,9 @@ namespace petuum {
   };
 
   struct ServerRowRequestReplyMsg : public ArbitrarySizedMsg {
+
   public:
+
     explicit ServerRowRequestReplyMsg(int32_t avai_size) {
       own_mem_ = true;
       mem_.Alloc(get_header_size() + avai_size);
@@ -723,8 +725,14 @@ namespace petuum {
       ArbitrarySizedMsg(msg) {}
 
     size_t get_header_size() {
-      return ArbitrarySizedMsg::get_header_size() + sizeof(int32_t)
-        + sizeof(int32_t) + sizeof(int32_t) + sizeof(uint32_t) + sizeof(size_t);
+      return ArbitrarySizedMsg::get_header_size()
+        + sizeof(int32_t) // table id
+        + sizeof(int32_t) // row id
+        + sizeof(int32_t) // clock
+        + sizeof(uint32_t) // version (worker specific)
+        + sizeof(size_t) // row size
+        + sizeof(int32_t) // global model version
+        ;
     }
 
     int32_t &get_table_id() {
@@ -734,25 +742,42 @@ namespace petuum {
 
     int32_t &get_row_id() {
       return *(reinterpret_cast<int32_t*>(mem_.get_mem()
-                                          + ArbitrarySizedMsg::get_header_size() + sizeof(int32_t) ));
+                                          + ArbitrarySizedMsg::get_header_size()
+                                          + sizeof(int32_t) ));
     }
 
     int32_t &get_clock() {
       return *(reinterpret_cast<int32_t*>(mem_.get_mem()
                                           + ArbitrarySizedMsg::get_header_size()
-                                          + sizeof(int32_t) + sizeof(int32_t) ));
+                                          + sizeof(int32_t)
+                                          + sizeof(int32_t) ));
     }
 
     uint32_t &get_version() {
       return *(reinterpret_cast<uint32_t*>(mem_.get_mem()
                                            + ArbitrarySizedMsg::get_header_size()
-                                           + sizeof(int32_t) + sizeof(int32_t) +sizeof(int32_t)));
+                                           + sizeof(int32_t)
+                                           + sizeof(int32_t)
+                                           +sizeof(int32_t)));
     }
 
     size_t &get_row_size() {
       return *(reinterpret_cast<size_t*>(mem_.get_mem()
                                          + ArbitrarySizedMsg::get_header_size()
-                                         + sizeof(int32_t) + sizeof(int32_t) +sizeof(int32_t) + sizeof(uint32_t)));
+                                         + sizeof(int32_t)
+                                         + sizeof(int32_t)
+                                         + sizeof(int32_t)
+                                         + sizeof(uint32_t)));
+    }
+
+    int32_t &get_global_model_version() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                         + ArbitrarySizedMsg::get_header_size()
+                                         + sizeof(int32_t)
+                                         + sizeof(int32_t)
+                                         + sizeof(int32_t)
+                                         + sizeof(uint32_t)
+                                         + sizeof(size_t)));
     }
 
     void *get_row_data() {
@@ -768,10 +793,15 @@ namespace petuum {
       ArbitrarySizedMsg::InitMsg(avai_size);
       get_msg_type() = kServerRowRequestReply;
     }
-  };
+  }; // end class - Server Row Request reply message
+
+
+
 
   struct ClientSendOpLogMsg : public ArbitrarySizedMsg {
+
   public:
+
     explicit ClientSendOpLogMsg(int32_t avai_size) {
       own_mem_ = true;
       mem_.Alloc(get_header_size() + avai_size);
@@ -782,30 +812,52 @@ namespace petuum {
       ArbitrarySizedMsg(msg) {}
 
     size_t get_header_size() {
-      return ArbitrarySizedMsg::get_header_size() + sizeof(bool)
-        + sizeof(int32_t) + sizeof(uint32_t) + sizeof(int32_t);
+      return ArbitrarySizedMsg::get_header_size()
+        + sizeof(bool) // a bit to denote whether the message is clock or not
+        + sizeof(int32_t) // a 32 bit int to get the client id
+        + sizeof(uint32_t) // a 32 bit unsigned int to denote the local version
+        + sizeof(int32_t) // a 32 bit int to get clock value
+        + sizeof(int32_t) // a 32 bit int to store the global model version number on which gradient is calculated
+        ;
     }
 
     bool &get_is_clock() {
+      // the indicator is stored immediately after Arbitrary Size Msg header
+      // 1st value
       return *(reinterpret_cast<bool*>(mem_.get_mem()
                                        + ArbitrarySizedMsg::get_header_size()));
     }
 
     int32_t &get_client_id() {
+      // 2nd value
       return *(reinterpret_cast<int32_t*>(mem_.get_mem()
-                                          + ArbitrarySizedMsg::get_header_size() + sizeof(bool)));
+                                          + ArbitrarySizedMsg::get_header_size()
+                                          + sizeof(bool)));
     }
 
     uint32_t &get_version() {
+      // 3rd value after Arbitrary sized message header
       return *(reinterpret_cast<uint32_t*>(mem_.get_mem()
-                                           + ArbitrarySizedMsg::get_header_size() + sizeof(bool)
+                                           + ArbitrarySizedMsg::get_header_size()
+                                           + sizeof(bool)
                                            + sizeof(int32_t)));
     }
 
     int32_t &get_bg_clock() {
       return *(reinterpret_cast<int32_t*>(mem_.get_mem()
-                                          + ArbitrarySizedMsg::get_header_size() + sizeof(bool)
-                                          + sizeof(int32_t) + sizeof(uint32_t)));
+                                          + ArbitrarySizedMsg::get_header_size()
+                                          + sizeof(bool)
+                                          + sizeof(int32_t)
+                                          + sizeof(uint32_t)));
+    }
+
+    int32_t &get_global_model_version() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + ArbitrarySizedMsg::get_header_size()
+                                          + sizeof(bool)
+                                          + sizeof(int32_t)
+                                          + sizeof(uint32_t)
+                                          + sizeof(int32_t)));
     }
 
     // data is to be accessed via SerializedOpLogAccessor
@@ -818,11 +870,15 @@ namespace petuum {
     }
 
   protected:
+
     virtual void InitMsg(int32_t avai_size) {
       ArbitrarySizedMsg::InitMsg(avai_size);
       get_msg_type() = kClientSendOpLog;
     }
-  };
+
+  }; // end class - Client send operation log message
+
+
 
   struct ServerPushRowMsg : public ArbitrarySizedMsg {
   public:
