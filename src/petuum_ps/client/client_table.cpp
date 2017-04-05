@@ -36,86 +36,98 @@ namespace petuum {
     row_capacity_(config.table_info.row_capacity),
     no_oplog_replay_(config.no_oplog_replay) {
 
-    switch (config.process_storage_type) {
-    case BoundedDense:
-      {
-        VLOG(6) << "The process_storage_ type for table=" << table_id << " is BoundedDense";
-        BoundedDenseProcessStorage::CreateClientRowFunc StorageCreateClientRow;
-        if (GlobalContext::get_consistency_model() == SSP) {
-          StorageCreateClientRow = std::bind(&ClientTable::CreateSSPClientRow, this,
-                                             std::placeholders::_1);
-        } else {
-          LOG(FATAL) << "Unknown consistency model " << GlobalContext::get_consistency_model();
-        }
 
-        process_storage_ = static_cast<AbstractProcessStorage*>
-          (new BoundedDenseProcessStorage(config.process_cache_capacity,
-                                          StorageCreateClientRow, 0));
-      }
-      break;
-    case BoundedSparse:
-      {
-        VLOG(6) << "The process_storage_ type for table=" << table_id << " is BoundedSparse";
-        process_storage_ = static_cast<AbstractProcessStorage*>
-          (new BoundedSparseProcessStorage(config.process_cache_capacity,
-                                           GlobalContext::GetLockPoolSize(config.process_cache_capacity)));
-      }
-      break;
-    default:
-      LOG(FATAL) << "Unknown process storage type " << config.process_storage_type;
-    }
+    switch (config.process_storage_type) {
+      case BoundedDense:
+        {
+          BoundedDenseProcessStorage::CreateClientRowFunc StorageCreateClientRow;
+          if (GlobalContext::get_consistency_model() == SSP) {
+            StorageCreateClientRow = std::bind(&ClientTable::CreateSSPClientRow,
+                                               this,
+                                               std::placeholders::_1);
+          } else {
+            LOG(FATAL) << "Unknown consistency model " << GlobalContext::get_consistency_model();
+          }
+
+          process_storage_ = static_cast<AbstractProcessStorage*>
+            (new BoundedDenseProcessStorage(config.process_cache_capacity,
+                                            StorageCreateClientRow, 0));
+          VLOG(1) << "Process storage for table: " << table_id << " is created."
+                  << "Type = BoundedDense, Client Row Type = SSPClientRow";
+        }
+        break;
+      case BoundedSparse:
+        {
+          process_storage_ = static_cast<AbstractProcessStorage*>
+            (new BoundedSparseProcessStorage(config.process_cache_capacity,
+                                            GlobalContext::GetLockPoolSize(config.process_cache_capacity)));
+          VLOG(1) << "Process storage for table: " << table_id << " is created."
+                  << "Type = BoundedSparse, Client Row Type = Unspecified.";
+        }
+        break;
+      default:
+        LOG(FATAL) << "Unknown process storage type " << config.process_storage_type;
+    } // end switch -- process storage type
+
+
 
     switch (config.oplog_type) {
-    case Sparse:
-      VLOG(6) << "oplog_type is Sparse (see: sparse_oplog.[h|c]pp)";
-      oplog_ = new SparseOpLog(config.oplog_capacity,
-                               sample_row_,
-                               dense_row_oplog_capacity_,
-                               row_oplog_type_);
-      break;
+      case Sparse:
+        oplog_ = new SparseOpLog(config.oplog_capacity,
+                                sample_row_,
+                                dense_row_oplog_capacity_,
+                                row_oplog_type_);
+        VLOG(1) << "A Sparse OpLog for table: " << table_id << " is created.";
+        VLOG(1) << "Row OpLog types is: " << row_oplog_type_;
+        break;
 
-    case AppendOnly:
-      VLOG(6) << "oplog_type is AppendOnly (see: append_only_oplog.[h|c]pp)";
-      oplog_ = new AppendOnlyOpLog(config.append_only_buff_capacity,
-                                   sample_row_,
-                                   config.append_only_oplog_type,
-                                   dense_row_oplog_capacity_,
-                                   config.per_thread_append_only_buff_pool_size);
-      break;
+      case AppendOnly:
+        oplog_ = new AppendOnlyOpLog(config.append_only_buff_capacity,
+                                    sample_row_,
+                                    config.append_only_oplog_type,
+                                    dense_row_oplog_capacity_,
+                                    config.per_thread_append_only_buff_pool_size);
+        VLOG(1) << "An Append-only OpLog for table: " << table_id << " is created.";
+        break;
 
-    case Dense:
-      VLOG(6) << "oplog_type_ is Dense (see: dense_oplog.[h|c]pp)";
-      VLOG(6) << "row_oplog_type_ is " << row_oplog_type_;
-      oplog_ = new DenseOpLog(config.oplog_capacity,
-                              sample_row_,
-                              dense_row_oplog_capacity_,
-                              row_oplog_type_);
-      break;
+      case Dense:
+        oplog_ = new DenseOpLog(config.oplog_capacity,
+                                sample_row_,
+                                dense_row_oplog_capacity_,
+                                row_oplog_type_);
+        VLOG(1) << "A Dense OpLog for table: " << table_id << " is created.";
+        VLOG(1) << "Row OpLog types is: " << row_oplog_type_;
+        break;
 
-    default:
-      LOG(FATAL) << "Unknown oplog type = " << config.oplog_type;
-    }
-    // TODO(raajay) what is oplog capacity?
-    // what is dense_row_oplog_capacity?
+      default:
+        LOG(FATAL) << "Unknown oplog type = " << config.oplog_type;
+    } // end switch -- oplog type
+
+    // TODO(raajay)  what is the difference between dense and sparse OpLog?
+
 
     switch (GlobalContext::get_consistency_model()) {
-    case SSP:
-      {
-        consistency_controller_ = new SSPConsistencyController(config.table_info,
-                                                               table_id,
-                                                               *process_storage_,
-                                                               *oplog_,
-                                                               sample_row_,
-                                                               thread_cache_,
-                                                               oplog_index_,
-                                                               row_oplog_type_);
-      }
-      break;
-    default:
-      LOG(FATAL) << "Not yet support consistency model "
-                 << GlobalContext::get_consistency_model();
-    }
-  }
+      case SSP:
+        {
+          consistency_controller_ = new SSPConsistencyController(config.table_info,
+                                                                table_id,
+                                                                *process_storage_,
+                                                                *oplog_,
+                                                                sample_row_,
+                                                                thread_cache_,
+                                                                oplog_index_,
+                                                                row_oplog_type_);
+          VLOG(1) << "A SSP consistency controller for table: " << table_id << " is created.";
+        }
+        break;
+      default:
+        LOG(FATAL) << "Not yet support consistency model "
+                  << GlobalContext::get_consistency_model();
+
+    } // end switch -- Consistency controller type
+
+  } // end function - Client Table constructor
+
 
 
   ClientTable::~ClientTable() {
@@ -126,11 +138,15 @@ namespace petuum {
   }
 
 
+  // each individual thread is responsible for invoking this function to get
+  // access to the table.
   void ClientTable::RegisterThread() {
-    if (thread_cache_.get() == 0)
+    if (thread_cache_.get() == 0) {
       thread_cache_.reset(new ThreadTable(sample_row_,
                                           client_table_config_.table_info.row_oplog_type,
                                           client_table_config_.table_info.row_capacity));
+      VLOG(1) << "Create an new thread table cache for thread: " << ThreadContext::get_id();
+    }
     oplog_->RegisterThread();
   }
 
@@ -140,6 +156,8 @@ namespace petuum {
     oplog_->DeregisterThread();
   }
 
+
+  // GET function BEGIN
 
   void ClientTable::GetAsyncForced(int32_t row_id) {
     consistency_controller_->GetAsyncForced(row_id);
@@ -163,6 +181,17 @@ namespace petuum {
                                        row_accessor);
   }
 
+  ClientRow *ClientTable::Get(int32_t row_id,
+                              RowAccessor *row_accessor) {
+
+    return consistency_controller_->Get(row_id,
+                                        row_accessor);
+  }
+
+  // GET functions END
+
+
+  // UPDATE functions BEGIN
 
   void ClientTable::ThreadInc(int32_t row_id,
                               int32_t column_id,
@@ -186,17 +215,8 @@ namespace petuum {
   }
 
 
-
   void ClientTable::FlushThreadCache() {
     consistency_controller_->FlushThreadCache();
-  }
-
-
-  ClientRow *ClientTable::Get(int32_t row_id,
-                              RowAccessor *row_accessor) {
-
-    return consistency_controller_->Get(row_id,
-                                        row_accessor);
   }
 
 
@@ -205,7 +225,9 @@ namespace petuum {
                         const void *update) {
 
     STATS_APP_SAMPLE_INC_BEGIN(table_id_);
-    consistency_controller_->Inc(row_id, column_id, update);
+    consistency_controller_->Inc(row_id,
+                                 column_id,
+                                 update);
     STATS_APP_SAMPLE_INC_END(table_id_);
   }
 
@@ -247,6 +269,8 @@ namespace petuum {
                                                  index_st,
                                                  num_updates);
   }
+
+  // UPDATE function END
 
 
   void ClientTable::Clock() {
