@@ -293,14 +293,14 @@ namespace petuum {
   ClientRow *ClientTable::CreateClientRow(int32_t clock) {
     AbstractRow *row_data = ClassRegistry<AbstractRow>::GetRegistry().CreateObject(row_type_);
     row_data->Init(row_capacity_);
-    return new ClientRow(clock, row_data, false);
+    return new ClientRow(clock, -1, row_data, false);
   }
 
 
   ClientRow *ClientTable::CreateSSPClientRow(int32_t clock) {
     AbstractRow *row_data = ClassRegistry<AbstractRow>::GetRegistry().CreateObject(row_type_);
     row_data->Init(row_capacity_);
-    return static_cast<ClientRow*>(new SSPClientRow(clock, row_data, false));
+    return static_cast<ClientRow*>(new SSPClientRow(clock, -1, row_data, false));
   }
 
 }  // namespace petuum

@@ -64,8 +64,8 @@ namespace petuum {
   }
 
 
-  ClientRow *SSPBgWorker::CreateClientRow(int32_t clock, AbstractRow *row_data) {
-    return reinterpret_cast<ClientRow*>(new SSPClientRow(clock, row_data, true));
+  ClientRow *SSPBgWorker::CreateClientRow(int32_t clock, int32_t global_version, AbstractRow *row_data) {
+    return reinterpret_cast<ClientRow*>(new SSPClientRow(clock, global_version, row_data, true));
   }
 
 

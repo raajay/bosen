@@ -25,7 +25,9 @@ namespace petuum {
   class ClientRow : boost::noncopyable {
   public:
     // ClientRow takes ownership of row_data.
-    ClientRow(int32_t clock __attribute__((unused)), AbstractRow* row_data,
+    ClientRow(int32_t clock __attribute__((unused)),
+              int32_t global_version __attribute__((unused)),
+              AbstractRow* row_data,
               bool use_ref_count):
       num_refs_(0),
       row_data_ptr_(row_data)
@@ -45,6 +47,12 @@ namespace petuum {
 
     virtual int32_t GetClock() const {
       return -1;
+    }
+
+    virtual void SetGlobalVersion(int32_t global_version __attribute__((unused))) {}
+
+    virtual int32_t GetGlobalVersion() const {
+      return -1; // default is -1 version, be careful to ignore it when calculating version of table
     }
 
     AbstractRow *GetRowDataPtr() {

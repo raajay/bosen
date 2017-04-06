@@ -894,10 +894,14 @@ namespace petuum {
 
 
 
-  void AbstractBgWorker::InsertNonexistentRow(int32_t table_id, int32_t row_id,
-                                              ClientTable *client_table, const void *data,
-                                              size_t row_size, uint32_t version,
-                                              int32_t clock) {
+  void AbstractBgWorker::InsertNonexistentRow(int32_t table_id,
+                                              int32_t row_id,
+                                              ClientTable *client_table,
+                                              const void *data,
+                                              size_t row_size,
+                                              uint32_t version,
+                                              int32_t clock,
+                                              int32_t global_model_version) {
     int32_t row_type = client_table->get_row_type();
     AbstractRow *row_data
       = ClassRegistry<AbstractRow>::GetRegistry().CreateObject(row_type);
@@ -908,7 +912,8 @@ namespace petuum {
     if (!no_oplog_replay)
       CheckAndApplyOldOpLogsToRowData(table_id, row_id, version, row_data);
 
-    ClientRow *client_row = CreateClientRow(clock, row_data);
+    ClientRow *client_row = CreateClientRow(clock, global_model_version, row_data);
+
     if (client_table->get_oplog_type() == Sparse ||
         client_table->get_oplog_type() == Dense) {
       AbstractOpLog &table_oplog = client_table->get_oplog();
@@ -947,7 +952,9 @@ namespace petuum {
     } else {
       LOG(FATAL) << "Unkonwn oplog type = " << client_table->get_oplog_type();
     }
-  }
+  } // end function -- Insert Non existent row
+
+
 
   void AbstractBgWorker::HandleServerRowRequestReply(int32_t server_id,
                                                      ServerRowRequestReplyMsg &server_row_request_reply_msg) {
@@ -956,6 +963,7 @@ namespace petuum {
     int32_t row_id = server_row_request_reply_msg.get_row_id();
     int32_t clock = server_row_request_reply_msg.get_clock();
     uint32_t version = server_row_request_reply_msg.get_version();
+    int32_t global_model_version = server_row_request_reply_msg.get_global_model_version();
 
     auto table_iter = tables_->find(table_id);
     CHECK(table_iter != tables_->end()) << "Cannot find table " << table_id;
@@ -975,8 +983,9 @@ namespace petuum {
       UpdateExistingRow(table_id, row_id, client_row, client_table, data,
                         row_size, version);
       client_row->SetClock(clock);
+      client_row->SetGlobalVersion(global_model_version);
     } else { // not found
-      InsertNonexistentRow(table_id, row_id, client_table, data, row_size, version, clock);
+      InsertNonexistentRow(table_id, row_id, client_table, data, row_size, version, clock, global_model_version);
     }
 
     std::vector<int32_t> app_thread_ids;

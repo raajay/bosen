@@ -40,7 +40,7 @@ protected:
   virtual long BgIdleWork();
   /* Functions Called From Main Loop -- END */
 
-  virtual ClientRow *CreateClientRow(int32_t clock, AbstractRow *row_data);
+  virtual ClientRow *CreateClientRow(int32_t clock, int32_t global_version, AbstractRow *row_data);
 
   /* Handles Sending OpLogs -- BEGIN */
   virtual BgOpLog *PrepareOpLogsToSend();
