@@ -988,11 +988,18 @@ namespace petuum {
       InsertNonexistentRow(table_id, row_id, client_table, data, row_size, version, clock, global_model_version);
     }
 
+    // populate app_thread_ids with the list of app threads whose request can be
+    // satisfied with this update.
     std::vector<int32_t> app_thread_ids;
-    int32_t clock_to_request
-      = row_request_oplog_mgr_->InformReply(table_id, row_id, clock, version_, &app_thread_ids);
+    int32_t clock_to_request = row_request_oplog_mgr_->InformReply(table_id,
+                                                                   row_id,
+                                                                   clock,
+                                                                   version_,
+                                                                   &app_thread_ids);
 
     if (clock_to_request >= 0) {
+      // send a new request to the server, if there exists a app row request for
+      // which a request to server has not been sent
 
       RowRequestMsg row_request_msg;
       row_request_msg.get_table_id() = table_id;
@@ -1007,6 +1014,8 @@ namespace petuum {
       CHECK_EQ(sent_size, row_request_msg.get_size());
     }
 
+
+    // respond to each satisfied application row request
     std::pair<int32_t, int32_t> request_key(table_id, row_id);
     RowRequestReplyMsg row_request_reply_msg;
 

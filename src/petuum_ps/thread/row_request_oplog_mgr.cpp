@@ -62,19 +62,22 @@ namespace petuum {
                                              std::vector<int32_t> *app_thread_ids) {
 
     (*app_thread_ids).clear();
+
     std::pair<int32_t, int32_t> request_key(table_id, row_id);
     std::list<RowRequestInfo> &request_list = pending_row_requests_[request_key];
-    int32_t clock_to_request = -1;
 
+    int32_t clock_to_request = -1;
     while (!request_list.empty()) {
+
       RowRequestInfo &request = request_list.front();
-      if (request.clock <= clock) {
+
+      if (request.clock <= clock) { // current server response satisfies the request
         // remove the request
         uint32_t req_version = request.version;
         app_thread_ids->push_back(request.app_thread_id);
         request_list.pop_front();
 
-        // decrement the version count
+        // decrement the version count; update the stat on pending request for diff versions
         --version_request_cnt_map_[req_version];
         CHECK_GE(version_request_cnt_map_[req_version], 0);
         // if version count becomes 0, remove the count
@@ -82,7 +85,10 @@ namespace petuum {
           version_request_cnt_map_.erase(req_version);
           CleanVersionOpLogs(req_version, curr_version);
         }
-      } else {
+
+      } else { // there is a request for which the current update is not enough
+
+        // if request is not yet sent (courtesy threaded programming?)
         if (!request.sent) {
           clock_to_request = request.clock;
           request.sent = true;
@@ -100,14 +106,20 @@ namespace petuum {
             CleanVersionOpLogs(req_version, curr_version);
           }
         }
+
+        // we break, because the requests are stored in sorted order.
         break;
+
       }
     }
     // if there's no request in that list, I can remove the empty list
     if (request_list.empty())
       pending_row_requests_.erase(request_key);
     return clock_to_request;
-  }
+
+  } // end function - Inform reply
+
+
 
   bool SSPRowRequestOpLogMgr::AddOpLog(uint32_t version, BgOpLog *oplog) {
     CHECK_EQ(version_oplog_map_.count(version), (size_t) 0)
