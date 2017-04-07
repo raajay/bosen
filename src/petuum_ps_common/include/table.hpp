@@ -64,7 +64,8 @@ namespace petuum {
   private:
     std::vector<int32_t> col_ids_;
     std::vector<UPDATE> updates_;
-  };
+
+  }; // end class -- Update batch
 
   /**
    * This class is provided mainly for convience than complete functionality.
@@ -107,7 +108,8 @@ namespace petuum {
     int32_t index_st_;
     int32_t num_updates_;
     std::vector<UPDATE> updates_;
-  };
+
+  }; // end class - Dense update batch
 
   /**
    * User table is stores a lightweight pointer to ClientTable.
