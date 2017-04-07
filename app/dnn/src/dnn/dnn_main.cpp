@@ -34,6 +34,8 @@
 #include <glog/logging.h>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <ctime>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/ref.hpp>
@@ -68,6 +70,11 @@ int main(int argc, char *argv[]) {
   //load dnn parameters
   dnn_paras para;
   load_dnn_paras(para, FLAGS_parafile.c_str());
+
+  std::chrono::time_point<std::chrono::system_clock> now;
+  now = std::chrono::system_clock::now();
+  std::time_t start_time = std::chrono::system_clock::to_time(now);
+  VLOG(0) << "Experiment started at:" << std::ctime(&start_time);
   VLOG(0) << "daemon " << FLAGS_client_id << " starts working..." << std::endl;
   std::cout<<"daemon "<<FLAGS_client_id << " starts working..." << std::endl;
   std::cout<<"Staleness parameter=" << FLAGS_staleness << std::endl;
