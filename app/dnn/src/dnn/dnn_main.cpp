@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
   now = std::chrono::system_clock::now();
   std::time_t start_time = std::chrono::system_clock::to_time_t(now);
 
-  VLOG(0) << "Experiment started at:" << std::ctime(&start_time);
+  VLOG(0) << "Experiment started at: " << std::ctime(&start_time);
   VLOG(0) << "daemon " << FLAGS_client_id << " starts working..." << std::endl;
   std::cout<<"daemon "<<FLAGS_client_id << " starts working..." << std::endl;
   std::cout<<"Staleness parameter=" << FLAGS_staleness << std::endl;
