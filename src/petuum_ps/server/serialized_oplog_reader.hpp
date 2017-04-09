@@ -107,10 +107,11 @@ private:
 
     auto table_iter = server_tables_.find(current_table_id_);
     curr_sample_row_oplog_ = table_iter->second.get_sample_row_oplog();
-    if (table_iter->second.oplog_dense_serialized())
+    if (table_iter->second.oplog_dense_serialized()) {
       GetNextUpdate_ = GetNextUpdateDense;
-    else
+    } else {
       GetNextUpdate_ = GetNextUpdateSparse;
+    }
   }
 
   const uint8_t *serialized_oplog_ptr_;

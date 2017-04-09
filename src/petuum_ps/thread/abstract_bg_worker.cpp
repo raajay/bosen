@@ -401,6 +401,13 @@ namespace petuum {
   long AbstractBgWorker::HandleClockMsg(bool clock_advanced) {
 
     STATS_BG_ACCUM_CLOCK_END_OPLOG_SERIALIZE_BEGIN();
+
+    // preparation, partitions the oplog based on destination. The current
+    // bg_thread only deals with row_ids that it is responsible for. After
+    // preparation, we will know exactly how many bytes are being sent to each
+    // server. We will also know how the data being sent to the server is split
+    // across tables.
+
     BgOpLog *bg_oplog = PrepareOpLogsToSend();
     CreateOpLogMsgs(bg_oplog);
     STATS_BG_ACCUM_CLOCK_END_OPLOG_SERIALIZE_END();
@@ -415,6 +422,7 @@ namespace petuum {
     TrackBgOpLog(bg_oplog);
     return 0;
     // the clock (client_clock_) is immediately incremented after this function completes
+
   }
 
   void AbstractBgWorker::HandleServerPushRow(int32_t sender_id, void *msg_mem) {

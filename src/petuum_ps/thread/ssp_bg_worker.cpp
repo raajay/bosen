@@ -91,6 +91,11 @@ namespace petuum {
       } else {
 
         // why are we creating a oplog partition? This is the most common case.
+        // Answer: BgOpLog contains all the oplogs that the current worker is
+        // responsible for; it includes oplogs across all tables which are
+        // partitioned by the table id.
+
+        // stores op logs responsible for the current workers filtered by the current table id
         BgOpLogPartition *bg_table_oplog = 0;
 
         if (table_pair.second->get_oplog_type() == Sparse || table_pair.second->get_oplog_type() == Dense) {
@@ -122,6 +127,7 @@ namespace petuum {
     AbstractOpLog &table_oplog = table->get_oplog();
 
     GetSerializedRowOpLogSizeFunc GetSerializedRowOpLogSize;
+
     if (table->oplog_dense_serialized()) {
       GetSerializedRowOpLogSize = GetDenseSerializedRowOpLogSize;
     } else {
@@ -132,13 +138,11 @@ namespace petuum {
     // the function below, will query an oplog index -- maintained per table at
     // the process level -- and get all the rows that have been modified. Note
     // that it will find modified rows from among the rows for each table that
-    // the current bg_thread is reponsible for.
+    // the current bg_thread is responsible for.
 
-    cuckoohash_map<int32_t, bool> *new_table_oplog_index_ptr
-      = table->GetAndResetOpLogIndex(my_comm_channel_idx_);
+    cuckoohash_map<int32_t, bool> *new_table_oplog_index_ptr = table->GetAndResetOpLogIndex(my_comm_channel_idx_);
 
-    size_t table_update_size
-      = table->get_sample_row()->get_update_size();
+    size_t table_update_size = table->get_sample_row()->get_update_size();
 
     BgOpLogPartition *bg_table_oplog = new BgOpLogPartition(table_id,
                                                             table_update_size,
