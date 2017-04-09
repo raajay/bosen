@@ -235,7 +235,8 @@ namespace petuum {
   void ClientTable::BatchInc(int32_t row_id,
                              const int32_t* column_ids,
                              const void* updates,
-                             int32_t num_updates) {
+                             int32_t num_updates,
+                             int32_t global_version) {
 
     STATS_APP_SAMPLE_BATCH_INC_BEGIN(table_id_);
     consistency_controller_->BatchInc(row_id,

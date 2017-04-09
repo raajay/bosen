@@ -34,9 +34,11 @@ public:
 
   virtual ClientRow *Get(int32_t row_id, RowAccessor *row_accessor) = 0;
   virtual void Inc(int32_t row_id, int32_t column_id, const void *update) = 0;
-  virtual void BatchInc(int32_t row_id, const int32_t* column_ids,
+  virtual void BatchInc(int32_t row_id,
+                        const int32_t* column_ids,
                         const void* updates,
-                        int32_t num_updates) = 0;
+                        int32_t num_updates,
+                        int32_t global_version = -1) = 0;
   virtual void DenseBatchInc(int32_t row_id, const void *updates,
                              int32_t index_st,
                              int32_t num_updates) = 0;

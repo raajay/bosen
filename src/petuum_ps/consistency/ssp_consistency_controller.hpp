@@ -40,8 +40,11 @@ namespace petuum {
     // Return immediately.
     virtual void Inc(int32_t row_id, int32_t column_id, const void* delta);
 
-    virtual void BatchInc(int32_t row_id, const int32_t* column_ids, const void* updates,
-                          int32_t num_updates);
+    virtual void BatchInc(int32_t row_id,
+                          const int32_t* column_ids,
+                          const void* updates,
+                          int32_t num_updates,
+                          int32_t global_version = -1);
 
     virtual void DenseBatchInc(int32_t row_id, const void *updates,
                                int32_t index_st, int32_t num_updates);

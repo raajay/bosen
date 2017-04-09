@@ -184,9 +184,13 @@ namespace petuum {
       system_table_->Inc(row_id, column_id, &update);
     }
 
-    void BatchInc(int32_t row_id, const UpdateBatch<UPDATE>& update_batch) {
-      system_table_->BatchInc(row_id, update_batch.GetColIDs().data(),
-                              update_batch.GetUpdates(), update_batch.GetBatchSize());
+    void BatchInc(int32_t row_id,
+                  const UpdateBatch<UPDATE>& update_batch,
+                  int32_t global_version = -1) {
+      system_table_->BatchInc(row_id,
+                              update_batch.GetColIDs().data(),
+                              update_batch.GetUpdates(),
+                              update_batch.GetBatchSize());
     }
 
     void DenseBatchInc(int32_t row_id,
