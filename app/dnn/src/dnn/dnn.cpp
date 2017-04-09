@@ -116,7 +116,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
 
             min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
             for(int i = 0; i < dim2; i++) {
-              local_weights[l][rnd_idx][i]=r[i];
+              local_weights[l][rnd_idx][i] = r[i];
             } // end for -- loop over dim2
         } // end for -- loop over dim1
     } // end for -- loop over layers of neural network
@@ -130,7 +130,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
 
         min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
         for(int j = 0; j < dim; j++) {
-          local_biases[rnd_idx][j]=r[j];
+          local_biases[rnd_idx][j] = r[j];
         } // end for -- loop over neurons in a layer
     } // end for -- loop over layers of a neural network
 
@@ -150,29 +150,32 @@ void dnn::sgd_mini_batch(int * idxes_batch,
 
     //update parameters
     petuum::HighResolutionTimer update_tables_timer;
-    float coeff_update=-stepsize/size_minibatch;
-    for(int l=0;l<num_layers-1;l++){
-        int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
-        for(int j=0;j<dim1;j++){
-            int rnd_idx=rand_idxes_weight[l][j];
+    float coeff_update = -stepsize/size_minibatch;
+    for(int l = 0; l < num_layers-1; l++) {
+        int dim1 = num_units_ineach_layer[l+1], dim2 = num_units_ineach_layer[l];
+        for(int j = 0; j < dim1; j++) {
+            int rnd_idx = rand_idxes_weight[l][j];
             petuum::UpdateBatch<float> update_batch;
             for (int i = 0; i < dim2; ++i) {
-                update_batch.Update(i, coeff_update*delta_weights[l][rnd_idx][i]);
+                update_batch.Update(i, coeff_update * delta_weights[l][rnd_idx][i]);
             }
             weights[l].BatchInc(rnd_idx, update_batch);
+        } // end for -- over dim1
+    } // end for -- over layers of a neural network
 
-        }
-    }
-    for(int l=0;l<num_layers-1;l++){
-        int rnd_idx=rand_idxes_bias[l];
-        int dim=num_units_ineach_layer[rnd_idx+1];
+    for(int l = 0; l < num_layers-1; l++) {
+        int rnd_idx = rand_idxes_bias[l];
+        int dim = num_units_ineach_layer[rnd_idx + 1];
         petuum::UpdateBatch<float> update_batch;
-        for(int j=0;j<dim;j++)
-            update_batch.Update(j, coeff_update*delta_biases[rnd_idx][j]);
-        biases[rnd_idx].BatchInc(0,update_batch);
-    }
+        for(int j = 0; j < dim; j++) {
+          update_batch.Update(j, coeff_update * delta_biases[rnd_idx][j]);
+        } // end for -- over neurons in a layer
+        biases[rnd_idx].BatchInc(0, update_batch);
+    } // end for -- over number layers of a neural network
+
     VLOG(2) << "BatchInc tables took " << update_tables_timer.elapsed() << " s";
-}
+
+} // end function - sgd mini batch
 
 
 
