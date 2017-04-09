@@ -36,7 +36,9 @@ namespace petuum {
   private:
     Unlocker<std::mutex> unlocker_;
     AbstractRowOpLog *row_oplog_;
-  };
+
+  }; // end class -- Op log accessor
+
 
   class AbstractOpLog : boost::noncopyable {
   public:
