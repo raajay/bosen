@@ -72,10 +72,17 @@ namespace petuum {
       // the location to write the oplog data for a single row.
       uint8_t *mem = ((uint8_t *) server_iter->second) + offset_by_server[server_id];
 
+      // write the row id in to Client Send Op log msg memory
       int32_t &mem_row_id = *((int32_t *) mem);
       mem_row_id = row_id;
       mem += sizeof(int32_t);
 
+      // write the global version of the row into memory
+      int32_t &mem_global_version = *((int32_t *)  mem);
+      mem_global_version = row_oplog_ptr->GetGlobalVersion();
+      mem += sizeof(int32_t);
+
+      // write oplog data
       size_t serialized_size = (row_oplog_ptr->*SerializeOpLog)(mem);
 
       // increment offset by the total space taken for a single row

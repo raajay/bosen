@@ -627,6 +627,10 @@ namespace petuum {
           continue;
         }
 
+        // 1. table id
+        // 2. table update size
+        // 3. table data
+
         // table id -- store table_id at the table_ptr location
         *(reinterpret_cast<int32_t*>(table_ptr)) = table_id;
 
@@ -637,7 +641,8 @@ namespace petuum {
         // offset for table rows -- store the offset for each table and each
         // server. This is the offset into oplog msg's memory.
         table_server_mem_map[table_id][server_id] = table_ptr + sizeof(int32_t) + sizeof(size_t);
-      }
+
+      } // end for -- over tables
 
     } // end for -- over the servers; keys in server_table_oplog_size_map_
 
@@ -730,8 +735,9 @@ namespace petuum {
 
     // update oplog message size
     // 1) row id
-    // 2) serialized row size
-    size_t serialized_size = sizeof(int32_t) + GetSerializedRowOpLogSize(row_oplog);
+    // 2) global version id
+    // 3) serialized row size
+    size_t serialized_size = sizeof(int32_t) + sizeof(int32_t) +  GetSerializedRowOpLogSize(row_oplog);
 
     int32_t server_id = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
     (*table_num_bytes_by_server)[server_id] += serialized_size;
