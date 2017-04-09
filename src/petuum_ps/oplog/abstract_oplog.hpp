@@ -80,6 +80,7 @@ namespace petuum {
     // Not mutual exclusive but is less expensive than FIndOpLog above as it does
     // not use any lock.
     virtual AbstractRowOpLog *FindOpLog(int32_t row_id) = 0;
+
     virtual AbstractRowOpLog *FindInsertOpLog(int32_t row_id) = 0;
 
     virtual void PutBackBuffer(int32_t comm_channel_idx,

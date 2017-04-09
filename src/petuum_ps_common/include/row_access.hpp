@@ -74,6 +74,8 @@ namespace petuum {
     ClientRow* client_row_ptr_;
   }; // end for - Row accessor
 
+
+
   class ThreadRowAccessor : boost::noncopyable {
   public:
     ThreadRowAccessor() : row_data_ptr_(0) { }

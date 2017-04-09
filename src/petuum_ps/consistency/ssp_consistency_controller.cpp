@@ -124,11 +124,18 @@ namespace petuum {
     thread_cache_->IndexUpdate(row_id);
 
     // (raajay) create and insert an oplog. The oplog now holds the values that
-    // are sent in updates. If an oplog for the same row is already present, then
-    // the values in the OpLog are updated.
+    // are sent in updates. If an oplog for the same row is already present,
+    // then the values in the OpLog are updated. By using an oplog_accessor, the
+    // current execution gains a lock on the row oplog the lock is release at
+    // the end of this function when the oplog_accessor variable is destroyed.
+
     OpLogAccessor oplog_accessor;
     oplog_.FindInsertOpLog(row_id, &oplog_accessor);
 
+    // set the version from which the oplog is calculated
+    oplog_accessor.get_row_oplog()->SetGlobalVersion(global_version);
+
+    // update the data entries in the oplog
     const uint8_t* deltas_uint8 = reinterpret_cast<const uint8_t*>(updates);
     for (int i = 0; i < num_updates; ++i) {
       void *oplog_delta = oplog_accessor.get_row_oplog()->FindCreate(column_ids[i]);
@@ -137,6 +144,7 @@ namespace petuum {
                               deltas_uint8 + sample_row_->get_update_size()*i);
     }
     STATS_APP_SAMPLE_BATCH_INC_OPLOG_END();
+
 
     // TODO (Raajay) these updates are also synced into the process_storage_. This
     // enables other app threads to read it when needed. Process storage has the
@@ -147,6 +155,7 @@ namespace petuum {
     RowAccessor row_accessor;
     ClientRow *client_row = process_storage_.Find(row_id, &row_accessor);
     if (client_row != 0) {
+      // Apply batch inc grabs a lock before updating data
       client_row->GetRowDataPtr()->ApplyBatchInc(column_ids,
                                                  updates,
                                                  num_updates);
