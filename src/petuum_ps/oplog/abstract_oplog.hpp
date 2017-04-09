@@ -13,6 +13,7 @@
 #include <petuum_ps/oplog/create_row_oplog.hpp>
 
 namespace petuum {
+
   class OpLogAccessor {
   public:
     OpLogAccessor():
