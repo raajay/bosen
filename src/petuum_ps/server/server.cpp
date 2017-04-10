@@ -32,10 +32,11 @@ namespace petuum {
     server_id_ = server_id;
     accum_oplog_count_ = 0;
 
-  }
+  } // end function - Init
 
 
-  void Server::CreateTable(int32_t table_id, TableInfo &table_info){
+
+  void Server::CreateTable(int32_t table_id, TableInfo &table_info) {
 
     // Each Server object is responsible of different parts of all tables. Thus,
     // a copy of all tables is maintained.
@@ -56,7 +57,7 @@ namespace petuum {
 
 
   // Find a row indexed by table and row id. If no row exists, create a new row and return.
-  ServerRow *Server::FindCreateRow(int32_t table_id, int32_t row_id){
+  ServerRow *Server::FindCreateRow(int32_t table_id, int32_t row_id) {
     // access ServerTable via reference to avoid copying
     auto iter = tables_.find(table_id);
     CHECK(iter != tables_.end());
@@ -95,12 +96,15 @@ namespace petuum {
     }
 
     return false;
-  }
+  } // end function - clock until
+
 
 
   // Update an internal data structure to cache all row requests. One row requests are cached, they
   // are replied to only when the clock moves on an update.
-  void Server::AddRowRequest(int32_t bg_id, int32_t table_id, int32_t row_id,
+  void Server::AddRowRequest(int32_t bg_id,
+                             int32_t table_id,
+                             int32_t row_id,
                              int32_t clock) {
 
     ServerRowRequest server_row_request;
@@ -118,7 +122,9 @@ namespace petuum {
                                                           std::vector<ServerRowRequest>()));
     }
     clock_bg_row_requests_[clock][bg_id].push_back(server_row_request);
-  }
+
+  } // end function -- Add row request
+
 
 
   // Look at the cache of row request, and return those that are satisfied upon the clock moving.
@@ -137,7 +143,7 @@ namespace petuum {
     }
 
     clock_bg_row_requests_.erase(clock);
-  }
+  } // end function -- get full filled row requests
 
 
 
@@ -167,12 +173,18 @@ namespace petuum {
 
     int32_t table_id;
     int32_t row_id;
+    int32_t update_model_version;
     const int32_t * column_ids; // the variable pointer points to const memory
     int32_t num_updates;
     bool started_new_table;
 
     // read the first few bytes of the message. It will populate the arguments.
-    const void *updates = oplog_reader.Next(&table_id, &row_id, &column_ids, &num_updates, &started_new_table);
+    const void *updates = oplog_reader.Next(&table_id,
+                                            &row_id,
+                                            &update_model_version,
+                                            &column_ids,
+                                            &num_updates,
+                                            &started_new_table);
 
     ServerTable *server_table;
     if (updates != 0) {
@@ -194,7 +206,12 @@ namespace petuum {
         server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
       }
 
-      updates = oplog_reader.Next(&table_id, &row_id, &column_ids, &num_updates, &started_new_table);
+      updates = oplog_reader.Next(&table_id,
+                                  &row_id,
+                                  &update_model_version,
+                                  &column_ids,
+                                  &num_updates,
+                                  &started_new_table);
 
       if (updates == 0) {
         break;
@@ -223,9 +240,13 @@ namespace petuum {
     return bg_version_map_[bg_thread_id];
   }
 
+
+
   int32_t Server::GetAsyncModelVersion() {
     return async_version_;
   }
+
+
 
   /* -- Removed since we do not support SSPPush for now
   size_t Server::CreateSendServerPushRowMsgs(PushMsgSendFunc PushMsgSend,

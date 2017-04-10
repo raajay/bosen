@@ -41,9 +41,13 @@ namespace petuum {
      * Read the next row update from the serialized op log. The next update can
      * come from a different table.
      */
-    const void *Next(int32_t *table_id, int32_t *row_id,
-                     int32_t const ** column_ids, int32_t *num_updates,
+    const void *Next(int32_t *table_id,
+                     int32_t *row_id,
+                     int32_t *update_model_version,
+                     int32_t const ** column_ids,
+                     int32_t *num_updates,
                      bool *started_new_table) {
+
       // I have read all.
       if (num_tables_left_ == 0)
         return 0;
@@ -61,7 +65,7 @@ namespace petuum {
           offset_ += sizeof(int32_t);
 
           // 3. parse global version of the model used to compute the update
-          int32_t global_version = *(reinterpret_cast<const int32_t*>(serialized_oplog_ptr_ + offset_));
+          *update_model_version = *(reinterpret_cast<const int32_t*>(serialized_oplog_ptr_ + offset_));
           offset_ += sizeof(int32_t);
 
           // 4. parse the actual updates in oplog
