@@ -146,11 +146,21 @@ namespace petuum {
     STATS_APP_SAMPLE_BATCH_INC_OPLOG_END();
 
 
-    // TODO (Raajay) these updates are also synced into the process_storage_. This
-    // enables other app threads to read it when needed. Process storage has the
-    // local view of the Table so updating it makes sense. However, is the version
-    // count incremented? If not, how do we avoid double counting?
+    // TODO (Raajay) these updates are also synced into the process_storage_.
+    // This enables other app threads to read it when needed. Process storage
+    // has the local view of the Table so updating it makes sense. However, is
+    // the version count incremented? If not, how do we avoid double counting?
+    // the double counting is avoided by using version numbers. Every time as
+    // worker sends an update a version number is incremented. On getting an
+    // update from the server, we also get the information on all the versions
+    // that have been applied. Then, using local cache of oplogs, we add all the
+    // version numbers that have not been synced in the parameter server to
+    // local process storage.
 
+    // -- REMOVE syncing updates to process storage. Process storage is updates
+    // -- only through updates from the server.
+
+    /*
     STATS_APP_SAMPLE_BATCH_INC_PROCESS_STORAGE_BEGIN();
     RowAccessor row_accessor;
     ClientRow *client_row = process_storage_.Find(row_id, &row_accessor);
@@ -161,6 +171,8 @@ namespace petuum {
                                                  num_updates);
     }
     STATS_APP_SAMPLE_BATCH_INC_PROCESS_STORAGE_END();
+    */
+
   } // end function -- BatchInc
 
 
