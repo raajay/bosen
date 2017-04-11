@@ -200,16 +200,20 @@ namespace petuum {
     int32_t clock = row_request_msg.get_clock();
     int32_t server_clock = server_obj_.GetMinClock();
 
+    /* -- we do not buffer the requests in asynchronous mode. Always, reply for an request immediately.
     if (server_clock < clock) {
       // not fresh enough, wait
       server_obj_.AddRowRequest(sender_id, table_id, row_id, clock);
       return;
     }
+    */
 
     uint32_t version = server_obj_.GetBgVersion(sender_id);
     int32_t global_model_version = server_obj_.GetAsyncModelVersion();
 
     ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
+
+    // row subscribe is a null function ...
     RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(sender_id));
 
     ReplyRowRequest(sender_id,
@@ -219,7 +223,8 @@ namespace petuum {
                     server_clock,
                     version,
                     global_model_version);
-  }
+
+  } // end function -- handle row request
 
 
 
