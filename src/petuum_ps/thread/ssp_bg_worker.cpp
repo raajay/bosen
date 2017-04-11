@@ -337,7 +337,7 @@ namespace petuum {
 
   void SSPBgWorker::CheckAndApplyOldOpLogsToRowData(int32_t table_id,
                                                     int32_t row_id,
-                                                    uint32_t version,
+                                                    uint32_t version, // from row request reply msg
                                                     AbstractRow *row_data) {
     if (version + 1 < version_) {
       int32_t version_st = version + 1;

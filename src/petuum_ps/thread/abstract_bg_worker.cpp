@@ -830,7 +830,7 @@ namespace petuum {
                                            ClientTable *client_table,
                                            const void *data,
                                            size_t row_size,
-                                           uint32_t version) {
+                                           uint32_t version) { // version : from row request reply msg
 
     AbstractRow *row_data = client_row->GetRowDataPtr();
 
@@ -854,14 +854,28 @@ namespace petuum {
       // 4. From the oplogs that have been sent from the client, and those that
       // have been applied to the model, add the values to row_data. The value of argument
       // version is the maximum version that have been applied to the model at the server.
+
+      // not the function Check Apply Old OpLogs, only accesses the oplog and
+      // applied it to the row data. It does not clear older versions of the Op
+      // Log. That is done in Inform Reply. (raajay) So, to prevent the op logs
+      // from being synced into the process storage, I am going to avoid calling
+      // this function. This is consistent with not putting values into process
+      // storage when Batch Inc in called.
+
+      /*
       bool no_oplog_replay = client_table->get_no_oplog_replay();
       if (!no_oplog_replay) {
         CheckAndApplyOldOpLogsToRowData(table_id, row_id, version, row_data);
       }
+      */
 
       // 5. Are these the oplog values that have been computed, but not yet
       // sent? I guess yes; previously in Check and Apply Old Oplogs we apply
       // only those that have been already sent from the client.
+
+
+
+      /*
       if (oplog_found && !no_oplog_replay) {
         STATS_BG_ACCUM_SERVER_PUSH_OPLOG_ROW_APPLIED_ADD_ONE();
 
@@ -874,8 +888,10 @@ namespace petuum {
           row_data->ApplyIncUnsafe(column_id, update);
           update = oplog_accessor.get_row_oplog()->NextConst(&column_id);
         }
+      } // end if -- op log found and yes to op log replay
+      */
 
-      }
+
       // 6. so we have dumped into process storage, (A) value from the server,
       // (B) values from oplogs that have been sent whose version is not include
       // in the value from the server, (C) pending op logs, before sending.
@@ -889,8 +905,11 @@ namespace petuum {
 
       row_data->GetWriteLock();
       row_data->ResetRowData(data, row_size);
-      auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
 
+
+      // See reasoning in Insert Non Existent row function
+      /*
+      auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
       if (buff_iter != append_only_row_oplog_buffer_map_.end()) {
         AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer = buff_iter->second;
 
@@ -907,6 +926,7 @@ namespace petuum {
           }
         }
       }
+      */
 
       row_data->ReleaseWriteLock();
 
@@ -932,17 +952,28 @@ namespace petuum {
 
     row_data->Deserialize(data, row_size);
 
+    // See comments in Update Existing Row to understand why the next 5 lines of
+    // code have been commented out.
+    /*
     bool no_oplog_replay = client_table->get_no_oplog_replay();
     if (!no_oplog_replay) {
       // apply old op logs if needed from row request manager
       CheckAndApplyOldOpLogsToRowData(table_id, row_id, version, row_data);
     }
+    */
 
     // create client row with updates from server, no copying of data happens
     ClientRow *client_row = CreateClientRow(clock, global_model_version, row_data);
 
     if (client_table->get_oplog_type() == Sparse || client_table->get_oplog_type() == Dense) {
 
+      // Since we are just using the value received from the server to update
+      // the values in process storage AND are not adding already sent oplogs
+      // that are not being processed in the cluster, we will also NOT ADD op
+      // logs that have been created in the client (in Batch Inc function from
+      // app thread), but not yet sent to the server.
+
+      /*
       AbstractOpLog &table_oplog = client_table->get_oplog();
       OpLogAccessor oplog_accessor;
       bool oplog_found = table_oplog.FindAndLock(row_id, &oplog_accessor);
@@ -957,11 +988,14 @@ namespace petuum {
           update = oplog_accessor.get_row_oplog()->NextConst(&column_id);
         }
       }
+      */
 
       client_table->get_process_storage().Insert(row_id, client_row);
 
     } else if (client_table->get_oplog_type() == AppendOnly) { //AppendOnly
 
+      // see reasoning in if block
+      /*
       auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
       if (buff_iter != append_only_row_oplog_buffer_map_.end()) {
         AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer = buff_iter->second;
@@ -979,7 +1013,10 @@ namespace petuum {
           }
         }
       }
+      */
+
       client_table->get_process_storage().Insert(row_id, client_row);
+
     } else {
       LOG(FATAL) << "Unkonwn oplog type = " << client_table->get_oplog_type();
     }
