@@ -70,4 +70,7 @@ long GlobalContext::server_idle_milli_;
 
 int32_t GlobalContext::server_row_candidate_factor_;
 
+  // (raajay) new variables
+  bool GlobalContext::is_asynchronous_mode_;
+
 }   // namespace petuum

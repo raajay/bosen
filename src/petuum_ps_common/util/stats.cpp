@@ -925,13 +925,9 @@ void Stats::ServerClock() {
 }
 
 void Stats::ServerAddPerClockOpLogSize(size_t oplog_size) {
-  double oplog_size_kb
-    = double(oplog_size) / double(k1_Ki);
-
+  double oplog_size_kb = double(oplog_size) / double(k1_Ki);
   ServerThreadStats &stats = *server_thread_stats_;
-
-  stats.per_clock_oplog_recv_kb[stats.clock_num]
-    += oplog_size_kb;
+  stats.per_clock_oplog_recv_kb[stats.clock_num] += oplog_size_kb;
   stats.accum_oplog_recv_kb += oplog_size_kb;
 }
 

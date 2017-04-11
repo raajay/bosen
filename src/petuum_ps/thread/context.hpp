@@ -192,6 +192,9 @@ namespace petuum {
       server_idle_milli_ = server_idle_milli;
       server_row_candidate_factor_ = server_row_candidate_factor;
 
+      // TODO make this a configurable parameter
+      is_asynchronous_mode  = true;
+
       // process host map information
       for (auto host_iter = host_map.begin(); host_iter != host_map.end(); ++host_iter) {
 
@@ -473,6 +476,10 @@ namespace petuum {
       return server_idle_milli_;
     }
 
+    static bool is_asynchronous_mode() {
+      return is_asynchronous_mode_;
+    }
+
     // ********* END - Functions that depend on Init()
 
 
@@ -545,6 +552,10 @@ namespace petuum {
     static std::vector<int32_t> server_clients_;
     static std::vector<int32_t> worker_clients_;
     static std::vector<int32_t> aggregator_clients_;
+
+    // (Raajay) new private variables
+    static bool is_asynchronous_mode_;
+
   }; // class GlobalContext
 
 }   // namespace petuum
