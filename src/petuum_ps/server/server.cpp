@@ -43,8 +43,6 @@ namespace petuum {
 
     auto ret = tables_.emplace(table_id, ServerTable(table_info));
     CHECK(ret.second);
-    // Displaying the address of the created ServerTable
-    VLOG(5) << "Emplace ServerTable(" << &(ret.first->second) << ") in Server(" << this << ")";
 
     if (GlobalContext::get_resume_clock() > 0) {
       boost::unordered_map<int32_t, ServerTable>::iterator table_iter = tables_.find(table_id);
@@ -52,6 +50,7 @@ namespace petuum {
                                       server_id_, table_id,
                                       GlobalContext::get_resume_clock());
     }
+
   } // end func -- CreateTable
 
 
@@ -129,6 +128,7 @@ namespace petuum {
 
   // Look at the cache of row request, and return those that are satisfied upon the clock moving.
   void Server::GetFulfilledRowRequests(std::vector<ServerRowRequest> *requests) {
+
     int32_t clock = bg_clock_.get_min_clock();
     requests->clear();
     auto iter = clock_bg_row_requests_.find(clock);
@@ -143,6 +143,7 @@ namespace petuum {
     }
 
     clock_bg_row_requests_.erase(clock);
+
   } // end function -- get full filled row requests
 
 
@@ -245,235 +246,5 @@ namespace petuum {
   int32_t Server::GetAsyncModelVersion() {
     return async_version_;
   }
-
-
-
-  /* -- Removed since we do not support SSPPush for now
-  size_t Server::CreateSendServerPushRowMsgs(PushMsgSendFunc PushMsgSend,
-                                             bool clock_changed) {
-    // the below maps are indexed by actual client id's as opposed to client index
-    boost::unordered_map<int32_t, RecordBuff> buffs;
-    boost::unordered_map<int32_t, ServerPushRowMsg*> msg_map;
-
-    accum_oplog_count_ = 0;
-    size_t accum_send_bytes = 0;
-    int32_t comm_channel_idx = GlobalContext::GetCommChannelIndexServer(server_id_);
-
-    // Create a message for each bg thread
-    for(auto client_id : GlobalContext::get_worker_client_ids()) {
-      ServerPushRowMsg *msg = new ServerPushRowMsg(push_row_msg_data_size_);
-      msg_map[client_id] = msg;
-      buffs.insert(std::make_pair(client_id,
-                                  RecordBuff(msg->get_data(), push_row_msg_data_size_)));
-    }
-
-    // send data from all tables (we will conditionally send rows)
-    int32_t num_tables_left = GlobalContext::get_num_tables();
-    for (auto table_iter = tables_.begin(); table_iter != tables_.end(); table_iter++) {
-
-      int32_t table_id = table_iter->first;
-      ServerTable &server_table = table_iter->second;
-
-      for(auto client_id : GlobalContext::get_worker_client_ids()) {
-        RecordBuff &record_buff = buffs[client_id];
-        int32_t *table_id_ptr = record_buff.GetMemPtrInt32();
-        if (table_id_ptr == 0) {
-          int32_t bg_id = GlobalContext::get_bg_thread_id(client_id, comm_channel_idx);
-          PushMsgSend(bg_id, msg_map[client_id], false && clock_changed, GetBgVersion(bg_id), GetMinClock());
-          memset((msg_map[client_id])->get_data(), 0, push_row_msg_data_size_);
-          record_buff.ResetOffset();
-          table_id_ptr = record_buff.GetMemPtrInt32();
-        }
-        *table_id_ptr = table_id;
-      }
-
-      //ServerTable packs the data.
-      server_table.InitAppendTableToBuffs();
-      int32_t failed_client_id;
-      bool pack_suc = server_table.AppendTableToBuffs(0, &buffs, &failed_client_id, false);
-      while (!pack_suc) {
-        RecordBuff &record_buff = buffs[failed_client_id];
-        int32_t *buff_end_ptr = record_buff.GetMemPtrInt32();
-        if (buff_end_ptr != 0) {
-          *buff_end_ptr = GlobalContext::get_serialized_table_end();
-        }
-        int32_t bg_id = GlobalContext::get_bg_thread_id(failed_client_id, comm_channel_idx);
-        PushMsgSend(bg_id, msg_map[failed_client_id], false && clock_changed, GetBgVersion(bg_id), GetMinClock());
-        memset((msg_map[failed_client_id])->get_data(), 0, push_row_msg_data_size_);
-        record_buff.ResetOffset();
-        int32_t *table_id_ptr = record_buff.GetMemPtrInt32();
-        *table_id_ptr = table_id;
-        pack_suc = server_table.AppendTableToBuffs(failed_client_id, &buffs, &failed_client_id, true);
-      }
-      --num_tables_left;
-      if (num_tables_left > 0) {
-        for(auto client_id : GlobalContext::get_worker_client_ids()) {
-          RecordBuff &record_buff = buffs[client_id];
-          int32_t *table_sep_ptr = record_buff.GetMemPtrInt32();
-          if (table_sep_ptr == 0) {
-            int32_t bg_id = GlobalContext::get_bg_thread_id(client_id,
-                                                            comm_channel_idx);
-
-            PushMsgSend(bg_id, msg_map[client_id], false && clock_changed,
-                        GetBgVersion(bg_id), GetMinClock());
-            memset((msg_map[client_id])->get_data(), 0, push_row_msg_data_size_);
-            record_buff.ResetOffset();
-          } else {
-            *table_sep_ptr = GlobalContext::get_serialized_table_separator();
-          }
-        }
-      } else {
-        break;
-      }
-    }
-
-
-    for (auto client_id : GlobalContext::get_worker_client_ids()) {
-      RecordBuff &record_buff = buffs[client_id];
-
-      int32_t *table_end_ptr = record_buff.GetMemPtrInt32();
-      if (table_end_ptr == 0) {
-        int32_t bg_id = GlobalContext::get_bg_thread_id(client_id, comm_channel_idx);
-        PushMsgSend(bg_id, msg_map[client_id], true && clock_changed, GetBgVersion(bg_id), GetMinClock());
-        continue;
-      }
-
-      *table_end_ptr = GlobalContext::get_serialized_table_end();
-      msg_map[client_id]->get_avai_size() = buffs[client_id].GetMemUsedSize();
-      accum_send_bytes += msg_map[client_id]->get_size();
-
-      int32_t bg_id = GlobalContext::get_bg_thread_id(client_id, comm_channel_idx);
-      PushMsgSend(bg_id, msg_map[client_id], true && clock_changed, GetBgVersion(bg_id), GetMinClock());
-      delete msg_map[client_id];
-    }
-    return accum_send_bytes;
-  }
-  */
-
-
-  /* -- Removed since we do not support SSPPush
-  size_t Server::CreateSendServerPushRowMsgsPartial(
-                                                    PushMsgSendFunc PushMsgSend) {
-    boost::unordered_map<int32_t, RecordBuff> buffs;
-    boost::unordered_map<int32_t, ServerPushRowMsg*> msg_map;
-    boost::unordered_map<int32_t, size_t> client_buff_size;
-    boost::unordered_map<int32_t,
-                         boost::unordered_map<int32_t, ServerRow*> >
-      table_rows_to_send;
-
-    accum_oplog_count_ = 0;
-
-    size_t accum_send_bytes = 0;
-
-    int32_t comm_channel_idx
-      = GlobalContext::GetCommChannelIndexServer(server_id_);
-
-    // Create a message for each bg thread
-    for (auto client_id : GlobalContext::get_worker_client_ids()) {
-      client_buff_size[client_id] = 0;
-    }
-
-    for (auto table_iter = tables_.begin(); table_iter != tables_.end();
-         table_iter++) {
-      int32_t table_id = table_iter->first;
-
-      table_rows_to_send.insert(std::make_pair(
-                                               table_id,
-                                               boost::unordered_map<int32_t, ServerRow*>()));
-
-      table_iter->second.GetPartialTableToSend(
-                                               &(table_rows_to_send[table_id]),
-                                               &client_buff_size,
-                                               GlobalContext::get_server_push_row_threshold());
-    }
-
-    size_t num_tables = tables_.size();
-
-    for (auto buff_size_iter = client_buff_size.begin();
-         buff_size_iter != client_buff_size.end(); ++buff_size_iter) {
-
-      if (buff_size_iter->second > 0)
-        buff_size_iter->second += (sizeof(int32_t) + sizeof(int32_t))*num_tables;
-    }
-
-    for (auto buff_size_iter = client_buff_size.begin();
-         buff_size_iter != client_buff_size.end(); buff_size_iter++) {
-      size_t buff_size = buff_size_iter->second;
-      int32_t client_id = buff_size_iter->first;
-
-      if (buff_size == 0) {
-        msg_map[client_id] = 0;
-        continue;
-      }
-
-      ServerPushRowMsg *msg = new ServerPushRowMsg(buff_size);
-      msg_map[client_id] = msg;
-      buffs.insert(
-                   std::make_pair(client_id,
-                                  RecordBuff(msg->get_data(), buff_size)));
-    }
-
-    size_t num_tables_left = tables_.size();
-
-    for (auto table_iter = tables_.begin(); table_iter != tables_.end();
-         table_iter++) {
-      int32_t table_id = table_iter->first;
-      ServerTable &server_table = table_iter->second;
-
-      for (auto buff_iter = buffs.begin(); buff_iter != buffs.end();
-           ++buff_iter) {
-        RecordBuff &record_buff = buff_iter->second;
-        int32_t *table_id_ptr = record_buff.GetMemPtrInt32();
-        CHECK_NOTNULL(table_id_ptr);
-        *table_id_ptr = table_id;
-      }
-
-      server_table.AppendRowsToBuffsPartial(
-                                            &buffs, table_rows_to_send[table_id]);
-
-      --num_tables_left;
-
-      for (auto buff_iter = buffs.begin(); buff_iter != buffs.end();
-           ++buff_iter) {
-        RecordBuff &record_buff = buff_iter->second;
-        int32_t *table_end_ptr = record_buff.GetMemPtrInt32();
-        CHECK_NOTNULL(table_end_ptr);
-
-        if (num_tables_left == 0)
-          *table_end_ptr = GlobalContext::get_serialized_table_end();
-        else
-          *table_end_ptr = GlobalContext::get_serialized_table_separator();
-      }
-    }
-
-    for (auto msg_iter = msg_map.begin(); msg_iter != msg_map.end();
-         msg_iter++) {
-      int32_t client_id = msg_iter->first;
-      ServerPushRowMsg *msg = msg_iter->second;
-      if (msg == 0)
-        continue;
-
-      accum_send_bytes += msg->get_size();
-
-      int32_t bg_id = GlobalContext::get_bg_thread_id(client_id,
-                                                      comm_channel_idx);
-      PushMsgSend(bg_id, msg, false, GetBgVersion(bg_id), GetMinClock());
-
-      VLOG(0) << "Send server push row size = " << msg->get_avai_size()
-              << " to bg id = " << bg_id
-              << " server id = " << ThreadContext::get_id();
-
-      delete msg;
-    }
-
-    return accum_send_bytes;
-  }
-  */
-
-  /*
-  bool Server::AccumedOpLogSinceLastPush() {
-    return accum_oplog_count_ > 0;
-  }
-  */
 
 }  // namespace petuum
