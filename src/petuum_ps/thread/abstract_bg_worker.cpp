@@ -838,9 +838,12 @@ namespace petuum {
 
 
       // 1. if oplog for this row is available in the table, then lock it
+
+      /* -- op log is not being used
       AbstractOpLog &table_oplog = client_table->get_oplog();
       OpLogAccessor oplog_accessor;
       bool oplog_found = table_oplog.FindAndLock(row_id, &oplog_accessor);
+      */
 
       // 2. Lock the data entry in the process storage
       row_data->GetWriteLock();
@@ -935,6 +938,8 @@ namespace petuum {
       LOG(FATAL) << "Unknown oplog type " << client_table->get_oplog_type();
     }
   } // end function - Update Existing Row
+
+
 
 
 
