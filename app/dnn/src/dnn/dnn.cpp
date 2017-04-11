@@ -173,7 +173,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
         biases[rnd_idx].BatchInc(0, update_batch);
     } // end for -- over number layers of a neural network
 
-    VLOG(2) << "BatchInc tables took " << update_tables_timer.elapsed() << " s";
+    VLOG(2) << "Batch Inc tables took " << update_tables_timer.elapsed() << " s";
 
 } // end function - sgd mini batch
 

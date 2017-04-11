@@ -41,7 +41,9 @@ public:
   // delta, which should be of template type UPDATE in Table. This may trigger
   // synchronization (e.g., in value-bound) and is blocked until consistency
   // is ensured.
-  virtual void Inc(int32_t row_id, int32_t column_id, const void* delta) = 0;
+  virtual void Inc(int32_t row_id,
+                   int32_t column_id,
+                   const void* delta) = 0;
 
   // Increment column_ids.size() entries of a row. deltas points to an array.
   virtual void BatchInc(int32_t row_id,
@@ -50,30 +52,15 @@ public:
                         int32_t num_updates,
                         int32_t global_version = -1) = 0;
 
-  virtual void DenseBatchInc(int32_t row_id, const void *updates,
-                             int32_t index_st, int32_t num_updates) = 0;
 
-  // Read a row in the table and is blocked until a valid row is obtained
-  // (e.g., from server). A row is valid if, for example, it is sufficiently
-  // fresh in SSP. The result is returned in row_accessor.
-  virtual void ThreadGet(int32_t row_id, ThreadRowAccessor* row_accessor) = 0;
-
-  // Increment (update) an entry. Does not take ownership of input argument
-  // delta, which should be of template type UPDATE in Table. This may trigger
-  // synchronization (e.g., in value-bound) and is blocked until consistency
-  // is ensured.
-  virtual void ThreadInc(int32_t row_id, int32_t column_id, const void* delta)
-  = 0;
-
-  // Increment column_ids.size() entries of a row. deltas points to an array.
-  virtual void ThreadBatchInc(int32_t row_id, const int32_t* column_ids,
-    const void* updates, int32_t num_updates) = 0;
-
-  virtual void ThreadDenseBatchInc(
-      int32_t row_id, const void *updates, int32_t index_st,
-      int32_t num_updates) = 0;
+  // Increment a row with dense updates, i.e., all column ids
+  virtual void DenseBatchInc(int32_t row_id,
+                             const void *updates,
+                             int32_t index_st,
+                             int32_t num_updates) = 0;
 
   virtual void FlushThreadCache() = 0;
+
   virtual void Clock() = 0;
 
 protected:    // common class members for all controller modules.

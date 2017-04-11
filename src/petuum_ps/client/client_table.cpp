@@ -174,13 +174,6 @@ namespace petuum {
   }
 
 
-  void ClientTable::ThreadGet(int32_t row_id,
-                              ThreadRowAccessor *row_accessor) {
-
-    consistency_controller_->ThreadGet(row_id,
-                                       row_accessor);
-  }
-
   ClientRow *ClientTable::Get(int32_t row_id,
                               RowAccessor *row_accessor) {
 
@@ -192,27 +185,6 @@ namespace petuum {
 
 
   // UPDATE functions BEGIN
-
-  void ClientTable::ThreadInc(int32_t row_id,
-                              int32_t column_id,
-                              const void *update) {
-
-    consistency_controller_->ThreadInc(row_id,
-                                       column_id,
-                                       update);
-  }
-
-
-  void ClientTable::ThreadBatchInc(int32_t row_id,
-                                   const int32_t* column_ids,
-                                   const void* updates,
-                                   int32_t num_updates) {
-
-    consistency_controller_->ThreadBatchInc(row_id,
-                                            column_ids,
-                                            updates,
-                                            num_updates);
-  }
 
 
   void ClientTable::FlushThreadCache() {
@@ -260,16 +232,6 @@ namespace petuum {
     STATS_APP_SAMPLE_BATCH_INC_END(table_id_);
   }
 
-
-  void ClientTable::ThreadDenseBatchInc(int32_t row_id,
-                                        const void *updates,
-                                        int32_t index_st,
-                                        int32_t num_updates) {
-    consistency_controller_->ThreadDenseBatchInc(row_id,
-                                                 updates,
-                                                 index_st,
-                                                 num_updates);
-  }
 
   // UPDATE function END
 

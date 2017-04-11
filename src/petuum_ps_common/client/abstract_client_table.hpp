@@ -21,25 +21,23 @@ public:
   virtual void GetAsyncForced(int32_t row_id) = 0;
   virtual void GetAsync(int32_t row_id) = 0;
   virtual void WaitPendingAsyncGet() = 0;
-  virtual void ThreadGet(int32_t row_id, ThreadRowAccessor *row_accessor) = 0;
-  virtual void ThreadInc(int32_t row_id, int32_t column_id,
-                         const void *update) = 0;
-  virtual void ThreadBatchInc(int32_t row_id, const int32_t* column_ids,
-                              const void* updates,
-                              int32_t num_updates) = 0;
-  virtual void ThreadDenseBatchInc(int32_t row_id, const void *updates,
-                                  int32_t index_st,
-                                  int32_t num_updates) = 0;
+
   virtual void FlushThreadCache() = 0;
 
   virtual ClientRow *Get(int32_t row_id, RowAccessor *row_accessor) = 0;
-  virtual void Inc(int32_t row_id, int32_t column_id, const void *update) = 0;
+
+  virtual void Inc(int32_t row_id,
+                   int32_t column_id,
+                   const void *update) = 0;
+
   virtual void BatchInc(int32_t row_id,
                         const int32_t* column_ids,
                         const void* updates,
                         int32_t num_updates,
                         int32_t global_version = -1) = 0;
-  virtual void DenseBatchInc(int32_t row_id, const void *updates,
+
+  virtual void DenseBatchInc(int32_t row_id,
+                             const void *updates,
                              int32_t index_st,
                              int32_t num_updates) = 0;
   virtual void Clock() = 0;

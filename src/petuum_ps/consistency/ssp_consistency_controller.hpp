@@ -16,8 +16,7 @@ namespace petuum {
 
   class SSPConsistencyController : public AbstractConsistencyController {
   public:
-    SSPConsistencyController(
-                             const TableInfo& info,
+    SSPConsistencyController(const TableInfo& info,
                              int32_t table_id,
                              AbstractProcessStorage& process_storage,
                              AbstractOpLog& oplog,
@@ -37,8 +36,11 @@ namespace petuum {
     // in storage.
     virtual ClientRow *Get(int32_t row_id, RowAccessor* row_accessor);
 
+
     // Return immediately.
-    virtual void Inc(int32_t row_id, int32_t column_id, const void* delta);
+    virtual void Inc(int32_t row_id,
+                     int32_t column_id,
+                     const void* delta);
 
     virtual void BatchInc(int32_t row_id,
                           const int32_t* column_ids,
@@ -46,22 +48,13 @@ namespace petuum {
                           int32_t num_updates,
                           int32_t global_version = -1);
 
-    virtual void DenseBatchInc(int32_t row_id, const void *updates,
-                               int32_t index_st, int32_t num_updates);
-
-    virtual void ThreadGet(int32_t row_id, ThreadRowAccessor* row_accessor);
-
-    virtual void ThreadInc(int32_t row_id, int32_t column_id, const void* delta);
-
-    // Increment column_ids.size() entries of a row. deltas points to an array.
-    virtual void ThreadBatchInc(int32_t row_id, const int32_t* column_ids,
-                                const void* updates, int32_t num_updates);
-
-    virtual void ThreadDenseBatchInc(
-                                     int32_t row_id, const void *updates, int32_t index_st,
-                                     int32_t num_updates);
+    virtual void DenseBatchInc(int32_t row_id,
+                               const void *updates,
+                               int32_t index_st,
+                               int32_t num_updates);
 
     virtual void FlushThreadCache();
+
     virtual void Clock();
 
   protected:
@@ -84,6 +77,7 @@ namespace petuum {
     int32_t staleness_;
 
     boost::thread_specific_ptr<ThreadTable> &thread_cache_;
+
     TableOpLogIndex &oplog_index_;
 
     // Controller will only write to oplog_ but never read from it, as
@@ -91,7 +85,9 @@ namespace petuum {
     AbstractOpLog& oplog_;
 
     typedef std::function<void(int32_t, void*, const void*)> AddUpdatesFunc;
+
     AddUpdatesFunc AddUpdates_;
+
     DenseBatchIncOpLogFunc DenseBatchIncOpLog_;
 
   }; // end class - SSPConsistencyController

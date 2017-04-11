@@ -142,26 +142,6 @@ namespace petuum {
       system_table_->WaitPendingAsyncGet();
     }
 
-    void ThreadGet(int32_t row_id, ThreadRowAccessor* row_accessor){
-      system_table_->ThreadGet(row_id, row_accessor);
-    }
-
-    void ThreadInc(int32_t row_id, int32_t column_id, UPDATE update){
-      system_table_->ThreadInc(row_id, column_id, &update);
-    }
-
-    void ThreadBatchInc(int32_t row_id, const UpdateBatch<UPDATE>& update_batch){
-      system_table_->ThreadBatchInc(row_id, update_batch.GetColIDs().data(),
-                                    update_batch.GetUpdates(), update_batch.GetBatchSize());
-    }
-
-    void ThreadDenseBatchInc(int32_t row_id,
-                             const DenseUpdateBatch<UPDATE> &update_batch) {
-      system_table_->ThreadDenseBatchInc(row_id, update_batch.get_mem_const(),
-                                         update_batch.get_index_st(),
-                                         update_batch.get_num_updates());
-    }
-
     void FlushThreadCache() {
       system_table_->FlushThreadCache();
     }
