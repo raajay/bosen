@@ -255,7 +255,6 @@ namespace petuum {
     // this is a message that we get from a client, when all the app threads have clocked.
     bool is_clock = client_send_oplog_msg.get_is_clock();
 
-    // TODO (raajay) what is the difference between version and bg clock
     uint32_t version = client_send_oplog_msg.get_version();
 
     // the value of the clock at the client.
@@ -313,13 +312,16 @@ namespace petuum {
 
     } // end if -- is clock
 
+    // always ack op log receipt
+    SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
 
     if (clock_changed) {
       // (raajay): the below does nothing when SSP consistency is desired.
       // Used only for SSPPush, which we discontinued.
       ServerPushRow(clock_changed);
     } else {
-      SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
+      // the below is also a null function as implemented now
+      // SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
     }
 
   }

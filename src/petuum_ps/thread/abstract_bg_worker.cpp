@@ -683,7 +683,7 @@ namespace petuum {
 
     for (const auto &server_id : server_ids_) {
 
-      // server_oplog_msg_msp will be populated in CreateOpLogMsgs
+      // server_oplog_msg_msp will be populated in Create Op Log Msgs
       auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
 
       if (oplog_msg_iter != server_oplog_msg_map_.end()) {
@@ -718,8 +718,7 @@ namespace petuum {
       }
     }
 
-    VLOG(5) << "Total oplog size sent at clock:" << client_clock_
-            << " equals " << accum_size << " bytes.";
+    VLOG(5) << "Total oplog size sent at clock:" << client_clock_ << " equals " << accum_size << " bytes.";
     STATS_BG_ADD_PER_CLOCK_OPLOG_SIZE(accum_size);
 
     return accum_size;
