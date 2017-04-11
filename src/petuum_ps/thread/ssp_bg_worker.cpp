@@ -232,16 +232,13 @@ namespace petuum {
 
   void SSPBgWorker::PrepareOpLogsNormalNoReplay(int32_t table_id,
                                                 ClientTable *table) {
-    VLOG(2) << "In PrepareOpLogsNormalNoReplay";
 
     AbstractOpLog &table_oplog = table->get_oplog();
 
     auto serializer_iter = row_oplog_serializer_map_.find(table_id);
 
     if (serializer_iter == row_oplog_serializer_map_.end()) {
-      RowOpLogSerializer *row_oplog_serializer
-        = new RowOpLogSerializer(table->oplog_dense_serialized(),
-                                 my_comm_channel_idx_);
+      RowOpLogSerializer *row_oplog_serializer = new RowOpLogSerializer(table->oplog_dense_serialized(), my_comm_channel_idx_);
       row_oplog_serializer_map_.insert(std::make_pair(table_id, row_oplog_serializer));
       serializer_iter = row_oplog_serializer_map_.find(table_id);
     }
@@ -251,13 +248,12 @@ namespace petuum {
     // function below, will query a static, oplog index and get all the rows that
     // have been modified. Note that it will find modified rows from among the
     // rows for each table that the current bg_thread is reponsible for.
-    cuckoohash_map<int32_t, bool> *new_table_oplog_index_ptr
-      = table->GetAndResetOpLogIndex(my_comm_channel_idx_);
+    cuckoohash_map<int32_t, bool> *new_table_oplog_index_ptr = table->GetAndResetOpLogIndex(my_comm_channel_idx_);
 
-    for (auto oplog_index_iter = new_table_oplog_index_ptr->cbegin();
-         !oplog_index_iter.is_end(); oplog_index_iter++) {
+    for (auto oplog_index_iter = new_table_oplog_index_ptr->cbegin(); !oplog_index_iter.is_end(); oplog_index_iter++) {
 
       int32_t row_id = oplog_index_iter->first;
+
       OpLogAccessor oplog_accessor;
       bool found = table_oplog.FindAndLock(row_id, &oplog_accessor);
 
@@ -269,11 +265,11 @@ namespace petuum {
       AbstractRowOpLog *row_oplog = oplog_accessor.get_row_oplog();
 
       if (found && (row_oplog == 0)) {
-        // TODO (raajay): what does it mean for a row_oplog to be 0 (or null)?
         continue;
       }
 
       row_oplog_serializer->AppendRowOpLog(row_id, row_oplog);
+
       row_oplog->Reset();
     }
 
@@ -281,19 +277,24 @@ namespace petuum {
       // Reset size to 0
       table_num_bytes_by_server_[server_id] = 0;
     }
+
     row_oplog_serializer->GetServerTableSizeMap(&table_num_bytes_by_server_);
     delete new_table_oplog_index_ptr;
-  }
+
+  } // end function -- prepare op logs normal no replay
+
+
+
 
   void SSPBgWorker::PrepareOpLogsAppendOnlyNoReplay(int32_t table_id,
                                                     ClientTable *table) {
-    VLOG(2) << "In PrepareOpLogsAppendOnlyNoReplay";
 
     auto serializer_iter = row_oplog_serializer_map_.find(table_id);
     if (serializer_iter == row_oplog_serializer_map_.end()) {
-      RowOpLogSerializer *row_oplog_serializer
-        = new RowOpLogSerializer(table->oplog_dense_serialized(),
-                                 my_comm_channel_idx_);
+
+      RowOpLogSerializer *row_oplog_serializer = new RowOpLogSerializer(table->oplog_dense_serialized(),
+                                                                        my_comm_channel_idx_);
+
       row_oplog_serializer_map_.insert(std::make_pair(table_id, row_oplog_serializer));
       serializer_iter = row_oplog_serializer_map_.find(table_id);
     }
@@ -325,8 +326,10 @@ namespace petuum {
     bool tracked = row_request_oplog_mgr_->AddOpLog(version_, bg_oplog);
     ++version_;
     VLOG(5) << "Increment version of bgworker:" << my_id_ << " to " << version_;
-    // the below version does nothing.
+
+    // the below function does nothing.
     row_request_oplog_mgr_->InformVersionInc();
+
     if (!tracked) {
       delete bg_oplog;
     }

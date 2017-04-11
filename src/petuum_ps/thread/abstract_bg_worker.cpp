@@ -778,8 +778,7 @@ namespace petuum {
         RowAccessor row_accessor;
         ClientRow *client_row = table_storage.Find(row_id, &row_accessor);
         if (client_row != 0) {
-          if (GlobalContext::get_consistency_model() == SSP
-              && client_row->GetClock() >= clock) {
+          if (GlobalContext::get_consistency_model() == SSP && client_row->GetClock() >= clock) {
             RowRequestReplyMsg row_request_reply_msg;
             size_t sent_size = comm_bus_->SendInProc(
                                                      app_thread_id, row_request_reply_msg.get_mem(),
@@ -800,10 +799,16 @@ namespace petuum {
     // see. Which should be 1 less than the current version number.
     // raajay: version_ is the latest version that is pushed to the server from this client.
     // which means the request can be for one less than that?
+
+    // (raajay) when ever an app thread requests for a row and it is not found
+    // in the process storage, then the following lines are encountered.
+    // Basically, a row request has to be sent to the server now. We also
+    // remember that the app thread made a request for the row when the current
+    // version of the model was blah.
+
     row_request.version = version_ - 1;
 
-    bool should_be_sent
-      = row_request_oplog_mgr_->AddRowRequest(row_request, table_id, row_id);
+    bool should_be_sent = row_request_oplog_mgr_->AddRowRequest(row_request, table_id, row_id);
 
     if (should_be_sent) {
       int32_t server_id
@@ -871,9 +876,14 @@ namespace petuum {
         }
 
       }
+      // 6. so we have dumped into process storage, (A) value from the server,
+      // (B) values from oplogs that have been sent whose version is not include
+      // in the value from the server, (C) pending op logs, before sending.
 
       // lets keep taking and releasing the locks with in the if else statements
       row_data->ReleaseWriteLock();
+
+      // the table oplog will be automatically released at the end of scope.
 
     } else if (client_table->get_oplog_type() == AppendOnly) {
 
@@ -923,17 +933,21 @@ namespace petuum {
     row_data->Deserialize(data, row_size);
 
     bool no_oplog_replay = client_table->get_no_oplog_replay();
-    if (!no_oplog_replay)
+    if (!no_oplog_replay) {
+      // apply old op logs if needed from row request manager
       CheckAndApplyOldOpLogsToRowData(table_id, row_id, version, row_data);
+    }
 
+    // create client row with updates from server, no copying of data happens
     ClientRow *client_row = CreateClientRow(clock, global_model_version, row_data);
 
-    if (client_table->get_oplog_type() == Sparse ||
-        client_table->get_oplog_type() == Dense) {
+    if (client_table->get_oplog_type() == Sparse || client_table->get_oplog_type() == Dense) {
+
       AbstractOpLog &table_oplog = client_table->get_oplog();
       OpLogAccessor oplog_accessor;
       bool oplog_found = table_oplog.FindAndLock(row_id, &oplog_accessor);
 
+      // add oplog values to the row_data
       if (oplog_found && !no_oplog_replay) {
         int32_t column_id;
         const void *update;
@@ -943,8 +957,11 @@ namespace petuum {
           update = oplog_accessor.get_row_oplog()->NextConst(&column_id);
         }
       }
+
       client_table->get_process_storage().Insert(row_id, client_row);
+
     } else if (client_table->get_oplog_type() == AppendOnly) { //AppendOnly
+
       auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
       if (buff_iter != append_only_row_oplog_buffer_map_.end()) {
         AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer = buff_iter->second;
@@ -994,8 +1011,7 @@ namespace petuum {
 
     if (client_row != 0) {
       // internal private function defined in this class.
-      UpdateExistingRow(table_id, row_id, client_row, client_table, data,
-                        row_size, version);
+      UpdateExistingRow(table_id, row_id, client_row, client_table, data, row_size, version);
       client_row->SetClock(clock);
       client_row->SetGlobalVersion(global_model_version);
     } else { // not found

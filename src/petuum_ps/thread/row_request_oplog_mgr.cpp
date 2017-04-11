@@ -10,55 +10,70 @@ namespace petuum {
                                             int32_t table_id, int32_t row_id) {
     uint32_t version = request.version;
     request.sent = true;
-    VLOG(20) << "Add RR (App thread id=" << request.app_thread_id << ", clock="
-             << request.clock << ", version=" << request.version << ")";
 
     {
       std::pair<int32_t, int32_t> request_key(table_id, row_id);
       if (pending_row_requests_.count(request_key) == 0) {
-        pending_row_requests_.insert(std::make_pair(request_key,
-                                                    std::list<RowRequestInfo>()));
-        VLOG(20) << "pending_row_requests_ does not have this table_id = "
-                 << table_id << " row_id = " << row_id;
+        pending_row_requests_.insert(std::make_pair(request_key, std::list<RowRequestInfo>()));
       }
-      std::list<RowRequestInfo> &request_list
-        = pending_row_requests_[request_key];
+
+      std::list<RowRequestInfo> &request_list = pending_row_requests_[request_key];
+
       bool request_added = false;
       // Requests are sorted in increasing order of clock number.
       // When a request is to be inserted, start from the end as the requst's
       // clock is more likely to be larger.
+
       for (auto iter = request_list.end(); iter != request_list.begin(); iter--) {
         auto iter_prev = std::prev(iter);
         int32_t clock = request.clock;
         if (clock >= iter_prev->clock) {
-          VLOG(20) << "I'm requesting clock is " << clock
-                   << " There's a previous request requesting clock "
-                   << iter_prev->clock;
           // insert before iter
           request.sent = false;
           request_list.insert(iter, request);
           request_added = true;
           break;
         }
+
       }
-      if (!request_added)
+      if (!request_added) {
         request_list.push_front(request);
-    }
+      }
+
+    } // insert row request into a list indexed by table,row id and ordered based on clock value
+
 
     {
       if (version_request_cnt_map_.count(version) == 0) {
         version_request_cnt_map_[version] = 0;
       }
       ++version_request_cnt_map_[version];
-    }
+    } // increment the number of row requests that require model at the correct local version.
 
+
+    // if there is an earlier clock request the current request is not sent
     return request.sent;
-  }
+
+  } // end function -- Add row request
+
+
+
+
+  /**
+   * 1. Find out all possible app thread ids that can be satisfied with the
+   * latest clocked update.
+   * 2. Figure out if there are any pending requests, and return the minimum
+   * clock among all pending requests.
+   * 3. If a request is satisfied with an update with version "curr_version",
+   * will out oplogs for all old versions.
+   * 4. For those request, that have not been sent, update the version number
+   * with which they should be replied to current version of the bg thread.
+   */
 
   int32_t SSPRowRequestOpLogMgr::InformReply(int32_t table_id,
                                              int32_t row_id,
                                              int32_t clock,
-                                             uint32_t curr_version,
+                                             uint32_t curr_version, // the current version the thread is in
                                              std::vector<int32_t> *app_thread_ids) {
 
     (*app_thread_ids).clear();
@@ -88,33 +103,43 @@ namespace petuum {
 
       } else { // there is a request for which the current update is not enough
 
-        // if request is not yet sent (courtesy threaded programming?)
+        // if request is not yet sent (courtesy threaded programming?). Nope!
+        // some requests are not sent, if an request for an earlier clock is not
+        // satisfied.
+
         if (!request.sent) {
+
           clock_to_request = request.clock;
           request.sent = true;
+
           uint32_t req_version = request.version;
           --version_request_cnt_map_[req_version];
 
-          request.version = curr_version - 1;
+          request.version = curr_version - 1; // update the version number
+
+          // create and add an entry
           if (version_request_cnt_map_.count(request.version) == 0) {
             version_request_cnt_map_[request.version] = 0;
           }
           ++version_request_cnt_map_[request.version];
 
+          // remove earlier if needed
           if (version_request_cnt_map_[req_version] == 0) {
             version_request_cnt_map_.erase(req_version);
             CleanVersionOpLogs(req_version, curr_version);
           }
+
         }
 
-        // we break, because the requests are stored in sorted order.
+        // we break, because the requests are stored in sorted order of clock.
         break;
+      } // end if-else -- clock is satisfied
 
-      }
     }
     // if there's no request in that list, I can remove the empty list
-    if (request_list.empty())
+    if (request_list.empty()) {
       pending_row_requests_.erase(request_key);
+    }
     return clock_to_request;
 
   } // end function - Inform reply
@@ -128,6 +153,10 @@ namespace petuum {
       << " Maybe use a larger version number size?";
     // There are pending requests, they are from some older version or the current
     // version, so I need to save the oplog for them.
+
+
+    // TODO (raajay): what is version_request_cnt_map_?
+
     if (version_request_cnt_map_.size() > 0) {
       version_oplog_map_[version] = oplog;
       return true;

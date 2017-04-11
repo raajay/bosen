@@ -41,7 +41,9 @@ public:
   }
 
   size_t AppendRowOpLog(int32_t row_id, AbstractRowOpLog *row_oplog) {
+
     size_t serialized_size = GetSerializedRowOpLogSize_(row_oplog);
+
     if (size_ + sizeof(int32_t) + serialized_size > capacity_)
       return 0;
 
