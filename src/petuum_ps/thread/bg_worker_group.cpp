@@ -90,11 +90,6 @@ void BgWorkerGroup::GetAsyncRowRequestReply() {
   CHECK_EQ(msg_type, kRowRequestReply);
 }
 
-void BgWorkerGroup::SignalHandleAppendOnlyBuffer(
-    int32_t table_id, int32_t channel_idx) {
-  bg_worker_vec_[channel_idx]->SignalHandleAppendOnlyBuffer(table_id);
-}
-
 void BgWorkerGroup::ClockAllTables() {
   for (const auto &worker : bg_worker_vec_) {
     worker->ClockAllTables();

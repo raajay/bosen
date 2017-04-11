@@ -39,7 +39,6 @@ namespace petuum {
     void RequestRowAsync(int32_t table_id, int32_t row_id, int32_t clock,
                          bool forced);
     void GetAsyncRowRequestReply();
-    void SignalHandleAppendOnlyBuffer(int32_t table_id);
 
     void ClockAllTables();
     void SendOpLogsAllTables();
@@ -83,15 +82,6 @@ namespace petuum {
 
     /* Functions Called From Main Loop -- END */
 
-    virtual void HandleAppendOpLogMsg(int32_t table_id);
-
-    void HandleAppendOpLogAndApply(
-                                   int32_t table_id, ClientTable *table, AbstractAppendOnlyBuffer *buff);
-    void HandleAppendOpLogAndNotApply(
-                                      int32_t table_id, ClientTable *table, AbstractAppendOnlyBuffer *buff);
-
-    AppendOnlyRowOpLogBuffer *CreateAppendOnlyRowOpLogBufferIfNotExist(
-                                                                       int32_t table_id, ClientTable *table);
 
     /* Handles Sending OpLogs -- BEGIN */
     virtual long HandleClockMsg(bool clock_advanced);
@@ -121,10 +111,6 @@ namespace petuum {
     void HandleServerRowRequestReply(
                                      int32_t server_id,
                                      ServerRowRequestReplyMsg &server_row_request_reply_msg);
-
-    virtual void CheckAndApplyOldOpLogsToRowData(int32_t table_id,
-                                                 int32_t row_id, uint32_t row_version,
-                                                 AbstractRow *row_data) = 0;
     /* Handles Row Requests -- END */
 
     // Handles server pushed rows

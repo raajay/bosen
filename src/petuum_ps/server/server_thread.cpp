@@ -252,13 +252,11 @@ namespace petuum {
   void ServerThread::HandleOpLogMsg(int32_t sender_id,
                                     ClientSendOpLogMsg &client_send_oplog_msg) {
 
-    // this is a message that we get from a client, when all the app threads have clocked.
-    bool is_clock = client_send_oplog_msg.get_is_clock();
+    STATS_SERVER_OPLOG_MSG_RECV_INC_ONE();
 
-    uint32_t version = client_send_oplog_msg.get_version();
-
-    // the value of the clock at the client.
-    int32_t bg_clock = client_send_oplog_msg.get_bg_clock();
+    bool is_clock = client_send_oplog_msg.get_is_clock(); // if the oplog also says that client has clocked
+    int32_t bg_clock = client_send_oplog_msg.get_bg_clock(); // the value of clock at client
+    uint32_t version = client_send_oplog_msg.get_version(); // the bg version of the oplog update
 
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
@@ -269,9 +267,13 @@ namespace petuum {
                                         version);
     STATS_SERVER_ACCUM_APPLY_OPLOG_END();
 
+    // TODO send a make Apply Op log update return the version used to compute oplog
+
+    // TODO add delay to the statistics
+
+    // TODO all the below has to go for async sgd
 
     bool clock_changed = false;
-
     if (is_clock) {
       clock_changed = server_obj_.ClockUntil(sender_id, bg_clock);
 
@@ -418,9 +420,7 @@ namespace petuum {
           // here, we decide what to do with the oplog (update) that the client
           // sends.
           ClientSendOpLogMsg client_send_oplog_msg(msg_mem);
-
           HandleOpLogMsg(sender_id, client_send_oplog_msg);
-          STATS_SERVER_OPLOG_MSG_RECV_INC_ONE();
         }
         break;
       default:

@@ -163,14 +163,6 @@ namespace petuum {
     CHECK_EQ(msg_type, kRowRequestReply);
   }
 
-  void AbstractBgWorker::SignalHandleAppendOnlyBuffer(int32_t table_id) {
-    BgHandleAppendOpLogMsg handle_append_oplog_msg;
-    handle_append_oplog_msg.get_table_id() = table_id;
-
-    size_t sent_size = SendMsg(reinterpret_cast<MsgBase*>(&handle_append_oplog_msg));
-    CHECK_EQ(sent_size, handle_append_oplog_msg.get_size());
-  }
-
   void AbstractBgWorker::ClockAllTables() {
     BgClockMsg bg_clock_msg;
     size_t sent_size = SendMsg(reinterpret_cast<MsgBase*>(&bg_clock_msg));
@@ -207,6 +199,8 @@ namespace petuum {
     return true;
   }
 
+
+
   bool AbstractBgWorker::WaitMsgTimeOut(int32_t *sender_id, zmq::message_t *zmq_msg,
                                         long timeout_milli) {
     bool received = (GlobalContext::comm_bus->*
@@ -215,13 +209,13 @@ namespace petuum {
     return received;
   }
 
-  size_t AbstractBgWorker::GetDenseSerializedRowOpLogSize(
-                                                          AbstractRowOpLog *row_oplog) {
+
+  size_t AbstractBgWorker::GetDenseSerializedRowOpLogSize(AbstractRowOpLog *row_oplog) {
     return row_oplog->GetDenseSerializedSize();
   }
 
-  size_t AbstractBgWorker::GetSparseSerializedRowOpLogSize(
-                                                           AbstractRowOpLog *row_oplog) {
+
+  size_t AbstractBgWorker::GetSparseSerializedRowOpLogSize(AbstractRowOpLog *row_oplog) {
     row_oplog->ClearZerosAndGetNoneZeroSize();
     return row_oplog->GetSparseSerializedSize();
   }
@@ -398,6 +392,8 @@ namespace petuum {
     }
   }
 
+
+
   long AbstractBgWorker::HandleClockMsg(bool clock_advanced) {
 
     STATS_BG_ACCUM_CLOCK_END_OPLOG_SERIALIZE_BEGIN();
@@ -425,134 +421,34 @@ namespace petuum {
 
   }
 
+
+
   void AbstractBgWorker::HandleServerPushRow(int32_t sender_id, void *msg_mem) {
-    LOG(FATAL) << "Consistency model = " << GlobalContext::get_consistency_model()
+    LOG(FATAL) << "Consistency model = "
+               << GlobalContext::get_consistency_model()
                << " does not support HandleServerPushRow";
   }
 
+
   void AbstractBgWorker::PrepareBeforeInfiniteLoop() { }
 
+
   void AbstractBgWorker::FinalizeTableStats() { }
+
+
 
   long AbstractBgWorker::ResetBgIdleMilli() {
     return 0;
   }
 
+
+
   long AbstractBgWorker::BgIdleWork() {
     return 0;
   }
 
-  void AbstractBgWorker::HandleAppendOpLogMsg(int32_t table_id) {
-    STATS_BG_ACCUM_HANDLE_APPEND_OPLOG_BEGIN();
-    auto table_iter = tables_->find(table_id);
-    CHECK(table_iter != tables_->end());
 
-    AbstractAppendOnlyBuffer *buff
-      = table_iter->second->get_oplog().GetAppendOnlyBuffer(my_comm_channel_idx_);
-
-    if (table_iter->second->get_bg_apply_append_oplog_freq() > 0) {
-      HandleAppendOpLogAndApply(table_id, table_iter->second, buff);
-    } else {
-      HandleAppendOpLogAndNotApply(table_id, table_iter->second, buff);
-    }
-
-    buff->ResetSize();
-
-    table_iter->second->get_oplog().PutBackBuffer(my_comm_channel_idx_, buff);
-    STATS_BG_ACCUM_HANDLE_APPEND_OPLOG_END();
-  }
-
-  AppendOnlyRowOpLogBuffer *AbstractBgWorker::CreateAppendOnlyRowOpLogBufferIfNotExist(
-                                                                                       int32_t table_id, ClientTable *table) {
-
-    auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
-    if (buff_iter == append_only_row_oplog_buffer_map_.end()) {
-      AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer
-        = new  AppendOnlyRowOpLogBuffer(
-                                        table->get_row_oplog_type(),
-                                        table->get_sample_row(),
-                                        table->get_sample_row()->get_update_size(),
-                                        table->get_dense_row_oplog_capacity(),
-                                        table->get_append_only_oplog_type());
-      append_only_row_oplog_buffer_map_.insert(
-                                               std::make_pair(table_id, append_only_row_oplog_buffer));
-      buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
-    }
-
-    return buff_iter->second;
-  }
-
-  void AbstractBgWorker::HandleAppendOpLogAndApply(
-                                                   int32_t table_id, ClientTable *table, AbstractAppendOnlyBuffer *buff) {
-
-    AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer
-      = CreateAppendOnlyRowOpLogBufferIfNotExist(table_id, table);
-    {
-      int32_t row_id, num_updates;
-      const int32_t *col_ids;
-      buff->InitRead();
-      const void *updates = buff->Next(&row_id, &col_ids, &num_updates);
-      while (updates != 0) {
-        append_only_row_oplog_buffer->BatchIncTmp(row_id, col_ids,
-                                                  updates, num_updates);
-        updates = buff->Next(&row_id, &col_ids, &num_updates);
-      }
-    }
-
-    auto count_iter = append_only_buff_proc_count_.find(table_id);
-    if (count_iter == append_only_buff_proc_count_.end()) {
-      append_only_buff_proc_count_.insert(std::make_pair(table_id, 0));
-      count_iter = append_only_buff_proc_count_.find(table_id);
-    }
-
-    ++(count_iter->second);
-    if (count_iter->second % table->get_bg_apply_append_oplog_freq() == 0) {
-      AbstractProcessStorage &process_storage = table->get_process_storage();
-      int32_t row_id;
-      AbstractRowOpLog *row_oplog
-        = append_only_row_oplog_buffer->InitReadTmpOpLog(&row_id);
-      while (row_oplog != 0) {
-        RowAccessor row_accessor;
-        ClientRow *client_row = process_storage.Find(row_id, &row_accessor);
-        if (client_row != 0) {
-          AbstractRow *row_data = client_row->GetRowDataPtr();
-          row_data->GetWriteLock();
-          int32_t column_id;
-          const void *update;
-          update = row_oplog->BeginIterateConst(&column_id);
-          while (update != 0) {
-            row_data->ApplyIncUnsafe(column_id, update);
-            update = row_oplog->NextConst(&column_id);
-          }
-          row_data->ReleaseWriteLock();
-        }
-        row_oplog = append_only_row_oplog_buffer->NextReadTmpOpLog(&row_id);
-      }
-      count_iter->second = 0;
-      append_only_row_oplog_buffer->MergeTmpOpLog();
-    }
-  }
-
-  void AbstractBgWorker::HandleAppendOpLogAndNotApply(
-                                                      int32_t table_id, ClientTable *table, AbstractAppendOnlyBuffer *buff) {
-    AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer
-      = CreateAppendOnlyRowOpLogBufferIfNotExist(table_id, table);
-
-    {
-      int32_t row_id, num_updates;
-      const int32_t *col_ids;
-      buff->InitRead();
-      const void *updates = buff->Next(&row_id, &col_ids, &num_updates);
-      while (updates != 0) {
-        append_only_row_oplog_buffer->BatchInc(row_id, col_ids,
-                                               updates, num_updates);
-        updates = buff->Next(&row_id, &col_ids, &num_updates);
-      }
-    }
-  }
-
-  void AbstractBgWorker::FinalizeOpLogMsgStats(
-                                               int32_t table_id,
+  void AbstractBgWorker::FinalizeOpLogMsgStats(int32_t table_id,
                                                std::map<int32_t, size_t> *table_num_bytes_by_server,
                                                std::map<int32_t, std::map<int32_t, size_t> >
                                                *server_table_oplog_size_map) {
@@ -652,29 +548,16 @@ namespace petuum {
     // write into locations pointed in the table_server_mem_map.
 
     for (const auto &table_pair : (*tables_)) {
-
       int32_t table_id = table_pair.first;
       ClientTable *table = table_pair.second;
-
-      if (table->get_no_oplog_replay()) {
-
-        auto serializer_iter = row_oplog_serializer_map_.find(table_id);
-        CHECK(serializer_iter != row_oplog_serializer_map_.end());
-
-        RowOpLogSerializer *row_oplog_serializer = serializer_iter->second;
-        row_oplog_serializer->SerializeByServer(&(table_server_mem_map[table_id]));
-
-      } else {
-
-        BgOpLogPartition *oplog_partition = bg_oplog->Get(table_id);
-        // the second argument to function is an indicator to notify is the serialization is dense or sparse
-        oplog_partition->SerializeByServer(&(table_server_mem_map[table_id]),
-                                           table_pair.second->oplog_dense_serialized());
-      }
-
+      BgOpLogPartition *oplog_partition = bg_oplog->Get(table_id);
+      // the second argument to function is an indicator to notify is the
+      // serialization is dense or sparse
+      oplog_partition->SerializeByServer(&(table_server_mem_map[table_id]),
+                                         table_pair.second->oplog_dense_serialized());
     } // end for -- over all the tables
 
-  }
+  } // end for - create op logs
 
 
 
@@ -832,110 +715,10 @@ namespace petuum {
                                            uint32_t version) { // version : from row request reply msg
 
     AbstractRow *row_data = client_row->GetRowDataPtr();
+    row_data->GetWriteLock();
+    row_data->ResetRowData(data, row_size);
+    row_data->ReleaseWriteLock();
 
-    if (client_table->get_oplog_type() == Sparse || client_table->get_oplog_type() == Dense) {
-
-
-      // 1. if oplog for this row is available in the table, then lock it
-
-      /* -- op log is not being used
-      AbstractOpLog &table_oplog = client_table->get_oplog();
-      OpLogAccessor oplog_accessor;
-      bool oplog_found = table_oplog.FindAndLock(row_id, &oplog_accessor);
-      */
-
-      // 2. Lock the data entry in the process storage
-      row_data->GetWriteLock();
-
-      // 3. Reset all the entries in process storage; essentially it will
-      // overwrite it with values from the server.
-      row_data->ResetRowData(data, row_size);
-
-      // then apply all the oplogs that have not peen applied.
-
-      // 4. From the oplogs that have been sent from the client, and those that
-      // have been applied to the model, add the values to row_data. The value of argument
-      // version is the maximum version that have been applied to the model at the server.
-
-      // not the function Check Apply Old OpLogs, only accesses the oplog and
-      // applied it to the row data. It does not clear older versions of the Op
-      // Log. That is done in Inform Reply. (raajay) So, to prevent the op logs
-      // from being synced into the process storage, I am going to avoid calling
-      // this function. This is consistent with not putting values into process
-      // storage when Batch Inc in called.
-
-      /*
-      bool no_oplog_replay = client_table->get_no_oplog_replay();
-      if (!no_oplog_replay) {
-        CheckAndApplyOldOpLogsToRowData(table_id, row_id, version, row_data);
-      }
-      */
-
-      // 5. Are these the oplog values that have been computed, but not yet
-      // sent? I guess yes; previously in Check and Apply Old Oplogs we apply
-      // only those that have been already sent from the client.
-
-
-
-      /*
-      if (oplog_found && !no_oplog_replay) {
-        STATS_BG_ACCUM_SERVER_PUSH_OPLOG_ROW_APPLIED_ADD_ONE();
-
-        int32_t column_id;
-        const void *update;
-        update = oplog_accessor.get_row_oplog()->BeginIterateConst(&column_id);
-
-        while (update != 0) {
-          STATS_BG_ACCUM_SERVER_PUSH_UPDATE_APPLIED_ADD_ONE();
-          row_data->ApplyIncUnsafe(column_id, update);
-          update = oplog_accessor.get_row_oplog()->NextConst(&column_id);
-        }
-      } // end if -- op log found and yes to op log replay
-      */
-
-
-      // 6. so we have dumped into process storage, (A) value from the server,
-      // (B) values from oplogs that have been sent whose version is not include
-      // in the value from the server, (C) pending op logs, before sending.
-
-      // lets keep taking and releasing the locks with in the if else statements
-      row_data->ReleaseWriteLock();
-
-      // the table oplog will be automatically released at the end of scope.
-
-    } else if (client_table->get_oplog_type() == AppendOnly) {
-
-      row_data->GetWriteLock();
-      row_data->ResetRowData(data, row_size);
-
-
-      // See reasoning in Insert Non Existent row function
-      /*
-      auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
-      if (buff_iter != append_only_row_oplog_buffer_map_.end()) {
-        AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer = buff_iter->second;
-
-        AbstractRowOpLog *row_oplog
-          = append_only_row_oplog_buffer->GetRowOpLog(row_id);
-
-        if (row_oplog != 0) {
-          int32_t column_id;
-          const void *update;
-          update = row_oplog->BeginIterateConst(&column_id);
-          while (update != 0) {
-            row_data->ApplyIncUnsafe(column_id, update);
-            update = row_oplog->NextConst(&column_id);
-          }
-        }
-      }
-      */
-
-      row_data->ReleaseWriteLock();
-
-    } else {
-
-      LOG(FATAL) << "Unknown oplog type " << client_table->get_oplog_type();
-    }
   } // end function - Update Existing Row
 
 
@@ -950,80 +733,13 @@ namespace petuum {
                                               uint32_t version,
                                               int32_t clock,
                                               int32_t global_model_version) {
+
     int32_t row_type = client_table->get_row_type();
-    AbstractRow *row_data
-      = ClassRegistry<AbstractRow>::GetRegistry().CreateObject(row_type);
-
+    AbstractRow *row_data = ClassRegistry<AbstractRow>::GetRegistry().CreateObject(row_type);
     row_data->Deserialize(data, row_size);
-
-    // See comments in Update Existing Row to understand why the next 5 lines of
-    // code have been commented out.
-    /*
-    bool no_oplog_replay = client_table->get_no_oplog_replay();
-    if (!no_oplog_replay) {
-      // apply old op logs if needed from row request manager
-      CheckAndApplyOldOpLogsToRowData(table_id, row_id, version, row_data);
-    }
-    */
-
-    // create client row with updates from server, no copying of data happens
     ClientRow *client_row = CreateClientRow(clock, global_model_version, row_data);
+    client_table->get_process_storage().Insert(row_id, client_row);
 
-    if (client_table->get_oplog_type() == Sparse || client_table->get_oplog_type() == Dense) {
-
-      // Since we are just using the value received from the server to update
-      // the values in process storage AND are not adding already sent oplogs
-      // that are not being processed in the cluster, we will also NOT ADD op
-      // logs that have been created in the client (in Batch Inc function from
-      // app thread), but not yet sent to the server.
-
-      /*
-      AbstractOpLog &table_oplog = client_table->get_oplog();
-      OpLogAccessor oplog_accessor;
-      bool oplog_found = table_oplog.FindAndLock(row_id, &oplog_accessor);
-
-      // add oplog values to the row_data
-      if (oplog_found && !no_oplog_replay) {
-        int32_t column_id;
-        const void *update;
-        update = oplog_accessor.get_row_oplog()->BeginIterateConst(&column_id);
-        while (update != 0) {
-          row_data->ApplyIncUnsafe(column_id, update);
-          update = oplog_accessor.get_row_oplog()->NextConst(&column_id);
-        }
-      }
-      */
-
-      client_table->get_process_storage().Insert(row_id, client_row);
-
-    } else if (client_table->get_oplog_type() == AppendOnly) { //AppendOnly
-
-      // see reasoning in if block
-      /*
-      auto buff_iter = append_only_row_oplog_buffer_map_.find(table_id);
-      if (buff_iter != append_only_row_oplog_buffer_map_.end()) {
-        AppendOnlyRowOpLogBuffer *append_only_row_oplog_buffer = buff_iter->second;
-
-        AbstractRowOpLog *row_oplog
-          = append_only_row_oplog_buffer->GetRowOpLog(row_id);
-
-        if (row_oplog != 0) {
-          int32_t column_id;
-          const void *update;
-          update = row_oplog->BeginIterateConst(&column_id);
-          while (update != 0) {
-            row_data->ApplyIncUnsafe(column_id, update);
-            update = row_oplog->NextConst(&column_id);
-          }
-        }
-      }
-      */
-
-      client_table->get_process_storage().Insert(row_id, client_row);
-
-    } else {
-      LOG(FATAL) << "Unkonwn oplog type = " << client_table->get_oplog_type();
-    }
   } // end function -- Insert Non existent row
 
 
@@ -1052,12 +768,27 @@ namespace petuum {
 
     if (client_row != 0) {
       // internal private function defined in this class.
-      UpdateExistingRow(table_id, row_id, client_row, client_table, data, row_size, version);
+      UpdateExistingRow(table_id,
+                        row_id,
+                        client_row,
+                        client_table,
+                        data,
+                        row_size,
+                        version);
+
       client_row->SetClock(clock);
       client_row->SetGlobalVersion(global_model_version);
     } else { // not found
-      InsertNonexistentRow(table_id, row_id, client_table, data, row_size, version, clock, global_model_version);
+      InsertNonexistentRow(table_id,
+                           row_id,
+                           client_table,
+                           data,
+                           row_size,
+                           version,
+                           clock,
+                           global_model_version);
     }
+
 
     // populate app_thread_ids with the list of app threads whose request can be
     // satisfied with this update.
@@ -1089,9 +820,7 @@ namespace petuum {
     // respond to each satisfied application row request
     std::pair<int32_t, int32_t> request_key(table_id, row_id);
     RowRequestReplyMsg row_request_reply_msg;
-
     for (int i = 0; i < (int) app_thread_ids.size(); ++i) {
-
       size_t sent_size = comm_bus_->SendInProc(app_thread_ids[i],
                                                row_request_reply_msg.get_mem(),
                                                row_request_reply_msg.get_size());
@@ -1108,10 +837,14 @@ namespace petuum {
     return sent_size;
   }
 
+
+
   void AbstractBgWorker::RecvMsg(zmq::message_t &zmq_msg) {
     int32_t sender_id;
     comm_bus_->RecvInProc(&sender_id, &zmq_msg);
   }
+
+
 
   void AbstractBgWorker::ConnectToScheduler() {
     ClientConnectMsg client_connect_msg;
@@ -1156,6 +889,8 @@ namespace petuum {
               << server_id << " at " << server_addr;
     }
   }
+
+
 
 
   void *AbstractBgWorker::operator() () {
@@ -1235,8 +970,7 @@ namespace petuum {
           ++num_deregistered_app_threads;
           // when all the app thread have de-registered, send a shut down message to namenode,
           // scheduler and all the servers.
-          if (num_deregistered_app_threads
-              == GlobalContext::get_num_app_threads()) {
+          if (num_deregistered_app_threads == GlobalContext::get_num_app_threads()) {
             ClientShutDownMsg msg;
             int32_t name_node_id = GlobalContext::get_name_node_id();
             (comm_bus_->*(comm_bus_->SendAny_))(name_node_id, msg.get_mem(),
@@ -1262,7 +996,7 @@ namespace petuum {
         break;
       case kRowRequest:
         {
-          // app thread typically sends a row request, you job is to forward it to the server.
+          // app thread typically sends a row request, your job is to forward it to the server.
           RowRequestMsg row_request_msg(msg_mem);
           CheckForwardRowRequestToServer(sender_id, row_request_msg);
         }
@@ -1302,12 +1036,6 @@ namespace petuum {
                                                            server_oplog_ack_msg.get_ack_version());
         }
         break;
-      case kBgHandleAppendOpLog:
-        {
-          BgHandleAppendOpLogMsg handle_append_oplog_msg(msg_mem);
-          HandleAppendOpLogMsg(handle_append_oplog_msg.get_table_id());
-        }
-        break;
       default:
         LOG(FATAL) << "Unrecognized type " << msg_type;
       }
@@ -1317,6 +1045,7 @@ namespace petuum {
     }
 
     return 0;
-  }
 
-}
+  } // end class -- abstract bg worker
+
+} // end namespace -- petuum

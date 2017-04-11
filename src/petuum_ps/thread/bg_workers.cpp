@@ -52,11 +52,6 @@ namespace petuum {
     return bg_worker_group_->GetAsyncRowRequestReply();
   }
 
-  void BgWorkers::SignalHandleAppendOnlyBuffer(
-                                               int32_t table_id, int32_t channel_idx) {
-    return bg_worker_group_->SignalHandleAppendOnlyBuffer(table_id, channel_idx);
-  }
-
   void BgWorkers::ClockAllTables() {
     bg_worker_group_->ClockAllTables();
   }

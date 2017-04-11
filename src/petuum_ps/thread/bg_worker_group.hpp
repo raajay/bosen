@@ -25,7 +25,6 @@ public:
   void RequestRowAsync(int32_t table_id, int32_t row_id, int32_t clock,
                        bool forced);
   void GetAsyncRowRequestReply();
-  void SignalHandleAppendOnlyBuffer(int32_t table_id, int32_t channel_idx);
 
   void ClockAllTables();
   void SendOpLogsAllTables();

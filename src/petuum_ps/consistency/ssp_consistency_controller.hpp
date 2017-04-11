@@ -58,6 +58,7 @@ namespace petuum {
     virtual void Clock();
 
   protected:
+
     void DenseBatchIncDenseOpLog(OpLogAccessor *oplog_accessor,
                                  const uint8_t *updates,
                                  int32_t index_st,
