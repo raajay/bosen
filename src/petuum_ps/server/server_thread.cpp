@@ -198,7 +198,7 @@ namespace petuum {
     int32_t table_id = row_request_msg.get_table_id();
     int32_t row_id = row_request_msg.get_row_id();
     int32_t clock = row_request_msg.get_clock();
-    int32_t server_clock = server_obj_.GetMinClock();
+    //int32_t server_clock = server_obj_.GetMinClock();
 
     /* -- we do not buffer the requests in asynchronous mode. Always, reply for an request immediately.
     if (server_clock < clock) {
@@ -265,13 +265,13 @@ namespace petuum {
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
     STATS_SERVER_ACCUM_APPLY_OPLOG_BEGIN();
+    int32_t observed_delay;
     server_obj_.ApplyOpLogUpdateVersion(client_send_oplog_msg.get_data(),
                                         client_send_oplog_msg.get_avai_size(),
                                         sender_id,
-                                        version);
+                                        version,
+                                        &observed_delay);
     STATS_SERVER_ACCUM_APPLY_OPLOG_END();
-
-    // TODO send a make Apply Op log update return the version used to compute oplog
 
     // TODO add delay to the statistics
 

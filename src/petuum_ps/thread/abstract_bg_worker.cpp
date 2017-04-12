@@ -549,7 +549,7 @@ namespace petuum {
 
     for (const auto &table_pair : (*tables_)) {
       int32_t table_id = table_pair.first;
-      ClientTable *table = table_pair.second;
+      //ClientTable *table = table_pair.second;
       BgOpLogPartition *oplog_partition = bg_oplog->Get(table_id);
       // the second argument to function is an indicator to notify is the
       // serialization is dense or sparse

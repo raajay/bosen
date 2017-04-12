@@ -154,23 +154,25 @@ namespace petuum {
   void Server::ApplyOpLogUpdateVersion(const void *oplog,
                                        size_t oplog_size,
                                        int32_t bg_thread_id,
-                                       uint32_t version) {
+                                       uint32_t version,
+                                       int32_t *observed_delay) {
 
     CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
-    // Update the version from a single bg thread that has been applied to the
-    // model.
+    // Update the version from a single bg thread that has been applied to the model.
     bg_version_map_[bg_thread_id] = version;
+    *observed_delay = 0; // initialize delay with 0, if no updates are present delay is  zero
 
-    if (oplog_size == 0)
+    if (oplog_size == 0) {
       return;
-
-    async_version_++; // increment the global version of the model
+    }
 
     SerializedOpLogReader oplog_reader(oplog, tables_);
     bool to_read = oplog_reader.Restart();
 
-    if(!to_read)
+    if(!to_read) {
       return;
+    }
+
 
     int32_t table_id;
     int32_t row_id;
@@ -199,14 +201,19 @@ namespace petuum {
 
       ++accum_oplog_count_;
 
+      // fix the delay as the max seen across all tables and rows
+      (*observed_delay) = std::max(async_version_ - update_model_version, *observed_delay);
+
       // Apply or Create and apply the row op log. This will basically increment
       // the values at the server.
       bool found = server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
+
       if (!found) {
         server_table->CreateRow(row_id);
         server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
       }
 
+      // get the next row id worth of update
       updates = oplog_reader.Next(&table_id,
                                   &row_id,
                                   &update_model_version,
@@ -227,7 +234,9 @@ namespace petuum {
 
     } // end while -- as long as updates are available
 
-  } // end func -- apply oplog update
+    async_version_++; // finally, increment the global version of the model
+
+  } // end function -- apply op log update
 
 
 

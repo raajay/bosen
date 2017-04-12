@@ -46,7 +46,7 @@ namespace petuum {
     void GetFulfilledRowRequests(std::vector<ServerRowRequest> *requests);
 
     void ApplyOpLogUpdateVersion(const void *oplog, size_t oplog_size,
-                                 int32_t bg_thread_id, uint32_t version);
+                                 int32_t bg_thread_id, uint32_t version, int32_t *observed_delay);
 
     // Accessors
     int32_t GetMinClock();
