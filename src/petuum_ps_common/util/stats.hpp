@@ -264,6 +264,16 @@
 #define STATS_SYNCHRONIZE() \
   petuum::Stats::SynchronizeThreadStatistics()
 
+// MLfabric stats
+#define STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_id) \
+  Stats::MLFabricClientPushBegin(server_id, version_id)
+
+#define STATS_MLFABRIC_CLIENT_PUSH_END(server_id, version_id) \
+  Stats::MLFabricClientPushEnd(server_id, version_id)
+
+#define STATS_MLFABRIC_SERVER_RECORD_DELAY(delay) \
+  Stats::MLFabricServerRecordDelay(delay)
+
 #else
 #define STATS_INIT(table_group_config) ((void) 0)
 #define STATS_REGISTER_THREAD(thread_type) ((void) 0)
@@ -373,6 +383,9 @@
   petuum::Stats::DummyPrintStats()
 
 #define STATS_SYNCHRONIZE() ((void) 0)
+#define STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_id) ((void) 0)
+#define STATS_MLFABRIC_CLIENT_PUSH_END(server_id, version_id) ((void) 0)
+#define STATS_MLFABRIC_SERVER_RECORD_DELAY(delay) ((void) 0)
 #endif
 
 namespace petuum {
@@ -569,6 +582,15 @@ struct BgThreadStats {
   size_t num_row_oplog_created;
   size_t num_row_oplog_recycled;
 
+
+  // MLfabric stats storage
+
+  // indexed server_id, version_id
+  boost::unordered_map<int32_t, boost::unordered_map<int32_t, HighResolutionTimer*>> mlfabric_client_push_timers;
+  boost::unordered_map<int32_t, boost::unordered_map<int32_t, double>> mlfabric_client_push_elapsed_time;
+
+  boost::unordered_map<int32_t, boost::unordered_map<int32_t, HighResolutionTimer*>> mlfabric_client_pull_timers;
+
   BgThreadStats():
     accum_clock_end_oplog_serialize_sec(0.0),
     accum_total_oplog_serialize_sec(0.0),
@@ -595,6 +617,13 @@ struct BgThreadStats {
     accum_handle_append_oplog_sec(0),
     num_row_oplog_created(0),
     num_row_oplog_recycled(0) { }
+
+
+
+  ~BgThreadStats() {
+    // delete hr timers, if any
+  }
+
 };
 
 struct ServerThreadStats {
@@ -614,6 +643,8 @@ struct ServerThreadStats {
 
   size_t accum_num_oplog_msg_recv;
   size_t accum_num_push_row_msg_send;
+
+  std::vector<int32_t> observed_delays;
 
   ServerThreadStats():
     accum_apply_oplog_sec(0.0),
@@ -757,6 +788,12 @@ public:
 
   static void PrintStats();
   static void DummyPrintStats();
+
+
+  // MLfabric stats helper
+  static void MLFabricClientPushBegin(int32_t server_id, int32_t version_id);
+  static void MLFabricClientPushEnd(int32_t server_id, int32_t version_id);
+  static void MLFabricServerRecordDelay(int32_t delay);
 
 private:
 

@@ -950,6 +950,30 @@ void Stats::ServerPushRowMsgSendIncOne() {
   ++(server_thread_stats_->accum_num_push_row_msg_send);
 }
 
+  void Stats::MLFabricClientPushBegin(int32_t server_id, int32_t version_id) {
+    BgThreadStats &stats = *bg_thread_stats_;
+    stats.mlfabric_client_push_timers[server_id][version_id] = new HighResolutionTimer();
+    stats.mlfabric_client_push_timers[server_id][version_id]->restart();
+  }
+
+
+  void Stats::MLFabricClientPushEnd(int32_t server_id, int32_t version_id) {
+    BgThreadStats &stats = *bg_thread_stats_;
+    stats.mlfabric_client_push_elapsed_time[server_id][version_id] = stats.mlfabric_client_push_timers[server_id][version_id]->elapsed();
+    // delete the timer to prevent memory leaks
+    delete stats.mlfabric_client_push_timers[server_id][version_id];
+    stats.mlfabric_client_push_timers[server_id].erase(version_id);
+    VLOG(10) << "Client push time: server=" << server_id
+             << ", version=" << version_id
+             << " : " << stats.mlfabric_client_push_timers[server_id][version_id];
+  }
+
+  void Stats::MLFabricServerRecordDelay(int32_t delay) {
+    VLOG(10) << "Observed delay : " << delay;
+  }
+
+
+
 template<typename T>
 void Stats::YamlPrintSequence(YAML::Emitter *yaml_out,
     const std::vector<T> &sequence) {

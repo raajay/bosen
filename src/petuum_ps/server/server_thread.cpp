@@ -264,14 +264,16 @@ namespace petuum {
 
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
-    STATS_SERVER_ACCUM_APPLY_OPLOG_BEGIN();
+
     int32_t observed_delay;
+    STATS_SERVER_ACCUM_APPLY_OPLOG_BEGIN();
     server_obj_.ApplyOpLogUpdateVersion(client_send_oplog_msg.get_data(),
                                         client_send_oplog_msg.get_avai_size(),
                                         sender_id,
                                         version,
                                         &observed_delay);
     STATS_SERVER_ACCUM_APPLY_OPLOG_END();
+    STATS_MLFABRIC_SERVER_RECORD_DELAY(observed_delay);
 
     // TODO add delay to the statistics
 
@@ -280,56 +282,24 @@ namespace petuum {
     bool clock_changed = false;
     if (is_clock) {
       clock_changed = server_obj_.ClockUntil(sender_id, bg_clock);
-
       if (clock_changed) {
-
-        std::vector<ServerRowRequest> requests;
-        server_obj_.GetFulfilledRowRequests(&requests);
-
-        // for backlogged requests, find those that can be answered since clock changed.
-        // subscribe the to specific rows that the request, and forward them?
-        for (auto request_iter = requests.begin();
-             request_iter != requests.end(); request_iter++) {
-
-          int32_t table_id = request_iter->table_id;
-          int32_t row_id = request_iter->row_id;
-          int32_t bg_id = request_iter->bg_id;
-          uint32_t version = server_obj_.GetBgVersion(bg_id);
-          int32_t global_model_version = server_obj_.GetAsyncModelVersion();
-
-          ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
-
-          // this is a dummy function for SSP. Hmm...
-          RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(bg_id));
-
-          int32_t server_clock = server_obj_.GetMinClock();
-          ReplyRowRequest(bg_id,
-                          server_row,
-                          table_id,
-                          row_id,
-                          server_clock,
-                          version,
-                          global_model_version);
-        }
-
+        // update the stats clock
         STATS_SERVER_CLOCK();
-
+        // we remove the piece of code that will look at buffered updates
+        // respond if their clock request is not satisfied. In asynchronous
+        // mode, we DO NOT buffer updates.
       } // end if -- clock changed
-
     } // end if -- is clock
 
-    // always ack op log receipt
+    // always ack op log receipt, saying the version number for a particular
+    // update from a client was applied to the model.
     SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
 
     if (clock_changed) {
       // (raajay): the below does nothing when SSP consistency is desired.
       // Used only for SSPPush, which we discontinued.
       ServerPushRow(clock_changed);
-    } else {
-      // the below is also a null function as implemented now
-      // SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
     }
-
   }
 
 
@@ -343,8 +313,16 @@ namespace petuum {
   }
 
 
-  // null function
-  void ServerThread::SendOpLogAckMsg(int32_t bg_id, uint32_t version) { }
+  /**
+   * Is invoked at the end of handle Oplog msg function.
+   */
+  void ServerThread::SendOpLogAckMsg(int32_t bg_id, uint32_t version) {
+    ServerOpLogAckMsg server_oplog_ack_msg;
+    server_oplog_ack_msg.get_ack_version() = version;
+    size_t msg_size = server_oplog_ack_msg.get_size();
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(bg_id, server_oplog_ack_msg.get_mem(), msg_size);
+    CHECK_EQ(msg_size, sent_size);
+  }
 
 
   void *ServerThread::operator() () {

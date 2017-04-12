@@ -566,6 +566,8 @@ namespace petuum {
 
     for (const auto &server_id : server_ids_) {
 
+      STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_);
+
       // server_oplog_msg_msp will be populated in Create Op Log Msgs
       auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
 
@@ -599,7 +601,8 @@ namespace petuum {
         MemTransfer::TransferMem(comm_bus_, server_id, &clock_oplog_msg);
 
       }
-    }
+
+    } // end for -- over server ids
 
     VLOG(5) << "Total oplog size sent at clock:" << client_clock_ << " equals " << accum_size << " bytes.";
     STATS_BG_ADD_PER_CLOCK_OPLOG_SIZE(accum_size);
@@ -1032,8 +1035,9 @@ namespace petuum {
         {
           // this is sent by the server to acknowledge the receipt of an oplog
           ServerOpLogAckMsg server_oplog_ack_msg(msg_mem);
-          row_request_oplog_mgr_->ServerAcknowledgeVersion(sender_id,
-                                                           server_oplog_ack_msg.get_ack_version());
+          int32_t acked_version = server_oplog_ack_msg.get_ack_version();
+          STATS_MLFABRIC_CLIENT_PUSH_END(sender_id, acked_version);
+          row_request_oplog_mgr_->ServerAcknowledgeVersion(sender_id, acked_version);
         }
         break;
       default:
