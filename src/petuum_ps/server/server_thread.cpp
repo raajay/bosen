@@ -220,7 +220,8 @@ namespace petuum {
                     server_row,
                     table_id,
                     row_id,
-                    server_clock,
+                    // server_clock,
+                    clock, // we for each we return a model view with its own clock information
                     version,
                     global_model_version);
 
@@ -232,7 +233,7 @@ namespace petuum {
                                      ServerRow *server_row,
                                      int32_t table_id,
                                      int32_t row_id,
-                                     int32_t server_clock,
+                                     int32_t client_clock, // earlier we used to return server clock
                                      uint32_t version,
                                      int32_t global_model_version) {
 
@@ -241,14 +242,12 @@ namespace petuum {
     ServerRowRequestReplyMsg server_row_request_reply_msg(row_size);
     server_row_request_reply_msg.get_table_id() = table_id;
     server_row_request_reply_msg.get_row_id() = row_id;
-    server_row_request_reply_msg.get_clock() = server_clock;
+    server_row_request_reply_msg.get_clock() = client_clock;
     server_row_request_reply_msg.get_version() = version;
     server_row_request_reply_msg.get_global_model_version() = global_model_version;
 
     row_size = server_row->Serialize(server_row_request_reply_msg.get_row_data());
-
     server_row_request_reply_msg.get_row_size() = row_size;
-
     MemTransfer::TransferMem(comm_bus_, bg_id, &server_row_request_reply_msg);
   }
 

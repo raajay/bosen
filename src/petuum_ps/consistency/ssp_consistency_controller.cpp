@@ -49,19 +49,11 @@ namespace petuum {
 
     if (client_row != 0) {
       // Found it! Check staleness.
-      VLOG(20) << "Found row_id=" << row_id << " for table=" << this->table_id_ << " in process_storage.";
       int32_t clock = client_row->GetClock();
       if (clock >= stalest_clock) {
         STATS_APP_SAMPLE_SSP_GET_END(table_id_, true);
-        VLOG(20) << "Returning value in process_storage. Thread clock=" << ThreadContext::get_clock()
-                 << " Client Row clock=" << clock;
         return client_row;
       }
-      VLOG(20) << "However, value in process_storage is stale. Thread clock=" << ThreadContext::get_clock()
-               << " Client Row clock=" << clock;
-    } else {
-      VLOG(20) << "NOT FOUND in process_storage row_id=" << row_id << " for table="
-               << this->table_id_;
     }
     VLOG(20) << "Issue RequestRow row_id=" << row_id << " for table=" << this->table_id_;
 

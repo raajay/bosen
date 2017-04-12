@@ -800,8 +800,8 @@ namespace petuum {
                                                                    &app_thread_ids);
 
     if (clock_to_request >= 0) {
-      // send a new request to the server, if there exists a app row request for
-      // which a request to server has not been sent
+      // send a new request to the server, if there exists a app row request
+      // with a higher clock for which a request to server has not been sent
 
       RowRequestMsg row_request_msg;
       row_request_msg.get_table_id() = table_id;
