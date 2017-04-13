@@ -17,7 +17,7 @@ END=$(($START + $7 - 1))
 
 TOTAL_PARTITIONS=$(($4 * $7))
 
-for i in {$START..$END }
+for i in `seq $START $END`
 do
     $prog_path $1 $2 $3 ${TOTAL_PARTITIONS} `readlink -f $5` $i
 done
