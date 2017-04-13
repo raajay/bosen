@@ -273,7 +273,7 @@ namespace petuum {
                                         version,
                                         &observed_delay);
     STATS_SERVER_ACCUM_APPLY_OPLOG_END();
-    STATS_MLFABRIC_SERVER_RECORD_DELAY(observed_delay);
+    //STATS_MLFABRIC_SERVER_RECORD_DELAY(observed_delay);
 
     // TODO add delay to the statistics
 

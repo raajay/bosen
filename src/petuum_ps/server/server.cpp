@@ -237,7 +237,7 @@ namespace petuum {
     VLOG(10) << "Observed delay, sender_id=" << bg_thread_id
              << ", server_id=" << server_id_
              << ", server_version=" << async_version_
-             << ", delay=" << observed_delay;
+             << ", delay=" << *observed_delay;
     async_version_++; // finally, increment the global version of the model
 
   } // end function -- apply op log update
