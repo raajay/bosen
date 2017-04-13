@@ -182,7 +182,6 @@ namespace petuum {
     bool started_new_table;
 
     // read the first few bytes of the message. It will populate the arguments.
-    VLOG(20) << "Just before parsing";
     const void *updates = oplog_reader.Next(&table_id,
                                             &row_id,
                                             &update_model_version,
@@ -204,7 +203,7 @@ namespace petuum {
 
       // fix the delay as the max seen across all tables and rows
       *observed_delay = std::max(async_version_ - update_model_version, *observed_delay);
-      VLOG(20) << "row_id="  << row_id << ", update_model_version=" << update_model_version;
+      // VLOG(20) << "row_id="  << row_id << ", update_model_version=" << update_model_version;
 
       // Apply or Create and apply the row op log. This will basically increment
       // the values at the server.
@@ -215,7 +214,7 @@ namespace petuum {
         server_table->ApplyRowOpLog(row_id, column_ids, updates, num_updates);
       }
 
-      VLOG(20) << "updated row_id="  << row_id;
+      // VLOG(20) << "updated row_id="  << row_id;
 
       // get the next row id worth of update
       updates = oplog_reader.Next(&table_id,
