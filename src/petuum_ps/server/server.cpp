@@ -160,7 +160,7 @@ namespace petuum {
     CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
     // Update the version from a single bg thread that has been applied to the model.
     bg_version_map_[bg_thread_id] = version;
-    *observed_delay = 0; // initialize delay with 0, if no updates are present delay is  zero
+    *observed_delay = -1; // initialize delay with 0, if no updates are present delay is  zero
 
     if (oplog_size == 0) {
       return;
