@@ -102,6 +102,8 @@ namespace petuum {
                             &server_table_oplog_size_map_);
 
     } // end for loop over tables
+
+    VLOG(5) << "Total number of rows modified = " << bg_oplog->num_rows();
     return bg_oplog;
 
   } // end function -- prepare op logs to send

@@ -131,6 +131,7 @@ int main(int argc, char *argv[]) {
     table_config.oplog_capacity = 100;
 
     int32_t total_num_params = 0;
+    int32_t total_num_rows = 0;
 
     //create DNN weight tables
     for(int i = 0; i < para.num_layers - 1; i++) {
@@ -149,6 +150,7 @@ int main(int argc, char *argv[]) {
       VLOG(2) << "Create weight table with " << table_config.process_cache_capacity
               << " rows and " << table_config.table_info.row_capacity << " columns.";
       total_num_params += para.num_units_ineach_layer[i] * para.num_units_ineach_layer[i+1];
+      total_num_rows += para.num_units_ineach_layer[i+1];
     }
 
     //create DNN biases tables
@@ -163,6 +165,7 @@ int main(int argc, char *argv[]) {
       VLOG(2) << "Create bias table with " << table_config.process_cache_capacity
               << " rows and " << table_config.table_info.row_capacity << " columns.";
       total_num_params += para.num_units_ineach_layer[i+1];
+      total_num_rows += 1;
     }
 
     // Finished creating tables
@@ -187,6 +190,7 @@ int main(int argc, char *argv[]) {
     VLOG(0) << "Number of app workers = " << FLAGS_num_worker_threads;
     VLOG(0) << "Staleness value = " << FLAGS_staleness;
     VLOG(0) << "Total number of parameters = " << total_num_params;
+    VLOG(0) << "Total number of rows = " << total_num_rows;
     VLOG(0) << "Clock = " << ((table_group_config.aggressive_clock) ? "Aggressive" : "Conservative");
     VLOG(0) << "Data file = " << data_file;
     VLOG(0) << "Expected size of training data = " << num_train_data;

@@ -26,6 +26,10 @@ namespace petuum {
     void SerializeByServer(std::map<int32_t, void* > *bytes_by_server,
                            bool dense_serialize = false);
 
+    size_t num_rows() {
+      return oplog_map_.size();
+    }
+
   private:
 
     std::unordered_map<int32_t,  AbstractRowOpLog*> oplog_map_;
