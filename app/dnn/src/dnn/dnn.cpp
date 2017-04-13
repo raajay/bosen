@@ -159,7 +159,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
             for (int i = 0; i < dim2; ++i) {
                 update_batch.Update(i, coeff_update * delta_weights[l][rnd_idx][i]);
             }
-            weights[l].BatchInc(rnd_idx, update_batch);
+            weights[l].BatchInc(rnd_idx, update_batch, min_version);
         } // end for -- over dim1
     } // end for -- over layers of a neural network
 
@@ -170,7 +170,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
         for(int j = 0; j < dim; j++) {
           update_batch.Update(j, coeff_update * delta_biases[rnd_idx][j]);
         } // end for -- over neurons in a layer
-        biases[rnd_idx].BatchInc(0, update_batch);
+        biases[rnd_idx].BatchInc(0, update_batch, min_version);
     } // end for -- over number layers of a neural network
 
     VLOG(2) << "Batch Inc tables took " << update_tables_timer.elapsed() << " s";

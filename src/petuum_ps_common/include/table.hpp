@@ -170,7 +170,8 @@ namespace petuum {
       system_table_->BatchInc(row_id,
                               update_batch.GetColIDs().data(),
                               update_batch.GetUpdates(),
-                              update_batch.GetBatchSize());
+                              update_batch.GetBatchSize(),
+                              global_version);
     }
 
     void DenseBatchInc(int32_t row_id,

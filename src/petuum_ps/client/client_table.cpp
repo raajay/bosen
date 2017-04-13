@@ -214,7 +214,8 @@ namespace petuum {
     consistency_controller_->BatchInc(row_id,
                                       column_ids,
                                       updates,
-                                      num_updates);
+                                      num_updates,
+                                      global_version);
     STATS_APP_SAMPLE_BATCH_INC_END(table_id_);
   }
 
