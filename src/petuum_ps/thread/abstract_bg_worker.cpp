@@ -564,8 +564,9 @@ namespace petuum {
   size_t AbstractBgWorker::SendOpLogMsgs(bool clock_advanced) {
     size_t accum_size = 0;
 
-    for (const auto &server_id : server_ids_) {
+    STATS_MLFABRIC_CLIENT_PUSH_BEGIN(0, version_);
 
+    for (const auto &server_id : server_ids_) {
 
       // server_oplog_msg_msp will be populated in Create Op Log Msgs
       auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
@@ -580,9 +581,7 @@ namespace petuum {
         oplog_msg_iter->second->get_bg_clock() = clock_has_pushed_ + 1;
 
         accum_size += oplog_msg_iter->second->get_size();
-        STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_);
         MemTransfer::TransferMem(comm_bus_, server_id, oplog_msg_iter->second);
-        STATS_MLFABRIC_CLIENT_PUSH_END(server_id, version_);
         // delete message after send
         delete oplog_msg_iter->second;
         oplog_msg_iter->second = 0;
@@ -602,14 +601,15 @@ namespace petuum {
         MemTransfer::TransferMem(comm_bus_, server_id, &clock_oplog_msg);
 
       }
-
     } // end for -- over server ids
 
+    STATS_MLFABRIC_CLIENT_PUSH_END(0, version_);
     VLOG(5) << "Total oplog size sent at clock:" << client_clock_ << " equals " << accum_size << " bytes.";
-    STATS_BG_ADD_PER_CLOCK_OPLOG_SIZE(accum_size);
 
+    STATS_BG_ADD_PER_CLOCK_OPLOG_SIZE(accum_size);
     return accum_size;
-  }
+
+  } // end function -- send op log message
 
 
 

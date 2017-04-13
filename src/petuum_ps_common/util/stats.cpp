@@ -963,7 +963,7 @@ void Stats::ServerPushRowMsgSendIncOne() {
     // delete the timer to prevent memory leaks
     delete stats.mlfabric_client_push_timers[server_id][version_id];
     stats.mlfabric_client_push_timers[server_id].erase(version_id);
-    VLOG(10) << "Client push time: server=" << server_id
+    VLOG(5) << "Client push time: server=" << server_id
              << ", version=" << version_id
              << " : " << stats.mlfabric_client_push_elapsed_time[server_id][version_id] << " s.";
   }
