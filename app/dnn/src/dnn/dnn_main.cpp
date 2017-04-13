@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
   petuum::TableGroupConfig table_group_config;
   // Global params
   //  table_group_config.num_total_server_threads = FLAGS_num_clients;  // 1 server thread per client
-  table_group_config.num_comm_channels_per_client = FLAGS_num_clients;
+  table_group_config.num_comm_channels_per_client = 4
   //  table_group_config.num_total_bg_threads = FLAGS_num_clients;  // 1 background thread per client
   table_group_config.num_total_clients = FLAGS_num_clients;
   table_group_config.num_tables = (para.num_layers-1)*2;  // tables storing weights and biases
