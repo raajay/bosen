@@ -1,6 +1,6 @@
 #!/bin/bash
-if [ $# -ne 6 ]; then
-  echo "Usage: $0   <num_train_data> <dim_feature> <num_classes> <num_partitions> <save_dir> <partition_id>"
+if [ $# -ne 7 ]; then
+  echo "Usage: $0   <num_train_data> <dim_feature> <num_classes> <num_partitions> <save_dir> <partition_st> <number_runs>"
   exit
 fi
 progname=gen_data2
@@ -11,4 +11,10 @@ prog_path=$project_root/bin/$progname
 if [ ! -d $5 ]; then
   mkdir $5
 fi
-$prog_path $1 $2 $3 $4 `readlink -f $5` $6
+
+START=$(($6))
+END=$(($6 + $7 - 1))
+for i in {$START..$END }
+do
+    $prog_path $1 $2 $3 $4 `readlink -f $5` $i
+done
