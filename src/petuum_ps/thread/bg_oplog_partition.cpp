@@ -85,8 +85,9 @@ namespace petuum {
       // 3. write oplog data
       size_t serialized_size = (row_oplog_ptr->*SerializeOpLog)(mem);
 
-      // increment offset by the total space taken for a single row
-      offset_by_server[server_id] += sizeof(int32_t) + serialized_size;
+      // increment offset by the total space taken for a single row:
+      // 1. row id, 2. global version, 3. serialized size
+      offset_by_server[server_id] += sizeof(int32_t) + sizeof(int32_t) + serialized_size;
 
       // increment number of rows by 1
       *((int32_t *) server_iter->second) += 1;
