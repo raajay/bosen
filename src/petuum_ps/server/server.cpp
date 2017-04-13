@@ -160,7 +160,7 @@ namespace petuum {
     CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
     // Update the version from a single bg thread that has been applied to the model.
     bg_version_map_[bg_thread_id] = version;
-    *observed_delay = 0; // initialize delay with 0, if no updates are present delay is  zero
+    *observed_delay = -1; // initialize delay with 0, if no updates are present delay is  zero
 
     if (oplog_size == 0) {
       return;
@@ -202,7 +202,7 @@ namespace petuum {
       ++accum_oplog_count_;
 
       // fix the delay as the max seen across all tables and rows
-      (*observed_delay) = std::max(async_version_ - update_model_version, *observed_delay);
+      *observed_delay = std::max(async_version_ - update_model_version, *observed_delay);
 
       // Apply or Create and apply the row op log. This will basically increment
       // the values at the server.
@@ -234,6 +234,10 @@ namespace petuum {
 
     } // end while -- as long as updates are available
 
+    VLOG(10) << "Observed delay, sender_id=" << bg_thread_id
+             << ", server_id=" << server_id_
+             << ", server_version=" << async_version_
+             << ", delay=" << observed_delay;
     async_version_++; // finally, increment the global version of the model
 
   } // end function -- apply op log update
