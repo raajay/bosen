@@ -566,7 +566,6 @@ namespace petuum {
 
     for (const auto &server_id : server_ids_) {
 
-      STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_);
 
       // server_oplog_msg_msp will be populated in Create Op Log Msgs
       auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
@@ -581,7 +580,9 @@ namespace petuum {
         oplog_msg_iter->second->get_bg_clock() = clock_has_pushed_ + 1;
 
         accum_size += oplog_msg_iter->second->get_size();
+        STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_);
         MemTransfer::TransferMem(comm_bus_, server_id, oplog_msg_iter->second);
+        STATS_MLFABRIC_CLIENT_PUSH_END(server_id, version_);
         // delete message after send
         delete oplog_msg_iter->second;
         oplog_msg_iter->second = 0;
@@ -1036,7 +1037,6 @@ namespace petuum {
           // this is sent by the server to acknowledge the receipt of an oplog
           ServerOpLogAckMsg server_oplog_ack_msg(msg_mem);
           int32_t acked_version = server_oplog_ack_msg.get_ack_version();
-          STATS_MLFABRIC_CLIENT_PUSH_END(sender_id, acked_version);
           row_request_oplog_mgr_->ServerAcknowledgeVersion(sender_id, acked_version);
         }
         break;
