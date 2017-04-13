@@ -104,6 +104,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
     petuum::RowAccessor row_acc;
 
     int32_t min_version = INT_MAX;
+    int32_t max_version = INT_MIN;
     //fetch parameters from PS tables to local parameter buffers
     //(local_weights is the local copy of weight tables, local_biases is the local copy of bias tables)
     for(int l = 0; l < num_layers-1; l++) {
@@ -115,6 +116,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
             //      const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
 
             min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
+            max_version = std::max(max_version, row_acc.GetClientRow()->GetGlobalVersion());
             for(int i = 0; i < dim2; i++) {
               local_weights[l][rnd_idx][i] = r[i];
             } // end for -- loop over dim2
@@ -129,6 +131,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
         //    const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
 
         min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
+        max_version = std::max(max_version, row_acc.GetClientRow()->GetGlobalVersion());
         for(int j = 0; j < dim; j++) {
           local_biases[rnd_idx][j] = r[j];
         } // end for -- loop over neurons in a layer
@@ -136,7 +139,8 @@ void dnn::sgd_mini_batch(int * idxes_batch,
 
 
     VLOG(10) << "Reading local weights and biases took " << read_local_weight_timer.elapsed() << " s.";
-    VLOG(10) << "Model version: " << min_version;
+    VLOG(10) << "Min model version: " << min_version;
+    VLOG(10) << "Max model version: " << max_version;
 
     //compute gradient of the mini batch
     petuum::HighResolutionTimer mini_batch_timer;
