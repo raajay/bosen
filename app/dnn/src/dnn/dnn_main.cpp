@@ -130,6 +130,8 @@ int main(int argc, char *argv[]) {
     table_config.table_info.row_type = 0; // Dense rows
     table_config.oplog_capacity = 100;
 
+    int32_t total_num_params = 0;
+
     //create DNN weight tables
     for(int i = 0; i < para.num_layers - 1; i++) {
       table_config.table_info.table_staleness = FLAGS_staleness;
@@ -146,6 +148,7 @@ int main(int argc, char *argv[]) {
       CHECK(petuum::PSTableGroup::CreateTable(i,table_config)) << "Failed to create weight table!" ;
       VLOG(2) << "Create weight table with " << table_config.process_cache_capacity
               << " rows and " << table_config.table_info.row_capacity << " columns.";
+      total_num_params += para.num_units_ineach_layer[i] * para.num_units_ineach_layer[i+1];
     }
 
     //create DNN biases tables
@@ -159,6 +162,7 @@ int main(int argc, char *argv[]) {
       CHECK(petuum::PSTableGroup::CreateTable(i + para.num_layers-1,table_config)) << "Failed to create bias table!";
       VLOG(2) << "Create bias table with " << table_config.process_cache_capacity
               << " rows and " << table_config.table_info.row_capacity << " columns.";
+      total_num_params += para.num_units_ineach_layer[i+1];
     }
 
     // Finished creating tables
@@ -182,6 +186,7 @@ int main(int argc, char *argv[]) {
     VLOG(0) << "My client id = " << FLAGS_client_id;
     VLOG(0) << "Number of app workers = " << FLAGS_num_worker_threads;
     VLOG(0) << "Staleness value = " << FLAGS_staleness;
+    VLOG(0) << "Total number of parameters = " << total_num_paras;
     VLOG(0) << "Clock = " << ((table_group_config.aggressive_clock) ? "Aggressive" : "Conservative");
     VLOG(0) << "Data file = " << data_file;
     VLOG(0) << "Expected size of training data = " << num_train_data;
