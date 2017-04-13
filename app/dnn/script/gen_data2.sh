@@ -1,6 +1,6 @@
 #!/bin/bash
 if [ $# -ne 7 ]; then
-  echo "Usage: $0   <num_train_data> <dim_feature> <num_classes> <num_workers> <save_dir> <partition_st> <number_runs>"
+  echo "Usage: $0   <num_train_data> <dim_feature> <num_classes> <num_workers> <save_dir> <worker_index> <num_runs>"
   exit
 fi
 progname=gen_data2
@@ -12,8 +12,8 @@ if [ ! -d $5 ]; then
   mkdir $5
 fi
 
-START=$(($6))
-END=$(($6 + $7 - 1))
+START=$(($6 * $7))
+END=$(($START + $7 - 1))
 
 TOTAL_PARTITIONS=$(($4 * $7))
 
