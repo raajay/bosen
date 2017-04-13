@@ -965,7 +965,7 @@ void Stats::ServerPushRowMsgSendIncOne() {
     stats.mlfabric_client_push_timers[server_id].erase(version_id);
     VLOG(10) << "Client push time: server=" << server_id
              << ", version=" << version_id
-             << " : " << stats.mlfabric_client_push_timers[server_id][version_id];
+             << " : " << stats.mlfabric_client_push_elapsed_time[server_id][version_id];
   }
 
   void Stats::MLFabricServerRecordDelay(int32_t delay) {
