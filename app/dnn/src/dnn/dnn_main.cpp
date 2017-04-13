@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
       table_config.table_info.table_staleness = FLAGS_staleness;
       table_config.table_info.row_capacity = para.num_units_ineach_layer[i];
       table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
-      table_config.table_info.oplog_dense_serialized = false;
+      table_config.table_info.oplog_dense_serialized = true;
       table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i];
 
 #ifdef PETUUM_SINGLE_NODE
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
       table_config.table_info.table_staleness = FLAGS_staleness;
       table_config.table_info.row_capacity = para.num_units_ineach_layer[i + 1];
       table_config.table_info.row_oplog_type = petuum::RowOpLogType::kDenseRowOpLog;
-      table_config.table_info.oplog_dense_serialized = false;
+      table_config.table_info.oplog_dense_serialized = true;
       table_config.process_cache_capacity = 1;
       table_config.table_info.dense_row_oplog_capacity = para.num_units_ineach_layer[i + 1];
       CHECK(petuum::PSTableGroup::CreateTable(i + para.num_layers-1,table_config)) << "Failed to create bias table!";
