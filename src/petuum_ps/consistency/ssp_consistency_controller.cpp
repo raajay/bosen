@@ -111,8 +111,8 @@ namespace petuum {
                                           int32_t global_version) {
 
     STATS_APP_SAMPLE_BATCH_INC_OPLOG_BEGIN();
-    // (raajay) update the thread cache table, so further thread gets can see this
-    // inc
+
+    // update the thread index saying that row id is updated
     thread_cache_->IndexUpdate(row_id);
 
     // (raajay) create and insert an oplog. The oplog now holds the values that

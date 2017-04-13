@@ -69,10 +69,8 @@ namespace petuum {
   }
 
   void ThreadTable::FlushOpLogIndex(TableOpLogIndex &table_oplog_index) {
-    for (int32_t i = 0; i < GlobalContext::get_num_comm_channels_per_client();
-         ++i) {
-      const std::unordered_set<int32_t> &partition_oplog_index
-        = oplog_index_[i];
+    for (int32_t i = 0; i < GlobalContext::get_num_comm_channels_per_client(); ++i) {
+      const std::unordered_set<int32_t> &partition_oplog_index = oplog_index_[i];
       table_oplog_index.AddIndex(i, partition_oplog_index);
       oplog_index_[i].clear();
     }

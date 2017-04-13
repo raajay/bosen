@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
     // We create the tables.
     petuum::ClientTableConfig table_config; // Common table settings
     table_config.table_info.row_type = 0; // Dense rows
-    table_config.oplog_capacity = 100;
+    table_config.oplog_capacity = 10000; // 10000 rows in  table can be updated
 
     int32_t total_num_params = 0;
     int32_t total_num_rows = 0;
