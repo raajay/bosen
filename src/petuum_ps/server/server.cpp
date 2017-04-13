@@ -157,6 +157,7 @@ namespace petuum {
                                        uint32_t version,
                                        int32_t *observed_delay) {
 
+    VLOG(10) << "In start of apply op log update function";
     CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
     // Update the version from a single bg thread that has been applied to the model.
     bg_version_map_[bg_thread_id] = version;

@@ -402,6 +402,7 @@ namespace petuum {
           // here, we decide what to do with the oplog (update) that the client
           // sends.
           ClientSendOpLogMsg client_send_oplog_msg(msg_mem);
+          VLOG(15) << "Received an oplog msg from thread:" << sender_id;
           HandleOpLogMsg(sender_id, client_send_oplog_msg);
         }
         break;
