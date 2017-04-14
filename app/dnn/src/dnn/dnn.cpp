@@ -105,8 +105,6 @@ void dnn::buffer_in_model(mat* weights,
         for(int j = 0; j < dim1; j++) {
           weights[l].WaitPendingAsyncGet();
         }
-
-        break;
     }
 
     for(int l = 0; l < num_layers-1; l++) {
