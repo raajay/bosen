@@ -93,19 +93,30 @@ void dnn::buffer_in_model(mat* weights,
 
   // will send row requests
     for(int l = 0; l < num_layers-1; l++) {
+
+      // ask
         int dim1 = num_units_ineach_layer[l+1];
         for(int j = 0; j < dim1; j++) {
             int rnd_idx = rand_idxes_weight[l][j];
             weights[l].GetAsync(rnd_idx);
         }
-        break;
+
+        // wait
+        for(int j = 0; j < dim1; j++) {
+          weights[l].WaitPendingAsyncGet();
+        }
     }
 
     for(int l = 0; l < num_layers-1; l++) {
         int rnd_idx = rand_idxes_bias[l];
+        // ask
         biases[rnd_idx].GetAsync(0);
+
+        // wait
+        biases[rnd_idx].WaitPendingAsyncGet();
     }
 
+    /*
     // will wait for as many row requests replies
     for(int l = 0; l < num_layers-1; l++) {
       int dim1 = num_units_ineach_layer[l+1];
@@ -119,6 +130,7 @@ void dnn::buffer_in_model(mat* weights,
       int rnd_idx = rand_idxes_bias[l];
       biases[rnd_idx].WaitPendingAsyncGet();
     }
+    */
 
 }
 
