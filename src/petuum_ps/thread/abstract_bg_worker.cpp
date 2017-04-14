@@ -673,8 +673,7 @@ namespace petuum {
         if (client_row != 0) {
           if (GlobalContext::get_consistency_model() == SSP && client_row->GetClock() >= clock) {
             RowRequestReplyMsg row_request_reply_msg;
-            size_t sent_size = comm_bus_->SendInProc(
-                                                     app_thread_id, row_request_reply_msg.get_mem(),
+            size_t sent_size = comm_bus_->SendInProc(app_thread_id, row_request_reply_msg.get_mem(),
                                                      row_request_reply_msg.get_size());
             CHECK_EQ(sent_size, row_request_reply_msg.get_size());
             return;
