@@ -102,7 +102,7 @@ void dnn::buffer_in_model(mat* weights,
 
     for(int l = 0; l < num_layers-1; l++) {
         int rnd_idx = rand_idxes_bias[l];
-        biases[rnd_idx].GetAsync(rnd_idx);
+        biases[rnd_idx].GetAsync(0);
     }
 
     // will wait for as many row requests replies
