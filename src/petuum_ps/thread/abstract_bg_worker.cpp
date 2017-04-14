@@ -297,7 +297,7 @@ namespace petuum {
         MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
 
         CHECK_EQ(msg_type, kClientStart);
-        VLOG(2) << "[thread:" << my_id_ << "] Received ClientStart from server:" << sender_id;
+        VLOG(2) << "[thread:" << my_id_ << "] Received client start from server:" << sender_id;
       }
     }
   }
