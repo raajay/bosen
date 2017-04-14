@@ -68,6 +68,8 @@ void NameNodeThread::InitNameNode() {
     }else{
       ++num_servers;
     }
+    VLOG(2) << "NameNode received connect request from thread:" << sender_id
+            << "#bgs=" << num_bgs << ", #servers=" << num_servers;
   }
 
   CHECK_EQ(num_bgs, GlobalContext::get_num_total_bg_threads());

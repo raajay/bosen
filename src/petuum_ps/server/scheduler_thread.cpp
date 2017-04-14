@@ -127,6 +127,8 @@ namespace petuum {
       if(is_client) {
         bg_worker_ids_[num_bgs++] = sender_id;
       }
+      VLOG(2) << "Scheduler received connect request from thread:" << sender_id
+              << "#bgs=" << num_bgs;
     }
 
     CHECK_EQ(num_bgs, GlobalContext::get_num_total_bg_threads());
