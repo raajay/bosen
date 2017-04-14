@@ -193,20 +193,23 @@ void dnn::sgd_mini_batch(int * idxes_batch,
 
   // buffer in the new rows asynchronously (wait after all the row requests have
   // been sent, not individually)
+  petuum::HighResolutionTimer buffer_timer;
+  buffer_in_model(weights, biases, rand_idxes_weight, rand_idxes_bias);
+  VLOG(10) << "Buffering weights and biases took " << buffer_timer.elapsed() << " s.";
 
 
   // read the new rows from the process storage
-  petuum::HighResolutionTimer read_local_weight_timer;
   int32_t min_version = INT_MAX;
   int32_t max_version = INT_MIN;
   int32_t avg_version = 0;
 
+  petuum::HighResolutionTimer read_local_weight_timer;
   read_from_storage(local_weights, local_biases,
                   weights, biases,
                   rand_idxes_weight, rand_idxes_bias,
                   &min_version, &avg_version, &max_version);
+  VLOG(10) << "Reading weights and biases from process storage took " << read_local_weight_timer.elapsed() << " s.";
 
-    VLOG(10) << "Reading local weights and biases took " << read_local_weight_timer.elapsed() << " s.";
     VLOG(10) << "Min model version: " << min_version;
     VLOG(10) << "Max model version: " << max_version;
     VLOG(10) << "Average model version: " << avg_version;
