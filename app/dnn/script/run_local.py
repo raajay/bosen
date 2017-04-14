@@ -89,5 +89,5 @@ cmd += "".join([" --%s=%s" % (k,v) for k,v in petuum_params.items()])
 cmd += "".join([" --%s=%s" % (k,v) for k,v in params.items()])
 log_dir = os.environ.get('REMOTE_LOG_DIRECTORY', '/media/raajay/ps/logs')
 cmd += " 1>%s/dnn-stdout-%s.log 2>%s/dnn-stderr-%s.log" % (log_dir, client_id, log_dir, client_id)
-print cmd
+#print cmd
 os.system(cmd)
