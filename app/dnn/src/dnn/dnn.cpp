@@ -194,7 +194,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
   // buffer in the new rows asynchronously (wait after all the row requests have
   // been sent, not individually)
   petuum::HighResolutionTimer buffer_timer;
-  buffer_in_model(weights, biases, rand_idxes_weight, rand_idxes_bias);
+  // buffer_in_model(weights, biases, rand_idxes_weight, rand_idxes_bias);
   VLOG(10) << "Buffering weights and biases took " << buffer_timer.elapsed() << " s.";
 
 
