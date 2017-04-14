@@ -76,9 +76,9 @@ host_ips = [line.split()[1] for line in hostlines]
 petuum_params["num_clients"] = len(host_ips)
 
 
-cmd = "killall -q " + prog_name
+# cmd = "killall -q " + prog_name
 # os.system is synchronous call.
-os.system(cmd)
+# os.system(cmd)
 # print "Done killing"
 
 # cmd = "export CLASSPATH=`hadoop classpath --glob`:$CLASSPATH; "
