@@ -27,13 +27,13 @@ ssh_cmd = (
     )
 
 
-def exec_kill():
+def exec_kill(ip):
   cmd = ssh_cmd + ip + " killall -q " + prog_name
   os.system(cmd)
   return
 
 num_cores = multiprocessing.cpu_count()
-results = Parallel(n jobs=num_cores)(delayed(exec_kill)(ip) for ip in host_ips)
+results = Parallel(n_jobs=num_cores)(delayed(exec_kill)(ip) for ip in host_ips)
 # for ip in host_ips:
 #   cmd = ssh_cmd + ip + " killall -q " + prog_name
 #   os.system(cmd)
