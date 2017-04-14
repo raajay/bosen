@@ -156,8 +156,7 @@ namespace petuum {
 
     template<typename ROW>
     const ROW &Get(int32_t row_id, RowAccessor *row_accessor = 0) {
-      return *(dynamic_cast<ROW*>(
-                                  system_table_->Get(row_id, row_accessor)->GetRowDataPtr()));
+      return *(dynamic_cast<ROW*>(system_table_->Get(row_id, row_accessor)->GetRowDataPtr()));
     }
 
     void Inc(int32_t row_id, int32_t column_id, UPDATE update){

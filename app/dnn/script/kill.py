@@ -13,6 +13,9 @@ prog_name = "DNN"
 with open(host_file, "r") as f:
   hostlines = f.read().splitlines()
 host_ips = [line.split()[1] for line in hostlines]
+# there can be multiple clients on each machine
+# so we remove duplicates by converting to set
+host_ips_set = set(host_ips)
 
 ssh_cmd = (
     "ssh "

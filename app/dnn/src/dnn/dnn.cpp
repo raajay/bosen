@@ -101,10 +101,11 @@ void dnn::sgd_mini_batch(int * idxes_batch,
 
 
     petuum::HighResolutionTimer read_local_weight_timer;
-    petuum::RowAccessor row_acc;
 
     int32_t min_version = INT_MAX;
     int32_t max_version = INT_MIN;
+
+    petuum::RowAccessor row_acc;
     //fetch parameters from PS tables to local parameter buffers
     //(local_weights is the local copy of weight tables, local_biases is the local copy of bias tables)
     for(int l = 0; l < num_layers-1; l++) {
@@ -112,8 +113,6 @@ void dnn::sgd_mini_batch(int * idxes_batch,
         for(int j = 0; j < dim1; j++) {
             int rnd_idx = rand_idxes_weight[l][j];
             const auto& r = weights[l].Get<petuum::DenseRow<float> >(rnd_idx, &row_acc);
-            //      weights[l].Get(rnd_idx, &row_acc);
-            //      const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
 
             min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
             max_version = std::max(max_version, row_acc.GetClientRow()->GetGlobalVersion());
@@ -127,8 +126,6 @@ void dnn::sgd_mini_batch(int * idxes_batch,
         int rnd_idx = rand_idxes_bias[l];
         int dim = num_units_ineach_layer[rnd_idx+1];
         const auto& r = biases[rnd_idx].Get<petuum::DenseRow<float> >(0, &row_acc);
-        //    biases[rnd_idx].Get(0, &row_acc);
-        //    const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
 
         min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
         max_version = std::max(max_version, row_acc.GetClientRow()->GetGlobalVersion());
