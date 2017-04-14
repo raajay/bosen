@@ -61,7 +61,7 @@ for client_id, ip in host_ips.iteritems():
   cmd += "\'" + env_params + "python " + join(app_dir, "script/run_local.py")
   cmd += " %d %s\'" % (client_id, hostfile)
   cmd += " &"
-  print cmd
+  # print cmd
   fp.write(cmd+"\n")
   os.system(cmd)
 
