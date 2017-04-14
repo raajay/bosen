@@ -100,11 +100,15 @@ void dnn::buffer_in_model(mat* weights,
             int rnd_idx = rand_idxes_weight[l][j];
             weights[l].GetAsync(rnd_idx);
         }
+        VLOG(20) << "Sent all requests for weight table="  << l;
 
         // wait
+        int32_t counter = 0;
         for(int j = 0; j < dim1; j++) {
           weights[l].WaitPendingAsyncGet();
+          counter++;
         }
+        VLOG(20) << "Received " << counter <<  " row request replies.";
     }
 
     for(int l = 0; l < num_layers-1; l++) {
