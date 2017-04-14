@@ -98,6 +98,7 @@ void dnn::buffer_in_model(mat* weights,
             int rnd_idx = rand_idxes_weight[l][j];
             weights[l].GetAsync(rnd_idx);
         }
+        break;
     }
 
     for(int l = 0; l < num_layers-1; l++) {
@@ -111,6 +112,7 @@ void dnn::buffer_in_model(mat* weights,
       for(int j = 0; j < dim1; j++) {
         weights[l].WaitPendingAsyncGet();
       }
+      break;
     }
 
     for(int l = 0; l < num_layers-1; l++) {
