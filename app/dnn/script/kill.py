@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import os, sys
+from joblib import Parallel, delayed
+import multiprocessing
 
 if len(sys.argv) != 2:
   print "usage: %s <hostfile>" % sys.argv[0]
@@ -24,7 +26,15 @@ ssh_cmd = (
     "-o LogLevel=quiet "
     )
 
-for ip in host_ips:
+
+def exec_kill():
   cmd = ssh_cmd + ip + " killall -q " + prog_name
   os.system(cmd)
+  return
+
+num_cores = multiprocessing.cpu_count()
+results = Parallel(n jobs=num_cores)(delayed(exec_kill)(ip) for ip in host_ips)
+# for ip in host_ips:
+#   cmd = ssh_cmd + ip + " killall -q " + prog_name
+#   os.system(cmd)
 print "Done killing"

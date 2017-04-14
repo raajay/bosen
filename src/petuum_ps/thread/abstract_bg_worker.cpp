@@ -697,16 +697,18 @@ namespace petuum {
     bool should_be_sent = row_request_oplog_mgr_->AddRowRequest(row_request, table_id, row_id);
 
     if (should_be_sent) {
-      int32_t server_id
-        = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
+      int32_t server_id = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
       VLOG(20) << "Sending a RowRequest from app_thread=" << app_thread_id
-               << " to server=" << server_id << " for table="<<table_id << " with version=" << row_request.version;
+               << " to server=" << server_id
+               << " for table="<<table_id
+               << " with version=" << row_request.version;
 
-      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(server_id,
-                                                             row_request_msg.get_mem(), row_request_msg.get_size());
+      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))
+        (server_id, row_request_msg.get_mem(), row_request_msg.get_size());
+
       CHECK_EQ(sent_size, row_request_msg.get_size());
     }
-  }
+  } // end function -- check and forward row request
 
 
 
