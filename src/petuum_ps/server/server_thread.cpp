@@ -200,6 +200,8 @@ namespace petuum {
     int32_t clock = row_request_msg.get_clock();
     //int32_t server_clock = server_obj_.GetMinClock();
 
+    VLOG(20) <<  "Handling row request for table=" << table_id << " row=" << row_id;
+
     /* -- we do not buffer the requests in asynchronous mode. Always, reply for an request immediately.
     if (server_clock < clock) {
       // not fresh enough, wait
@@ -276,8 +278,6 @@ namespace petuum {
     //STATS_MLFABRIC_SERVER_RECORD_DELAY(observed_delay);
 
     // TODO add delay to the statistics
-
-    // TODO all the below has to go for async sgd
 
     bool clock_changed = false;
     if (is_clock) {
