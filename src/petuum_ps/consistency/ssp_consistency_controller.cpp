@@ -55,7 +55,7 @@ namespace petuum {
         return client_row;
       }
     }
-    VLOG(20) << "Issue RequestRow row_id=" << row_id << " for table=" << this->table_id_;
+    VLOG(20) << "Issue Request Row row_id=" << row_id << " for table=" << this->table_id_;
 
     // Didn't find row_id that's fresh enough in process_storage_.
     // Fetch from server.
@@ -73,7 +73,8 @@ namespace petuum {
       // We'll fix it if it turns out there are too many misses.
       ++num_fetches;
       CHECK_LE(num_fetches, 3); // to prevent infinite loop
-    }while(client_row == 0);
+    } while(client_row == 0);
+    VLOG(20) << "Received row. row_id=" << row_id << " for table=" << this->table_id_;
 
     CHECK_GE(client_row->GetClock(), stalest_clock);
     STATS_APP_SAMPLE_SSP_GET_END(table_id_, false);

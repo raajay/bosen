@@ -126,6 +126,8 @@ namespace petuum {
       request_row_msg.get_clock() = clock;
       request_row_msg.get_forced_request() = false;
 
+      VLOG(20) << "Send row request msg from app thread id to bg thread. row_id=" << row_id
+               << " table_id=" << table_id;
       size_t sent_size = SendMsg(reinterpret_cast<MsgBase*>(&request_row_msg));
       CHECK_EQ(sent_size, request_row_msg.get_size());
     }
@@ -135,7 +137,8 @@ namespace petuum {
       int32_t sender_id;
       comm_bus_->RecvInProc(&sender_id, &zmq_msg);
       VLOG(20) << "Row request (table=" << table_id << ", rowid=" << row_id
-               << " blocked for " << rr_send.elapsed() << " seconds";
+               << ") blocked for " << rr_send.elapsed() << " seconds. "
+               << "sender_id=" << sender_id;
 
       MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
       CHECK_EQ(msg_type, kRowRequestReply);
@@ -397,6 +400,7 @@ namespace petuum {
   long AbstractBgWorker::HandleClockMsg(bool clock_advanced) {
 
     STATS_BG_ACCUM_CLOCK_END_OPLOG_SERIALIZE_BEGIN();
+    petuum::HighResolutionTimer begin_clock;
 
     // preparation, partitions the oplog based on destination. The current
     // bg_thread only deals with row_ids that it is responsible for. After
@@ -416,6 +420,9 @@ namespace petuum {
     // oplog in ssp_row_request_oplog_manager
     // note that the version number is incremented even if the clock has not advanced.
     TrackBgOpLog(bg_oplog);
+
+    VLOG(20) << "Handle clock message (prepare, create, send) took "
+             << begin_clock.elapsed() << " s at clock=" << client_clock_;
     return 0;
     // the clock (client_clock_) is immediately incremented after this function completes
 
@@ -698,10 +705,9 @@ namespace petuum {
 
     if (should_be_sent) {
       int32_t server_id = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
-      VLOG(20) << "Sending a RowRequest from app_thread=" << app_thread_id
-               << " to server=" << server_id
-               << " for table="<<table_id
-               << " with version=" << row_request.version;
+      VLOG(20) << "Sending a row request (received) from app thread=" << app_thread_id
+               << " to server=" << server_id << " for table=" << table_id
+               << " and row_id=" << row_id << " with version=" << row_request.version;
 
       size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))
         (server_id, row_request_msg.get_mem(), row_request_msg.get_size());
@@ -822,6 +828,8 @@ namespace petuum {
       CHECK_EQ(sent_size, row_request_msg.get_size());
     }
 
+    VLOG(20) << "Received a row request from server thread=" << server_id
+             << " for table=" << table_id << " and row_id=" << row_id;
 
     // respond to each satisfied application row request
     std::pair<int32_t, int32_t> request_key(table_id, row_id);
