@@ -79,7 +79,7 @@ petuum_params["num_clients"] = len(host_ips)
 cmd = "killall -q " + prog_name
 # os.system is synchronous call.
 os.system(cmd)
-print "Done killing"
+# print "Done killing"
 
 # cmd = "export CLASSPATH=`hadoop classpath --glob`:$CLASSPATH; "
 cmd = " "
