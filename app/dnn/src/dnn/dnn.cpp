@@ -95,20 +95,23 @@ void dnn::buffer_in_model(mat* weights,
     for(int l = 0; l < num_layers-1; l++) {
 
       // ask
+      int counter = 0;
         int dim1 = num_units_ineach_layer[l+1];
         for(int j = 0; j < dim1; j++) {
             int rnd_idx = rand_idxes_weight[l][j];
             weights[l].GetAsync(rnd_idx);
+            counter++;
         }
-        VLOG(20) << "Sent all requests for weight table="  << l;
+        VLOG(20) << "Sent " << counter << " requests for weight table="  << l;
 
         // wait
-        int32_t counter = 0;
+        counter = 0;
         for(int j = 0; j < dim1; j++) {
           weights[l].WaitPendingAsyncGet();
           counter++;
+          VLOG(20) << "Received " << counter <<  " row request replies for table=" << l;
         }
-        VLOG(20) << "Received " << counter <<  " row request replies.";
+        VLOG(20) << "Received ALL row reply requests for table=" << l;
     }
 
     for(int l = 0; l < num_layers-1; l++) {
