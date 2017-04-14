@@ -37,6 +37,17 @@ namespace petuum {
   }
 
 
+  void SSPConsistencyController::GetAsync(int32_t row_id) {
+    // forced, since we do not want to look up process storage
+    BgWorkers::RequestRowAsync(table_id_, row_id, ThreadContext::get_clock(), true);
+  }
+
+
+  void SSPConsistencyController::WaitPendingAsnycGet() {
+    BgWorkers::GetAsyncRowRequestReply();
+  }
+
+
   ClientRow *SSPConsistencyController::Get(int32_t row_id,
                                            RowAccessor* row_accessor) {
 

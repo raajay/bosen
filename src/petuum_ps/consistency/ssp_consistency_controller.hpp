@@ -29,8 +29,8 @@ namespace petuum {
     // client row to check whether the row is too stale and fetch it from server
     // when it is too stale.
     virtual void GetAsyncForced(int32_t row_id) { }
-    virtual void GetAsync(int32_t row_id) { }
-    virtual void WaitPendingAsnycGet() { }
+    virtual void GetAsync(int32_t row_id);
+    virtual void WaitPendingAsnycGet();
 
     // Check freshness; make request and block if too stale or row_id not found
     // in storage.

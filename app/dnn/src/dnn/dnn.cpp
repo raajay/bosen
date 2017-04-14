@@ -73,6 +73,106 @@ dnn::dnn(dnn_paras para,
 }
 
 
+void dnn::reset_deltas(float*** delta_weights, float** delta_biases) {
+  for(int l = 0; l < num_layers-1; l++){
+    int dim1 = num_units_ineach_layer[l+1], dim2 = num_units_ineach_layer[l];
+    for(int i = 0; i < dim1; i++) {
+      memset(delta_weights[l][i],0,sizeof(float)*dim2);
+    }
+  }
+  for(int l = 0; l < num_layers - 1; l++) {
+    memset(delta_biases[l], 0, sizeof(float)*num_units_ineach_layer[l+1]);
+  }
+}
+
+
+void dnn::buffer_in_model(mat* weights,
+                          mat* biases,
+                          int** rand_idxes_weight,
+                          int* rand_idxes_bias) {
+
+  // will send row requests
+    for(int l = 0; l < num_layers-1; l++) {
+        int dim1 = num_units_ineach_layer[l+1];
+        for(int j = 0; j < dim1; j++) {
+            int rnd_idx = rand_idxes_weight[l][j];
+            weights[l].GetAsync(rnd_idx);
+        }
+    }
+
+    for(int l = 0; l < num_layers-1; l++) {
+        int rnd_idx = rand_idxes_bias[l];
+        biases[rnd_idx].GetAsync(rnd_idx);
+    }
+
+    // will wait for as many row requests replies
+    for(int l = 0; l < num_layers-1; l++) {
+      int dim1 = num_units_ineach_layer[l+1];
+      for(int j = 0; j < dim1; j++) {
+        weights[l].WaitPendingAsyncGet();
+      }
+    }
+
+    for(int l = 0; l < num_layers-1; l++) {
+      int rnd_idx = rand_idxes_bias[l];
+      biases[rnd_idx].WaitPendingAsyncGet();
+    }
+
+}
+
+
+
+void dnn::read_from_storage(float*** local_weights,
+                          float** local_biases,
+                          mat* weights,
+                          mat* biases,
+                          int** rand_idxes_weight,
+                          int* rand_idxes_bias,
+                          int* min_model_version,
+                          int* avg_model_version,
+                          int* max_model_version) {
+
+    petuum::RowAccessor row_acc;
+    //fetch parameters from PS tables to local parameter buffers
+    //(local_weights is the local copy of weight tables, local_biases is the local copy of bias tables)
+
+    int num_params = 0; double version = 0.0;
+
+    for(int l = 0; l < num_layers-1; l++) {
+        int dim1 = num_units_ineach_layer[l+1], dim2 = num_units_ineach_layer[l];
+        for(int j = 0; j < dim1; j++) {
+            int rnd_idx = rand_idxes_weight[l][j];
+            const auto& r = weights[l].Get<petuum::DenseRow<float> >(rnd_idx, &row_acc);
+
+            *min_model_version = std::min(*min_model_version, row_acc.GetClientRow()->GetGlobalVersion());
+            *max_model_version = std::max(*max_model_version, row_acc.GetClientRow()->GetGlobalVersion());
+            version += row_acc.GetClientRow()->GetGlobalVersion();
+            num_params += 1;
+
+            for(int i = 0; i < dim2; i++) {
+              local_weights[l][rnd_idx][i] = r[i];
+            } // end for -- loop over dim2
+        } // end for -- loop over dim1
+    } // end for -- loop over layers of neural network
+
+    for(int l = 0; l < num_layers-1; l++) {
+        int rnd_idx = rand_idxes_bias[l];
+        int dim = num_units_ineach_layer[rnd_idx+1];
+        const auto& r = biases[rnd_idx].Get<petuum::DenseRow<float> >(0, &row_acc);
+
+        *min_model_version = std::min(*min_model_version, row_acc.GetClientRow()->GetGlobalVersion());
+        *max_model_version = std::max(*max_model_version, row_acc.GetClientRow()->GetGlobalVersion());
+        version += row_acc.GetClientRow()->GetGlobalVersion();
+        num_params += 1;
+
+        for(int j = 0; j < dim; j++) {
+          local_biases[rnd_idx][j] = r[j];
+        } // end for -- loop over neurons in a layer
+    } // end for -- loop over layers of a neural network
+
+    *avg_model_version = (int) (version / num_params);
+}
+
 
 void dnn::sgd_mini_batch(int * idxes_batch,
                          mat* weights,
@@ -86,58 +186,31 @@ void dnn::sgd_mini_batch(int * idxes_batch,
                          int ** rand_idxes_weight,
                          int * rand_idxes_bias) {
 
-    //delta_weights accumuluates the gradients of weight matrices, delta_biases accumulates the gradients of bias vectors
-    //set delta_weights and delta_biases buffer to zero
-    for(int l = 0; l < num_layers-1; l++){
-        int dim1 = num_units_ineach_layer[l+1], dim2 = num_units_ineach_layer[l];
-        for(int i = 0; i < dim1; i++) {
-          memset(delta_weights[l][i],0,sizeof(float)*dim2);
-        }
-    }
-    for(int l = 0; l < num_layers - 1; l++) {
-      memset(delta_biases[l], 0, sizeof(float)*num_units_ineach_layer[l+1]);
-    }
-    // until here, we are just re-setting the delta weights to zero
+    //delta_weights accumuluates the gradients of weight matrices, delta_biases
+    //accumulates the gradients of bias vectors set delta_weights and
+    //delta_biases buffer to zero
+  reset_deltas(delta_weights, delta_biases);
+
+  // buffer in the new rows asynchronously (wait after all the row requests have
+  // been sent, not individually)
 
 
-    petuum::HighResolutionTimer read_local_weight_timer;
+  // read the new rows from the process storage
+  petuum::HighResolutionTimer read_local_weight_timer;
+  int32_t min_version = INT_MAX;
+  int32_t max_version = INT_MIN;
+  int32_t avg_version = 0;
 
-    int32_t min_version = INT_MAX;
-    int32_t max_version = INT_MIN;
-
-    petuum::RowAccessor row_acc;
-    //fetch parameters from PS tables to local parameter buffers
-    //(local_weights is the local copy of weight tables, local_biases is the local copy of bias tables)
-    for(int l = 0; l < num_layers-1; l++) {
-        int dim1 = num_units_ineach_layer[l+1], dim2 = num_units_ineach_layer[l];
-        for(int j = 0; j < dim1; j++) {
-            int rnd_idx = rand_idxes_weight[l][j];
-            const auto& r = weights[l].Get<petuum::DenseRow<float> >(rnd_idx, &row_acc);
-
-            min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
-            max_version = std::max(max_version, row_acc.GetClientRow()->GetGlobalVersion());
-            for(int i = 0; i < dim2; i++) {
-              local_weights[l][rnd_idx][i] = r[i];
-            } // end for -- loop over dim2
-        } // end for -- loop over dim1
-    } // end for -- loop over layers of neural network
-
-    for(int l = 0; l < num_layers-1; l++) {
-        int rnd_idx = rand_idxes_bias[l];
-        int dim = num_units_ineach_layer[rnd_idx+1];
-        const auto& r = biases[rnd_idx].Get<petuum::DenseRow<float> >(0, &row_acc);
-
-        min_version = std::min(min_version, row_acc.GetClientRow()->GetGlobalVersion());
-        max_version = std::max(max_version, row_acc.GetClientRow()->GetGlobalVersion());
-        for(int j = 0; j < dim; j++) {
-          local_biases[rnd_idx][j] = r[j];
-        } // end for -- loop over neurons in a layer
-    } // end for -- loop over layers of a neural network
-
+  read_from_storage(local_weights, local_biases,
+                  weights, biases,
+                  rand_idxes_weight, rand_idxes_bias,
+                  &min_version, &avg_version, &max_version);
 
     VLOG(10) << "Reading local weights and biases took " << read_local_weight_timer.elapsed() << " s.";
     VLOG(10) << "Min model version: " << min_version;
     VLOG(10) << "Max model version: " << max_version;
+    VLOG(10) << "Average model version: " << avg_version;
+
 
     //compute gradient of the mini batch
     petuum::HighResolutionTimer mini_batch_timer;

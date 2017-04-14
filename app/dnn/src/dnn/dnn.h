@@ -88,6 +88,12 @@ private :
   void train(mat * weights, mat* biases);
   //save model
   void save_model(mat * weights, mat *biases, const char * mdl_weight_file, const char * mdl_biases_file);
+
+
+void reset_deltas(float*** delta_weights, float** delta_biases);
+void read_from_storage(float*** local_weights, float** local_biases, mat* weights, mat* biases, int** rand_indxes_weight, int* rand_idxes_bias, int* min_model_version, int* avg_model_version, int* max_model_version);
+void buffer_in_model(mat* weights, mat* biases, int** rand_idxes_weight, int* rand_idxes_bias);
+
 public :
   //constructor
   dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, int num_train_data);
