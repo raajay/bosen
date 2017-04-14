@@ -69,3 +69,4 @@ for client_id, ip in host_ips.iteritems():
     print "Waiting for first client to set up"
     time.sleep(2)
 fp.close()
+print "Done launching all the jobs. See cmds.log for all ssh commands used."
