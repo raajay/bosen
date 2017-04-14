@@ -225,8 +225,7 @@ size_t ZMQUtil::ZMQSend(zmq::socket_t *sock, const void *data, size_t len,
 // should not happen unless flag = ZMQ_DONTWAIT
 size_t ZMQUtil::ZMQSend(zmq::socket_t *sock, int32_t zmq_id, const void *data,
   size_t len, int flag){
-  size_t zid_sent_size = ZMQSend(sock, &zmq_id, sizeof(zmq_id),
-    flag | ZMQ_SNDMORE);
+  size_t zid_sent_size = ZMQSend(sock, &zmq_id, sizeof(zmq_id), flag | ZMQ_SNDMORE);
 
   if(zid_sent_size == 0) return 0;
 

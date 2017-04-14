@@ -37,8 +37,8 @@ int32_t NameNodeThread::GetConnection(bool *is_client, int32_t *client_id) {
 
 void NameNodeThread::SendToAllBgThreads(MsgBase *msg){
   for (const auto &bg_id : bg_worker_ids_) {
-    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
-        bg_id, msg->get_mem(), msg->get_size());
+    VLOG(15) << "Send to: " << bg_id;
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(bg_id, msg->get_mem(), msg->get_size());
     CHECK_EQ(sent_size, msg->get_size());
  }
 }
@@ -46,8 +46,7 @@ void NameNodeThread::SendToAllBgThreads(MsgBase *msg){
 void NameNodeThread::SendToAllServers(MsgBase *msg){
   std::vector<int32_t> server_ids = GlobalContext::get_all_server_ids();
   for (const auto &server_id : server_ids) {
-    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
-        server_id, msg->get_mem(), msg->get_size());
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(server_id, msg->get_mem(), msg->get_size());
     CHECK_EQ(sent_size, msg->get_size());
   }
 }
@@ -58,6 +57,7 @@ void NameNodeThread::InitNameNode() {
   int32_t num_expected_conns = (GlobalContext::get_num_total_bg_threads() +
                                 GlobalContext::get_num_total_server_threads());
 
+  VLOG(15) << "Number of expected connections at name node=" << num_expected_conns;
   for (int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
     int32_t client_id;
     bool is_client;
@@ -68,8 +68,8 @@ void NameNodeThread::InitNameNode() {
     }else{
       ++num_servers;
     }
-    VLOG(2) << "NameNode received connect request from thread:" << sender_id
-            << "#bgs=" << num_bgs << ", #servers=" << num_servers;
+    VLOG(15) << "NameNode received connect request from thread:" << sender_id
+            << ", #bgs=" << num_bgs << ", #servers=" << num_servers;
   }
 
   CHECK_EQ(num_bgs, GlobalContext::get_num_total_bg_threads());
@@ -77,9 +77,11 @@ void NameNodeThread::InitNameNode() {
 
   // Note that we send two types of messages to the bg worker threads
   ConnectServerMsg connect_server_msg;
+  VLOG(15) << "Name node - send connect server to all bg threads";
   SendToAllBgThreads(reinterpret_cast<MsgBase*>(&connect_server_msg));
 
   ClientStartMsg client_start_msg;
+  VLOG(15) << "Name node - send client start to all bg threads";
   SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
 }
 
