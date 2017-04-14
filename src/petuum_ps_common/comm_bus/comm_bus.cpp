@@ -83,6 +83,12 @@ void CommBus::SetUpRouterSocket(zmq::socket_t *sock, int32_t id,
     ZMQUtil::ZMQSetSockOpt(sock, ZMQ_RCVBUF, &(num_bytes_recv_buff),
         sizeof(num_bytes_recv_buff));
   }
+
+  int high_water_mark = 0; // infinite (msgs are not dropped)
+
+  ZMQUtil::ZMQSetSockOpt(sock, ZMQ_RCVHWM, &(high_water_mark), sizeof(high_water_mark));
+
+  ZMQUtil::ZMQSetSockOpt(sock, ZMQ_SNDHWM, &(high_water_mark), sizeof(high_water_mark));
 }
 
 void CommBus::ThreadRegister(const Config &config) {
