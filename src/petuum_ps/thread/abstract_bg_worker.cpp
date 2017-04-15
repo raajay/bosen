@@ -577,6 +577,7 @@ namespace petuum {
 
       // server_oplog_msg_msp will be populated in Create Op Log Msgs
       auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
+      STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_);
 
       if (oplog_msg_iter != server_oplog_msg_map_.end()) {
 
@@ -1047,6 +1048,7 @@ namespace petuum {
           ServerOpLogAckMsg server_oplog_ack_msg(msg_mem);
           int32_t acked_version = server_oplog_ack_msg.get_ack_version();
           row_request_oplog_mgr_->ServerAcknowledgeVersion(sender_id, acked_version);
+          STATS_MLFABRIC_CLIENT_PUSH_END(sender_id, acked_version);
         }
         break;
       default:
