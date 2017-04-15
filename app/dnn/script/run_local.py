@@ -47,7 +47,8 @@ params = {
 
 petuum_params = {
     "hostfile": hostfile,
-    "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '32'))
+    "num_worker_threads": int(os.environ.get('BOSEN_NUM_THREADS', '32')),
+    "num_comm_clients": int(os.environ.get('BOSEN_NUM_COMM_CLIENTS', '32'))
     }
 
 

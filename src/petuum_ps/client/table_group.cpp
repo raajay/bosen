@@ -59,7 +59,7 @@ namespace petuum {
                         table_group_config.server_idle_milli,
                         table_group_config.server_row_candidate_factor);
 
-    CommBus *comm_bus = new CommBus(local_id_min, local_id_max, num_total_clients, 4);
+    CommBus *comm_bus = new CommBus(local_id_min, local_id_max, num_total_clients, num_comm_channels_per_client);
     GlobalContext::comm_bus = comm_bus;
 
     *init_thread_id = local_id_min + GlobalContext::kInitThreadIDOffset;

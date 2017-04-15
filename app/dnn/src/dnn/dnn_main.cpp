@@ -49,7 +49,8 @@ DEFINE_string(hostfile, "", "Path to file containing server ip:port.");
 DEFINE_string(parafile,"", "Path to file containing DNN hyperparameters");
 DEFINE_int32(num_clients, 1, "Total number of clients");
 DEFINE_int32(client_id, 0, "This client's ID");
-DEFINE_int32(num_worker_threads,1,"Number of worker threads");
+DEFINE_int32(num_worker_threads, 4, "Number of application worker threads");
+DEFINE_int32(num_comm_clients, 4, "Number of worker threads");
 DEFINE_int32(staleness, 0, "Staleness");
 DEFINE_string(data_ptt_file, "", "Path to file containing the number of data points in each partition");
 DEFINE_int32(snapshot_clock, 0, "How often to take PS snapshots; 0 disables");
@@ -84,7 +85,7 @@ int main(int argc, char *argv[]) {
   petuum::TableGroupConfig table_group_config;
   // Global params
   //  table_group_config.num_total_server_threads = FLAGS_num_clients;  // 1 server thread per client
-  table_group_config.num_comm_channels_per_client = 4;
+  table_group_config.num_comm_channels_per_client = FLAGS_num_comm_clients;
   //  table_group_config.num_total_bg_threads = FLAGS_num_clients;  // 1 background thread per client
   table_group_config.num_total_clients = FLAGS_num_clients;
   table_group_config.num_tables = (para.num_layers-1)*2;  // tables storing weights and biases
