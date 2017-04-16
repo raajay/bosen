@@ -1,7 +1,7 @@
-#include <petuum_ps/thread/aggregation_worker.hpp>
+#include <petuum_ps/server/aggregator_thread.hpp>
 
 namespace petuum {
-  AggregationWorker :: AggregationWorker(int32_t id, int32_t comm_channel_idx,
+  AggregatorThread :: AggregatorThread(int32_t id, int32_t comm_channel_idx,
                                          pthread_barrier_t *init_barrier) :
     my_id_(id),
     my_comm_channel_idx_(comm_channel_idx),
@@ -9,32 +9,32 @@ namespace petuum {
     init_barrier_(init_barrier) {}
 
 
-  size_t AggregationWorker :: SendMsg(MsgBase *msg) {
+  size_t AggregatorThread :: SendMsg(MsgBase *msg) {
     //TODO complete this information
     return 0;
   }
 
-  void AggregationWorker :: RecvMsg(zmq::message_t &zmq_msg) {
+  void AggregatorThread :: RecvMsg(zmq::message_t &zmq_msg) {
     //TODO complete this information
   }
 
-  void AggregationWorker :: ConnectToServer(int32_t server_id) {
+  void AggregatorThread :: ConnectToServer(int32_t server_id) {
     //TODO complete this information
   }
 
-  void AggregationWorker :: ConnectToScheduler() {
+  void AggregatorThread :: ConnectToScheduler() {
     //TODO complete this information
   }
 
-  void AggregationWorker :: ShutDown() {
+  void AggregatorThread :: ShutDown() {
     //TODO complete this information
   }
 
-  void AggregationWorker :: AppThreadRegister() {
+  void AggregatorThread :: AppThreadRegister() {
     //TODO complete this information
   }
 
-  void AggregationWorker :: AppThreadDeregister() {
+  void AggregatorThread :: AppThreadDeregister() {
     //TODO complete this information
   }
 

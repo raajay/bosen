@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <petuum_ps/thread/aggregator_group.hpp>
+#include <petuum_ps/server/aggregator_group.hpp>
 
 namespace petuum {
 
@@ -14,7 +14,7 @@ public:
   static void AppThreadDeregister();
 
 private:
-  static AggregatorGroup *aggregator_group_;
+  static AggregatorThreadGroup *aggregator_group_;
 };
 
 }

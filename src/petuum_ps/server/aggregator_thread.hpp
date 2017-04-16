@@ -8,10 +8,10 @@
 #include <petuum_ps_common/comm_bus/comm_bus.hpp>
 
 namespace petuum {
-class AggregationWorker : public Thread {
+class AggregatorThread : public Thread {
 public:
-  AggregationWorker(int32_t id, int32_t comm_channel_idx, pthread_barrier_t *init_barrier);
-  virtual ~AggregationWorker();
+  AggregatorThread(int32_t id, int32_t comm_channel_idx, pthread_barrier_t *init_barrier);
+  virtual ~AggregatorThread();
 
   void ShutDown();
   void AppThreadRegister();
