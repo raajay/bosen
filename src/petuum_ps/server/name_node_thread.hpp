@@ -45,7 +45,7 @@ private:
     }
 
     bool ReceivedFromAllServers() const {
-      return (num_servers_replied_ == GlobalContext::get_num_total_server_threads());
+      return (num_servers_replied_ == GlobalContext::get_num_total_server_threads() + GlobalContext::get_num_total_aggregator_threads());
     }
 
     bool RepliedToAllClients() const {
@@ -56,6 +56,7 @@ private:
   // communication function
   int32_t GetConnection(bool *is_client, int32_t *client_id);
   void SendToAllServers(MsgBase *msg);
+  void SendToAllAggregators(MsgBase *msg);
   void SendToAllBgThreads(MsgBase *msg);
 
   void SetUpNameNodeContext();

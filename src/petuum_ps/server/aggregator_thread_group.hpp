@@ -8,26 +8,16 @@ namespace petuum {
 
   class AggregatorThreadGroup {
   public:
-    // do we need tables for the constructor
     AggregatorThreadGroup();
-    virtual ~AggregatorThreadGroup();
+    ~AggregatorThreadGroup();
 
     void Start();
     void ShutDown();
-    void AppThreadRegister();
-    void AppThreadDeregister();
-
-
-  protected:
-
-    /* Helper Functions */
-    std::vector<AggregatorThread*> aggregator_vec_;
-    int32_t aggregator_id_st_;
-    pthread_barrier_t init_barrier_;
 
   private:
-    virtual void CreateAggregators();
-
+    std::vector<AggregatorThread*> aggregator_thread_vec_;
+    pthread_barrier_t init_barrier_;
+    int32_t aggregator_id_st_; // TODO do we need this
   };
 
 }

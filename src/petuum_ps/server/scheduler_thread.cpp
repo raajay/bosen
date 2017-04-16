@@ -8,6 +8,7 @@
 namespace petuum {
 
   // constructor - just to initialize the variables
+
   SchedulerThread::SchedulerThread(pthread_barrier_t *init_barrier):
     my_id_(GlobalContext::get_scheduler_id()), // the id of the scheduler is by default 900
     init_barrier_(init_barrier),

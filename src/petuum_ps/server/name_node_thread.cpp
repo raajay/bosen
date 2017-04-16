@@ -28,6 +28,10 @@ int32_t NameNodeThread::GetConnection(bool *is_client, int32_t *client_id) {
     ClientConnectMsg msg(zmq_msg.data());
     *is_client = true;
     *client_id = msg.get_client_id();
+  } else if (msg_type == kAggregatorConnect) {
+    CHECK_EQ(msg_type, kAggregatorConnect);
+    *is_client = false;
+    VLOG(10) << "Receive connection from aggregator: " << msg.get_client_id();
   } else {
     CHECK_EQ(msg_type, kServerConnect);
     *is_client = false;
@@ -51,24 +55,37 @@ void NameNodeThread::SendToAllServers(MsgBase *msg){
   }
 }
 
+  void NameNodeThread::SendToAllAggregators(MsgBase *msg) {
+    std::vector<int32_t> aggregator_ids = GlobalContext::get_all_aggregator_ids();
+    for (const auto &aggregator_id : aggregator_ids) {
+      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(aggregator_id, msg->get_mem(), msg->get_size());
+      CHECK_EQ(sent_size, msg->get_size());
+    }
+  }
+
 void NameNodeThread::InitNameNode() {
   int32_t num_bgs = 0;
   int32_t num_servers = 0;
   int32_t num_expected_conns = (GlobalContext::get_num_total_bg_threads() +
-                                GlobalContext::get_num_total_server_threads());
+                                GlobalContext::get_num_total_server_threads() +
+                                GlobalContext::get_num_total_aggregator_threads());
 
   VLOG(15) << "Number of expected connections at name node=" << num_expected_conns;
+  // name node treats aggregator as a server
+
   for (int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
+
     int32_t client_id;
     bool is_client;
     int32_t sender_id = GetConnection(&is_client, &client_id);
+
     if (is_client) {
       bg_worker_ids_[num_bgs] = sender_id;
       ++num_bgs;
     }else{
       ++num_servers;
     }
-    VLOG(15) << "NameNode received connect request from thread:" << sender_id
+    VLOG(0) << "NameNode received connect request from thread:" << sender_id
             << ", #bgs=" << num_bgs << ", #servers=" << num_servers;
   }
 
@@ -156,17 +173,18 @@ void NameNodeThread::HandleCreateTable (int32_t sender_id,
 
     create_table_map_.insert(std::make_pair(table_id, CreateTableInfo())); // access it to call default constructor
     SendToAllServers(reinterpret_cast<MsgBase*>(&create_table_msg));
+    SendToAllAggregators(reinterpret_cast<MsgBase*>(&create_table_msg));
   }
 
 
-  if (create_table_map_[table_id].ReceivedFromAllServers()) {
+  if (create_table_map_[table_id].ReceivedFromAllServers()) { // includes aggregators
+
     // if the current table is already created, let the bg worker know that.
     CreateTableReplyMsg create_table_reply_msg;
     create_table_reply_msg.get_table_id() = create_table_msg.get_table_id();
-    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(
-        sender_id, create_table_reply_msg.get_mem(),
-        create_table_reply_msg.get_size());
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(sender_id, create_table_reply_msg.get_mem(), create_table_reply_msg.get_size());
     CHECK_EQ(sent_size, create_table_reply_msg.get_size());
+
     ++create_table_map_[table_id].num_clients_replied_;
 
     if (HaveCreatedAllTables()) {
@@ -190,8 +208,8 @@ void NameNodeThread::HandleCreateTableReply(
   ++create_table_map_[table_id].num_servers_replied_;
 
   if (create_table_map_[table_id].ReceivedFromAllServers()) {
-    std::queue<int32_t> &bgs_to_reply
-        = create_table_map_[table_id].bgs_to_reply_;
+
+    std::queue<int32_t> &bgs_to_reply = create_table_map_[table_id].bgs_to_reply_;
     while (!bgs_to_reply.empty()) {
       int32_t bg_id = bgs_to_reply.front();
       bgs_to_reply.pop();

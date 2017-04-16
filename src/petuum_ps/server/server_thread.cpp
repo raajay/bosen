@@ -105,8 +105,12 @@ namespace petuum {
       ClientConnectMsg msg(zmq_msg.data());
       *is_client = true;
       *client_id = msg.get_client_id();
+    } else if (msg_type == kAggregatorConnect) {
+      AggregatorConnectMsg msg(zmq_msg.data());
+      *is_client = false;
+      *client_id = msg.get_client_id();
     } else {
-      CHECK_EQ(msg_type, kServerConnect);
+      LOG(FATAL) << "Server received request from non bgworker/aggregator";
       *is_client = false;
     }
     VLOG(1) << "[Thread:" << my_id_ << " ] Received connection from thread:" << sender_id;
@@ -124,24 +128,46 @@ namespace petuum {
     }
   }
 
+  void ServerThread::SendToAllAggregatorThreads(MsgBase *msg) {
+    for (const auto &aggregator_id : aggregator_ids_) {
+      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_)) (aggregator_id, msg->get_mem(), msg->get_size());
+      CHECK_EQ(sent_size, msg->get_size());
+    }
+  }
 
   void ServerThread::InitServer() {
     ConnectToNameNode();
 
-    int32_t num_bgs;
-    for (num_bgs = 0; num_bgs < GlobalContext::get_num_worker_clients(); ++num_bgs) {
+    // wait for new connections
+    int32_t num_connections;
+    int32_t num_bgs = 0;
+    int32_t num_aggs = 0;
+
+    for (num_connections = 0;
+         num_connections < GlobalContext::get_num_worker_clients() + GlobalContext::get_num_aggregator_clients();
+         ++num_connections) {
+
       int32_t client_id;
       bool is_client;
-      int32_t bg_id = GetConnection(&is_client, &client_id);
-      CHECK(is_client);
-      bg_worker_ids_[num_bgs] = bg_id;
+
+      int32_t sender_id = GetConnection(&is_client, &client_id);
+
+      if(is_client) {
+        bg_worker_ids_[num_bgs] = sender_id;
+        num_bgs++;
+      } else {
+        aggregator_ids_[num_aggs] = sender_id;
+        num_aggs++;
+      }
     }
 
     server_obj_.Init(my_id_, bg_worker_ids_);
     ClientStartMsg client_start_msg;
-    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to "
-            << num_bgs << " bg threads.";
+    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to " << num_bgs << " bg threads.";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
+    VLOG(1) << "[Thread:" << my_id_ << " ] Send aggregator Start to " << num_aggs << " aggregator threads.";
+    SendToAllAggregatorThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
+
   }
 
 

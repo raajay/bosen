@@ -136,6 +136,7 @@ namespace petuum {
     int32_t my_comm_channel_idx_;
     std::map<int32_t, ClientTable* > *tables_;
     std::vector<int32_t> server_ids_;
+    std::vector<int32_t> aggregator_ids_;
 
     uint32_t version_;
     int32_t client_clock_;

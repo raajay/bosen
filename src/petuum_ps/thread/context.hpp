@@ -111,6 +111,10 @@ namespace petuum {
       return get_thread_id_min(client_id) + kServerThreadIDStartOffset + comm_channel_idx;
     }
 
+    static int32_t get_aggregator_thread_id(int32_t client_id, int32_t comm_channel_idx) {
+      return get_thread_id_min(client_id) + kAggregatorThreadIDStartOffset + comm_channel_idx;
+    }
+
     static int32_t thread_id_to_client_id(int32_t thread_id) {
       return thread_id / kMaxNumThreadsPerClient;
     }
@@ -231,18 +235,32 @@ namespace petuum {
           host_info.port = ss.str();
         }
 
-        if(!is_server_client(host_iter->first)) {
-          continue;
+        // to populate server and aggregator ids info
+
+        if(is_server_client(host_iter->first)) {
+          // update server host info
+          for (int i = 0; i < num_comm_channels_per_client_; ++i) {
+            int32_t server_id = get_server_thread_id(host_iter->first, i);
+            server_map_.insert(std::make_pair(server_id, host_info));
+            ++port_num;
+            std::stringstream ss; ss << port_num;
+            host_info.port = ss.str();
+            server_ids_.push_back(server_id);
+          } // end for -- over number of comm channels
         }
-        // update server host info
-        for (int i = 0; i < num_comm_channels_per_client_; ++i) {
-          int32_t server_id = get_server_thread_id(host_iter->first, i);
-          server_map_.insert(std::make_pair(server_id, host_info));
-          ++port_num;
-          std::stringstream ss; ss << port_num;
-          host_info.port = ss.str();
-          server_ids_.push_back(server_id);
-        } // end for -- over number of comm channels
+
+        if(is_aggregator_client(host_iter->first)) {
+          // update aggregator host info
+          for (int i = 0; i < num_comm_channels_per_client_; ++i) {
+            int32_t aggregator_id = get_aggregator_thread_id(host_iter->first, i);
+            aggregator_map_.insert(std::make_pair(aggregator_id, host_info));
+            ++port_num;
+            std::stringstream ss; ss << port_num;
+            host_info.port = ss.str();
+            aggregator_ids_.push_back(aggregator_id);
+          } // end for -- over number of comm channels
+        }
+
 
       } // end for -- over hosts
     } // end function -- Init()
@@ -288,6 +306,14 @@ namespace petuum {
       // }
     }
 
+
+    static void GetAggregatorThreadIDs(int32_t comm_channel_idx, std::vector<int32_t> *aggregator_thread_ids) {
+      (*aggregator_thread_ids).clear();
+      for(auto server_client_id : aggregator_clients_) {
+        (*aggregator_thread_ids).push_back(get_aggregator_thread_id(server_client_id, comm_channel_idx));
+      }
+    }
+
     /**
     // deprecated since we split into workers, aggregators and servers
     static inline int32_t get_num_total_comm_channels() {
@@ -310,6 +336,10 @@ namespace petuum {
 
     static inline int32_t get_num_total_server_threads() {
       return server_ids_.size();
+    }
+
+    static inline int32_t get_num_total_aggregator_threads() {
+      return aggregator_ids_.size();
     }
 
     /*
@@ -347,9 +377,19 @@ namespace petuum {
       return worker_clients_.size();
     }
 
+    static inline int32_t get_num_aggregator_clients() {
+      return aggregator_clients_.size();
+    }
+
     static HostInfo get_server_info(int32_t server_id) {
       std::map<int32_t, HostInfo>::const_iterator iter = server_map_.find(server_id);
       CHECK(iter != server_map_.end()) << "id not found " << server_id;
+      return iter->second;
+    }
+
+    static HostInfo get_aggregator_info(int32_t aggregator_id) {
+      std::map<int32_t, HostInfo>::const_iterator iter = aggregator_map_.find(aggregator_id);
+      CHECK(iter != aggregator_map_.end()) << "id not found " << aggregator_id;
       return iter->second;
     }
 
@@ -363,6 +403,10 @@ namespace petuum {
 
     static const std::vector<int32_t> &get_all_server_ids() {
       return server_ids_;
+    }
+
+    static const std::vector<int32_t> &get_all_aggregator_ids() {
+      return aggregator_ids_;
     }
 
     static const std::vector<int32_t> &get_worker_client_ids() {
@@ -499,6 +543,7 @@ namespace petuum {
     static const int32_t kServerThreadIDStartOffset = 1;
 
     static const int32_t kSchedulerThreadIDOffset = 900;
+    static const int32_t kAggregatorThreadIDStartOffset = 500; // 500 - 900
 
     static const int32_t kNameNodeClientId = 0;
     static const int32_t kSchedulerClientId = 0;
@@ -546,9 +591,11 @@ namespace petuum {
     static int32_t server_row_candidate_factor_;
     static std::map<int32_t, HostInfo> host_map_;
     static std::map<int32_t, HostInfo> server_map_;
+    static std::map<int32_t, HostInfo> aggregator_map_;
     static HostInfo name_node_host_info_;
     static HostInfo scheduler_host_info_;
     static std::vector<int32_t> server_ids_;
+    static std::vector<int32_t> aggregator_ids_;
     static std::vector<int32_t> server_clients_;
     static std::vector<int32_t> worker_clients_;
     static std::vector<int32_t> aggregator_clients_;

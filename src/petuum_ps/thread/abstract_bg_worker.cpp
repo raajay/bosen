@@ -29,6 +29,7 @@ namespace petuum {
     comm_bus_(GlobalContext::comm_bus),
     init_barrier_(init_barrier),
     create_table_barrier_(create_table_barrier) {
+
     GlobalContext::GetServerThreadIDs(my_comm_channel_idx_, &(server_ids_));
     for (const auto &server_id : server_ids_) {
       server_table_oplog_size_map_.insert(
@@ -36,6 +37,9 @@ namespace petuum {
       server_oplog_msg_map_.insert({server_id, 0});
       table_num_bytes_by_server_.insert({server_id, 0});
     }
+
+    GlobalContext::GetAggregatorThreadIDs(my_comm_channel_idx_, &(aggregator_ids_));
+
   }
 
   AbstractBgWorker::~AbstractBgWorker() {
@@ -287,12 +291,20 @@ namespace petuum {
       }
     }
 
-    // get messages from servers for permission to start
+    // connect to aggregators
+    {
+      for(const auto &agg_id : aggregator_ids_) {
+        ConnectToNameNodeOrServer(agg_id);
+      }
+    }
+
+
+    // get messages from servers, namenode, aggregator for permission to start
     {
       int32_t num_started_servers = 0;
       for (num_started_servers = 0;
-           // receive from all servers and name node
-           num_started_servers < GlobalContext::get_num_server_clients() + 1;
+           // receive from all servers and name node and aggregators
+           num_started_servers < GlobalContext::get_num_server_clients() + GlobalContext::get_num_aggregator_clients() + 1;
            ++num_started_servers) {
         zmq::message_t zmq_msg;
         int32_t sender_id;
@@ -303,7 +315,8 @@ namespace petuum {
         VLOG(2) << "[thread:" << my_id_ << "] Received client start from server:" << sender_id;
       }
     }
-  }
+
+  } // end function -- bg server handshake
 
 
   void AbstractBgWorker::HandleCreateTables() {

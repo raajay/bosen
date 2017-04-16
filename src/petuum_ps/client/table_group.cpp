@@ -2,6 +2,7 @@
 #include <petuum_ps/client/table_group.hpp>
 #include <petuum_ps/thread/context.hpp>
 #include <petuum_ps/server/server_threads.hpp>
+#include <petuum_ps/server/aggregator_threads.hpp>
 #include <petuum_ps/server/name_node.hpp>
 #include <petuum_ps/server/scheduler.hpp>
 #include <petuum_ps/thread/bg_workers.hpp>
@@ -85,6 +86,10 @@ namespace petuum {
       BgWorkers::AppThreadRegister();
     }
 
+    if (GlobalContext::am_i_aggregator_client()) {
+      AggregatorThreads::Init();
+    }
+
     if (table_access) {
       vector_clock_.AddClock(*init_thread_id, 0);
     }
@@ -117,6 +122,10 @@ namespace petuum {
 
     if (GlobalContext::am_i_worker_client()) {
       BgWorkers::ShutDown();
+    }
+
+    if (GlobalContext::am_i_aggregator_client()) {
+      AggregatorThreads::ShutDown();
     }
 
     GlobalContext::comm_bus->ThreadDeregister();

@@ -47,6 +47,8 @@ namespace petuum {
     int32_t GetConnection(bool *is_client, int32_t *client_id);
 
     void SendToAllBgThreads(MsgBase *msg);
+    void SendToAllAggregatorThreads(MsgBase *msg);
+
     bool HandleShutDownMsg();
     void HandleCreateTable(int32_t sender_id, CreateTableMsg &create_table_msg);
     void HandleRowRequest(int32_t sender_id, RowRequestMsg &row_request_msg);
@@ -71,6 +73,8 @@ namespace petuum {
 
     int32_t my_id_;
     std::vector<int32_t> bg_worker_ids_;
+    std::vector<int32_t> aggregator_ids_;
+
     Server server_obj_;
     int32_t num_shutdown_bgs_;
     CommBus* const comm_bus_;

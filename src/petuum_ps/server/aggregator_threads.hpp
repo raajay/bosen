@@ -2,19 +2,20 @@
 
 #pragma once
 
-#include <petuum_ps/server/aggregator_group.hpp>
+#include <petuum_ps/server/aggregator_thread_group.hpp>
 
 namespace petuum {
 
-class Aggregators {
+class AggregatorThreads {
 public:
   static void Start();
+  static void Init();
   static void ShutDown();
   static void AppThreadRegister();
   static void AppThreadDeregister();
 
 private:
-  static AggregatorThreadGroup *aggregator_group_;
+  static AggregatorThreadGroup *aggregator_thread_group_;
 };
 
 }

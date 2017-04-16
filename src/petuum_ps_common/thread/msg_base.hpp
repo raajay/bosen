@@ -35,7 +35,8 @@ enum MsgType {
   kBgHandleAppendOpLog = 20,
   kMemTransfer = 50,
   kTransferRequest = 60,
-  kTransferResponse= 61
+  kTransferResponse= 61,
+  kAggregatorConnect=62
 };
 
 // Represent a message over wire that is very easy to serialize.
