@@ -301,10 +301,11 @@ namespace petuum {
 
     int32_t orig_sender = server_send_oplog_msg.get_original_sender_id();
     uint32_t orig_version = server_send_oplog_msg.get_original_version();
+    VLOG(5) << "Received server oplog msg from " << sender_id
+            << " orig_version=" << orig_version << " orig_sender=" << orig_sender;
     //int32_t server_model_version = server_send_oplog_msg.get_global_model_version();
 
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(server_send_oplog_msg.get_size());
-
 
     int32_t observed_delay;
     STATS_SERVER_ACCUM_APPLY_OPLOG_BEGIN();
