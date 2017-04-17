@@ -339,17 +339,18 @@ namespace petuum {
 
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
-    // send a copy to replica
 
-    HighResolutionTimer *timer = new HighResolutionTimer();
-    replica_timers_.push_back(timer);
-    ServerSendOpLogMsg replica_msg(client_send_oplog_msg.get_avai_size());
-    replica_msg.get_original_sender_id() = sender_id;
-    replica_msg.get_original_version() = version;
-    replica_msg.get_global_model_version() = server_obj_.GetAsyncModelVersion();
-    memcpy(replica_msg.get_data(), client_send_oplog_msg.get_data(), client_send_oplog_msg.get_avai_size());
-    MemTransfer::TransferMem(comm_bus_, GlobalContext::get_replica_for_server(my_id_), &replica_msg);
-
+    if(GlobalContext::use_replication()) {
+      // send a copy to replica
+      HighResolutionTimer *timer = new HighResolutionTimer();
+      replica_timers_.push_back(timer);
+      ServerSendOpLogMsg replica_msg(client_send_oplog_msg.get_avai_size());
+      replica_msg.get_original_sender_id() = sender_id;
+      replica_msg.get_original_version() = version;
+      replica_msg.get_global_model_version() = server_obj_.GetAsyncModelVersion();
+      memcpy(replica_msg.get_data(), client_send_oplog_msg.get_data(), client_send_oplog_msg.get_avai_size());
+      MemTransfer::TransferMem(comm_bus_, GlobalContext::get_replica_for_server(my_id_), &replica_msg);
+    }
 
     int32_t observed_delay;
     STATS_SERVER_ACCUM_APPLY_OPLOG_BEGIN();
@@ -375,17 +376,23 @@ namespace petuum {
       } // end if -- clock changed
     } // end if -- is clock
 
+
     // always ack op log receipt, saying the version number for a particular
     // update from a client was applied to the model.
 
-    // ack should be send only when replica also acks
-    // SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
 
-    if (clock_changed) {
-      // (raajay): the below does nothing when SSP consistency is desired.
-      // Used only for SSPPush, which we discontinued.
-      ServerPushRow(clock_changed);
+    if(!GlobalContext::use_replication()) {
+      // if we are using replication then the ack can be sent only after
+      // receiving acks from the replicas
+      SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
     }
+
+
+    // if (clock_changed) {
+    //   // (raajay): the below does nothing when SSP consistency is desired.
+    //   // Used only for SSPPush, which we discontinued.
+    //   ServerPushRow(clock_changed);
+    // }
   }
 
 

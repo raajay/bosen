@@ -242,7 +242,7 @@ namespace petuum {
 
     } // end while -- as long as updates are available
 
-    VLOG(10) << "Observed delay, sender_id=" << bg_thread_id
+    VLOG(2) << "Observed delay, sender_id=" << bg_thread_id
              << ", server_id=" << server_id_
              << ", server_version=" << async_version_
              << ", delay=" << *observed_delay;

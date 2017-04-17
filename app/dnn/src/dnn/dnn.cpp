@@ -216,7 +216,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
   // been sent, not individually)
   petuum::HighResolutionTimer buffer_timer;
   buffer_in_model(weights, biases, rand_idxes_weight, rand_idxes_bias);
-  VLOG(10) << "Buffering weights and biases took " << buffer_timer.elapsed() << " s.";
+  VLOG(2) << "Buffering weights and biases took " << buffer_timer.elapsed() << " s.";
 
 
   // read the new rows from the process storage

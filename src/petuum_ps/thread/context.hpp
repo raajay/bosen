@@ -161,6 +161,10 @@ namespace petuum {
       return get_server_thread_id(server_client, comm_channel_idx);
     }
 
+    static bool use_replication() {
+      return use_replication_;
+    }
+
     // ************** END -- Functions that DO NOT depend on Init()
 
 
@@ -219,6 +223,7 @@ namespace petuum {
 
       // TODO make this a configurable parameter
       is_asynchronous_mode_  = true;
+      use_replication_ = false;
 
       // process host map information
       for (auto host_iter = host_map.begin(); host_iter != host_map.end(); ++host_iter) {
@@ -672,6 +677,7 @@ namespace petuum {
 
     // (Raajay) new private variables
     static bool is_asynchronous_mode_;
+    static bool use_replication_;
 
   }; // class GlobalContext
 
