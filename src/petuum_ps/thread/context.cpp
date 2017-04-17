@@ -21,8 +21,11 @@ int32_t GlobalContext::num_tables_ = 1;
 std::map<int32_t, HostInfo> GlobalContext::host_map_;
 
 std::map<int32_t, HostInfo> GlobalContext::server_map_;
+  std::map<int32_t, HostInfo> GlobalContext::aggregator_map_;
 
 std::vector<int32_t> GlobalContext::server_ids_;
+
+  std::vector<int32_t> GlobalContext::aggregator_ids_;
 
 std::vector<int32_t> GlobalContext::server_clients_;
 

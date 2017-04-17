@@ -71,7 +71,7 @@ namespace petuum {
     virtual long ResetServerIdleMilli();
 
 
-    virtual void SendOpLogAckMsg(int32_t bg_id, uint32_t version);
+    // virtual void SendOpLogAckMsg(int32_t bg_id, uint32_t version);
 
     virtual void *operator() ();
 

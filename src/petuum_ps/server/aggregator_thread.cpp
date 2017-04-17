@@ -256,8 +256,14 @@ namespace petuum {
       }
 
     } // end while -- infinite loop
-
-
   }
 
+
+  long AggregatorThread::ServerIdleWork() {
+    return 0;
+  }
+
+  long AggregatorThread::ResetServerIdleMilli() {
+    return 0;
+  }
 }
