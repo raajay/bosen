@@ -55,13 +55,11 @@ namespace petuum {
 
     if (GlobalContext::get_num_clients() > 1) {
       comm_config.ltype_ = CommBus::kInProc | CommBus::kInterProc;
-      HostInfo host_info = GlobalContext::get_server_info(my_id_);
-      // TODO figure out post info
+      HostInfo host_info = GlobalContext::get_aggregator_info(my_id_);
       comm_config.network_addr_ = "*:" + host_info.port;
     } else {
       comm_config.ltype_ = CommBus::kInProc;
     }
-
     comm_bus_->ThreadRegister(comm_config);
   }
 
