@@ -150,10 +150,16 @@ namespace petuum {
     static int32_t get_replica_for_server(int32_t server_id) {
       int32_t server_client = thread_id_to_client_id(server_id);
       int32_t comm_channel_idx = server_id - get_thread_id_min(server_client) - kServerThreadIDStartOffset;
-      int32_t replica_client = kReplicaClientMinId + (server_client % kServerClientMaxId);
+      int32_t replica_client = kReplicaClientMinId - 1 + (server_client % kMaxClientsOfAType);
       return get_replica_thread_id(replica_client, comm_channel_idx);
     }
 
+    static int32_t get_server_for_replica(int32_t replica_id) {
+      int32_t replica_client = thread_id_to_client_id(replica_id);
+      int32_t comm_channel_idx = replica_id - get_thread_id_min(replica_client) - kReplicaThreadIDStartOffset;
+      int32_t server_client = kServerClientMinId - 1 + (replica_client % kMaxClientsOfAType);
+      return get_server_thread_id(server_client, comm_channel_idx);
+    }
 
     // ************** END -- Functions that DO NOT depend on Init()
 
@@ -581,6 +587,7 @@ namespace petuum {
     // app threads - 201~899
     // scheduler thread - 900
 
+    static const int32_t kMaxClientsOfAType = 100;
     static const int32_t kMaxNumThreadsPerClient = 1000;
     // num of server + name node threads per node <= 100
     static const int32_t kBgThreadIDStartOffset = 101;
