@@ -7,6 +7,7 @@
 #include <petuum_ps/thread/ps_msgs.hpp>
 #include <petuum_ps_common/comm_bus/comm_bus.hpp>
 #include <petuum_ps/thread/context.hpp>
+#include <petuum_ps/server/aggregator.hpp>
 
 namespace petuum {
   class AggregatorThread : public Thread {
@@ -81,6 +82,7 @@ namespace petuum {
     std::vector<int32_t> bg_worker_ids_;
     CommBus* const comm_bus_;
     pthread_barrier_t *init_barrier_;
+    Aggregator aggregator_obj_;
 
   }; // end class -- aggregator thread
 

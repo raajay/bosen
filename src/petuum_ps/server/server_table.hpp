@@ -136,57 +136,26 @@ namespace petuum {
       return true;
     }
 
-
     const AbstractRowOpLog *get_sample_row_oplog() const {
       return sample_row_oplog_;
     }
-
 
     bool oplog_dense_serialized() const {
       return table_info_.oplog_dense_serialized;
     }
 
-
     static void SortCandidateVectorRandom(std::vector<CandidateServerRow> *candidate_row_vector);
-
     static void SortCandidateVectorImportance(std::vector<CandidateServerRow> *candidate_row_vector);
-
-
-    /* (raajay): used only for SSP Push
-       void InitAppendTableToBuffs() {
-       row_iter_ = storage_.begin();
-       tmp_row_buff_ = new uint8_t[tmp_row_buff_size_];
-       }
-    */
-
-    /*
-      bool AppendTableToBuffs(
-      int32_t client_id_st,
-      boost::unordered_map<int32_t, RecordBuff> *buffs,
-      int32_t *failed_client_id, bool resume);
-    */
-
-    /*
-      void GetPartialTableToSend(
-      boost::unordered_map<int32_t, ServerRow*> *rows_to_send,
-      boost::unordered_map<int32_t, size_t> *client_size_map,
-      size_t num_rows_threshold);
-    */
-
-    /*
-      void AppendRowsToBuffsPartial(
-      boost::unordered_map<int32_t, RecordBuff> *buffs,
-      const boost::unordered_map<int32_t, ServerRow*> &rows_to_send);
-    */
-
-    void MakeSnapShotFileName(const std::string &snapshot_dir, int32_t server_id,
+    void MakeSnapShotFileName(const std::string &snapshot_dir,
+                              int32_t server_id,
                               int32_t table_id, int32_t clock,
                               std::string *filename) const;
-
-    void TakeSnapShot(const std::string &snapshot_dir, int32_t server_id,
-                      int32_t table_id, int32_t clock) const;
-
-    void ReadSnapShot(const std::string &resume_dir, int32_t server_id,
+    void TakeSnapShot(const std::string &snapshot_dir,
+                      int32_t server_id,
+                      int32_t table_id,
+                      int32_t clock) const;
+    void ReadSnapShot(const std::string &resume_dir,
+                      int32_t server_id,
                       int32_t table_id, int32_t clock);
 
 

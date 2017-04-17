@@ -16,8 +16,6 @@ namespace petuum {
 
   // Each server thread has its own copy of Server object.
   void Server::Init(int32_t server_id, const std::vector<int32_t> &bg_ids) {
-    VLOG(5) << "Initializing an instance of class Server (" << this << ") on server=" << server_id;
-
     // bg_clock is vector clock. We set it to be zero for all bg threads (one
     // from each worker client)
     for (auto iter = bg_ids.cbegin(); iter != bg_ids.cend(); iter++){

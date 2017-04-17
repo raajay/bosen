@@ -1,4 +1,5 @@
 #include <petuum_ps/server/aggregator_thread.hpp>
+#include <petuum_ps/server/aggregator.hpp>
 #include <petuum_ps_common/thread/mem_transfer.hpp>
 #include <petuum_ps/thread/context.hpp>
 #include <petuum_ps_common/util/stats.hpp>
@@ -166,8 +167,7 @@ namespace petuum {
     VLOG(5) << "Total connections from bgthreads: " << num_bgs++;
     VLOG(5) << "Total connections from servers: " << num_servers++;
 
-    // TODO create an aggregator object similar to server object
-    // aggregator_obj_.Init(my_id_, bg_worker_ids_);
+    aggregator_obj_.Init(my_id_, bg_worker_ids_);
 
     VLOG(5) << "Server Thread - send client start to all bg threads";
     ClientStartMsg client_start_msg;
@@ -208,7 +208,19 @@ namespace petuum {
                                                            create_table_reply_msg.get_mem(),
                                                            create_table_reply_msg.get_size());
     CHECK_EQ(sent_size, create_table_reply_msg.get_size());
-    // TODO create the server obj equivalent
+
+    TableInfo table_info;
+    table_info.table_staleness = create_table_msg.get_staleness();
+    table_info.row_type = create_table_msg.get_row_type();
+    table_info.row_capacity = create_table_msg.get_row_capacity();
+    table_info.oplog_dense_serialized
+      = create_table_msg.get_oplog_dense_serialized();
+    table_info.row_oplog_type
+      = create_table_msg.get_row_oplog_type();
+    table_info.dense_row_oplog_capacity
+      = create_table_msg.get_dense_row_oplog_capacity();
+
+    aggregator_obj_.CreateTable(table_id, table_info);
   }
 
 

@@ -237,8 +237,6 @@ namespace petuum {
       = create_table_msg.get_row_oplog_type();
     table_info.dense_row_oplog_capacity
       = create_table_msg.get_dense_row_oplog_capacity();
-    VLOG(5) << "Calling CreateTable from instantiation of Server("
-            << &server_obj_ << ") for table=" << table_id << " in server_thread=" << my_id_;
     server_obj_.CreateTable(table_id, table_info);
   }
 
