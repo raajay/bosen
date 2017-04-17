@@ -190,7 +190,7 @@ namespace petuum {
     VLOG(5) << "Total connections from aggregators: " << num_aggs;
     VLOG(5) << "Total connections from server: " << num_servers;
 
-    server_obj_.Init(my_id_, bg_worker_ids_);
+    server_obj_.Init(my_id_, bg_worker_ids_, true);
 
     // (raajay) we might need this later
 
