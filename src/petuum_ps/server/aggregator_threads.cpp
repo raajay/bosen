@@ -7,6 +7,7 @@ namespace petuum {
   void AggregatorThreads::Init() {
     aggregator_thread_group_ = new AggregatorThreadGroup();
     aggregator_thread_group_->Start();
+    VLOG(1) << "Initialize aggregator threads.";
   }
 
   void AggregatorThreads::ShutDown() {

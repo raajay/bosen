@@ -14,7 +14,6 @@ namespace petuum {
     int32_t client_id = GlobalContext::get_client_id();
     for (auto &aggregator_thread : aggregator_thread_vec_) {
       int32_t aggregator_thread_id = GlobalContext::get_aggregator_thread_id(client_id, idx);
-
       aggregator_thread = new AggregatorThread(aggregator_thread_id, idx, &init_barrier_);
       ++idx;
     }

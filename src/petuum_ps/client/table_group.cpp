@@ -87,6 +87,7 @@ namespace petuum {
     }
 
     if (GlobalContext::am_i_aggregator_client()) {
+      VLOG(1) << "Calling aggregator threads Init from table group.";
       AggregatorThreads::Init();
     }
 
