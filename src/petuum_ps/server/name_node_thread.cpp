@@ -77,7 +77,8 @@ namespace petuum {
     int32_t num_servers = 0;
     int32_t num_expected_conns = (GlobalContext::get_num_total_bg_threads() +
                                   GlobalContext::get_num_total_server_threads() +
-                                  GlobalContext::get_num_total_aggregator_threads());
+                                  GlobalContext::get_num_total_aggregator_threads() +
+                                  GlobalContext::get_num_total_replica_threads());
 
     // name node treats aggregator as a server
     VLOG(5) << "Number of expected connections at name node=" << num_expected_conns;
