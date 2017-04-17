@@ -22,16 +22,19 @@ std::map<int32_t, HostInfo> GlobalContext::host_map_;
 
 std::map<int32_t, HostInfo> GlobalContext::server_map_;
   std::map<int32_t, HostInfo> GlobalContext::aggregator_map_;
+  std::map<int32_t, HostInfo> GlobalContext::replica_map_;
 
 std::vector<int32_t> GlobalContext::server_ids_;
 
   std::vector<int32_t> GlobalContext::aggregator_ids_;
+  std::vector<int32_t> GlobalContext::replica_ids_;
 
 std::vector<int32_t> GlobalContext::server_clients_;
 
 std::vector<int32_t> GlobalContext::worker_clients_;
 
 std::vector<int32_t> GlobalContext::aggregator_clients_;
+  std::vector<int32_t> GlobalContext::replica_clients_;
 
 HostInfo GlobalContext::name_node_host_info_;
 

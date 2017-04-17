@@ -247,7 +247,6 @@ namespace petuum {
     int32_t scheduler_id = GlobalContext::get_scheduler_id();
     // this sends a ClientConnectMsg to the scheduler
     ConnectToScheduler();
-    VLOG(2) << "[thread:" << my_id_ << "] Send a connect request to the scheduler.";
 
     // wait for the scheduler to get back
     {
@@ -262,7 +261,7 @@ namespace petuum {
       CHECK_EQ(sender_id, scheduler_id);
       CHECK_EQ(msg_type, kConnectServer) << "sender_id = " << sender_id;
     }
-    VLOG(2) << "[thread:" << my_id_ << "] Completed handshake with scheduler";
+    VLOG(5) << "Completed handshake with scheduler";
   }
 
   void AbstractBgWorker::BgServerHandshake() {
@@ -312,7 +311,7 @@ namespace petuum {
         MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
 
         CHECK_EQ(msg_type, kClientStart);
-        VLOG(2) << "[thread:" << my_id_ << "] Received client start from server:" << sender_id;
+        VLOG(5) << "Received client start from server:" << sender_id;
       }
     }
 
@@ -882,13 +881,10 @@ namespace petuum {
     int scheduler_id = GlobalContext::get_scheduler_id();
     if(comm_bus_->IsLocalEntity(scheduler_id)) {
       comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
-      VLOG(2) << "Init LOCAL handshake from bgworker=" << my_id_ << " to scheduler=" << scheduler_id;
     } else {
       HostInfo scheduler_info = GlobalContext::get_scheduler_info();
       std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
       comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
-      VLOG(2) << "Init handshake from bgworker=" << my_id_ << " to scheduler="
-              << scheduler_id << " at " << scheduler_addr;
     }
 
   }
@@ -903,7 +899,6 @@ namespace petuum {
 
     if (comm_bus_->IsLocalEntity(server_id)) {
       comm_bus_->ConnectTo(server_id, msg, msg_size);
-      VLOG(2) << "Init LOCAL handshake from bgworker=" << my_id_ << " to server=" << server_id;
     } else {
       HostInfo server_info;
       if (server_id == GlobalContext::get_name_node_id()) {
@@ -916,11 +911,8 @@ namespace petuum {
           server_info = GlobalContext::get_server_info(server_id);
         }
       }
-
       std::string server_addr = server_info.ip + ":" + server_info.port;
       comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
-      VLOG(2) << "Init handshake from bgworker=" << my_id_ << " to server="
-              << server_id << " at " << server_addr;
     }
   }
 
@@ -943,9 +935,9 @@ namespace petuum {
     int32_t num_deregistered_app_threads = 0;
     int32_t num_shutdown_acked_servers = 0;
 
-    VLOG(0) << "Prepare to connect with app threads";
+    VLOG(5) << "Prepare to connect with app threads";
     RecvAppInitThreadConnection(&num_connected_app_threads);
-    VLOG(0) << "Bg Worker thread:" << my_id_ << " connected with "
+    VLOG(5) << "Bg Worker thread:" << my_id_ << " connected with "
             << num_connected_app_threads << " app threads.";
 
     if(my_comm_channel_idx_ == 0){

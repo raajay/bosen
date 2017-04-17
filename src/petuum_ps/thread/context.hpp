@@ -115,6 +115,10 @@ namespace petuum {
       return get_thread_id_min(client_id) + kAggregatorThreadIDStartOffset + comm_channel_idx;
     }
 
+    static int32_t get_replica_thread_id(int32_t client_id, int32_t comm_channel_idx) {
+      return get_thread_id_min(client_id) + kReplicaThreadIDStartOffset + comm_channel_idx;
+    }
+
     static int32_t thread_id_to_client_id(int32_t thread_id) {
       return thread_id / kMaxNumThreadsPerClient;
     }
@@ -138,6 +142,10 @@ namespace petuum {
      static int32_t is_aggregator_client(int32_t client_id) {
       return client_id >= kAggregatorClientMinId && client_id <= kAggregatorClientMaxId;
      }
+
+    static int32_t is_replica_client(int32_t client_id) {
+      return client_id >= kReplicaClientMinId && client_id <= kReplicaClientMaxId;
+    }
 
 
     // ************** END -- Functions that DO NOT depend on Init()
@@ -288,6 +296,10 @@ namespace petuum {
       return is_aggregator_client(client_id_);
     }
 
+    static bool am_i_replica_client() {
+      return is_replica_client(client_id_);
+    }
+
     static size_t get_server_row_candidate_factor() {
       return server_row_candidate_factor_;
     }
@@ -313,6 +325,14 @@ namespace petuum {
         (*aggregator_thread_ids).push_back(get_aggregator_thread_id(server_client_id, comm_channel_idx));
       }
     }
+
+    static void GetReplicaThreadIDs(int32_t comm_channel_idx, std::vector<int32_t> *replica_thread_ids) {
+      (*replica_thread_ids).clear();
+      for(auto replica_client_id : replica_clients_) {
+        (*replica_thread_ids).push_back(get_replica_thread_id(replica_client_id, comm_channel_idx));
+      }
+    }
+
 
     /**
     // deprecated since we split into workers, aggregators and servers
@@ -340,6 +360,10 @@ namespace petuum {
 
     static inline int32_t get_num_total_aggregator_threads() {
       return aggregator_ids_.size();
+    }
+
+    static inline int32_t get_num_total_replica_threads() {
+      return replica_ids_.size();
     }
 
     /*
@@ -381,6 +405,10 @@ namespace petuum {
       return aggregator_clients_.size();
     }
 
+    static inline int32_t get_num_replica_clients() {
+      return replica_clients_.size();
+    }
+
     static HostInfo get_server_info(int32_t server_id) {
       std::map<int32_t, HostInfo>::const_iterator iter = server_map_.find(server_id);
       CHECK(iter != server_map_.end()) << "id not found " << server_id;
@@ -390,6 +418,12 @@ namespace petuum {
     static HostInfo get_aggregator_info(int32_t aggregator_id) {
       std::map<int32_t, HostInfo>::const_iterator iter = aggregator_map_.find(aggregator_id);
       CHECK(iter != aggregator_map_.end()) << "id not found " << aggregator_id;
+      return iter->second;
+    }
+
+    static HostInfo get_replica_info(int32_t replica_id) {
+      std::map<int32_t, HostInfo>::const_iterator iter = replica_map_.find(replica_id);
+      CHECK(iter != replica_map_.end()) << "id not found " << replica_id;
       return iter->second;
     }
 
@@ -407,6 +441,10 @@ namespace petuum {
 
     static const std::vector<int32_t> &get_all_aggregator_ids() {
       return aggregator_ids_;
+    }
+
+    static const std::vector<int32_t> &get_all_replica_ids() {
+      return replica_ids_;
     }
 
     static const std::vector<int32_t> &get_worker_client_ids() {
@@ -543,7 +581,8 @@ namespace petuum {
     static const int32_t kServerThreadIDStartOffset = 1;
 
     static const int32_t kSchedulerThreadIDOffset = 900;
-    static const int32_t kAggregatorThreadIDStartOffset = 500; // 500 - 900
+    static const int32_t kAggregatorThreadIDStartOffset = 500; // 500 - 600
+    static const int32_t kReplicaThreadIDStartOffset = 500; // 500 - 600
 
     static const int32_t kNameNodeClientId = 0;
     static const int32_t kSchedulerClientId = 0;
@@ -553,6 +592,8 @@ namespace petuum {
     static const int32_t kWorkerClientMaxId = 200;
     static const int32_t kAggregatorClientMinId = 201;
     static const int32_t kAggregatorClientMaxId = 300;
+    static const int32_t kReplicaClientMinId = 301;
+    static const int32_t kReplicaClientMaxId = 400;
 
 
   private:
@@ -592,13 +633,16 @@ namespace petuum {
     static std::map<int32_t, HostInfo> host_map_;
     static std::map<int32_t, HostInfo> server_map_;
     static std::map<int32_t, HostInfo> aggregator_map_;
+    static std::map<int32_t, HostInfo> replica_map_;
     static HostInfo name_node_host_info_;
     static HostInfo scheduler_host_info_;
     static std::vector<int32_t> server_ids_;
     static std::vector<int32_t> aggregator_ids_;
+    static std::vector<int32_t> replica_ids_;
     static std::vector<int32_t> server_clients_;
     static std::vector<int32_t> worker_clients_;
     static std::vector<int32_t> aggregator_clients_;
+    static std::vector<int32_t> replica_clients_;
 
     // (Raajay) new private variables
     static bool is_asynchronous_mode_;
