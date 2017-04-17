@@ -151,7 +151,7 @@ namespace petuum {
       int32_t server_client = thread_id_to_client_id(server_id);
       int32_t comm_channel_idx = server_id - get_thread_id_min(server_client) - kServerThreadIDStartOffset;
       int32_t replica_client = kReplicaClientMinId + (server_client % kServerClientMaxId);
-      return get_replica_thread_id(replica_cient, comm_channel_idx);
+      return get_replica_thread_id(replica_client, comm_channel_idx);
     }
 
 
