@@ -304,6 +304,7 @@ namespace petuum {
 
     VLOG(5) << "Received server oplog msg from " << sender_id
             << " orig_version=" << orig_version << " orig_sender=" << orig_sender;
+
     //int32_t server_model_version = server_send_oplog_msg.get_global_model_version();
 
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(server_send_oplog_msg.get_size());

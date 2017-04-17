@@ -356,7 +356,7 @@ namespace petuum {
                                         version,
                                         &observed_delay);
     STATS_SERVER_ACCUM_APPLY_OPLOG_END();
-    STATS_MLFABRIC_SERVER_RECORD_DELAY(observed_delay);
+    // STATS_MLFABRIC_SERVER_RECORD_DELAY(observed_delay);
 
     // TODO add delay to the statistics
 
@@ -485,7 +485,6 @@ namespace petuum {
           // here, we decide what to do with the oplog (update) that the client
           // sends.
           ClientSendOpLogMsg client_send_oplog_msg(msg_mem);
-          //VLOG(15) << "Received an oplog msg from thread:" << sender_id;
           HandleOpLogMsg(sender_id, client_send_oplog_msg);
         }
         break;
@@ -499,6 +498,7 @@ namespace petuum {
           size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(replica_ack_msg.get_original_sender(),
                                                                  server_oplog_ack_msg.get_mem(), msg_size);
           CHECK_EQ(msg_size, sent_size);
+          VLOG(5) << "Received replica ack message. Responding with server op log ack.";
         }
         break;
       default:
