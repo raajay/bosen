@@ -340,6 +340,8 @@ namespace petuum {
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
     // send a copy to replica
+
+    replica_timer_.restart();
     ServerSendOpLogMsg replica_msg(client_send_oplog_msg.get_avai_size());
     replica_msg.get_original_sender_id() = sender_id;
     replica_msg.get_original_version() = version;
@@ -498,7 +500,7 @@ namespace petuum {
           size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(replica_ack_msg.get_original_sender(),
                                                                  server_oplog_ack_msg.get_mem(), msg_size);
           CHECK_EQ(msg_size, sent_size);
-          VLOG(5) << "Received replica ack message. Responding with server op log ack.";
+          VLOG(5) << "Received replica ack message. Replica Latency= " << replica_timer_.elapsed();
         }
         break;
       default:

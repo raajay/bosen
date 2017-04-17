@@ -8,6 +8,7 @@
 #include <petuum_ps/server/server.hpp>
 #include <petuum_ps_common/util/thread.hpp>
 #include <petuum_ps/thread/context.hpp>
+#include <petuum_ps_common/util/high_resolution_timer.hpp>
 
 namespace petuum {
   class ServerThread : public Thread {
@@ -84,6 +85,7 @@ namespace petuum {
     CommBus* const comm_bus_;
 
     pthread_barrier_t *init_barrier_;
+    HighResolutionTimer replica_timer_;
   };
 
 }
