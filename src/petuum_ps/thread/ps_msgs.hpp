@@ -680,12 +680,18 @@ namespace petuum {
       NumberedMsg(msg) { }
 
     size_t get_size() {
-      return NumberedMsg::get_size() + sizeof(uint32_t);
+      return NumberedMsg::get_size() + sizeof(uint32_t) + sizeof(int32_t);
     }
 
     uint32_t &get_ack_version() {
-      return *(reinterpret_cast<uint32_t*>(
-                                           mem_.get_mem() + NumberedMsg::get_size()));
+      return *(reinterpret_cast<uint32_t*>(mem_.get_mem()
+                                           + NumberedMsg::get_size()));
+    }
+
+    int32_t &get_original_sender() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(uint32_t)));
     }
 
   protected:
@@ -946,6 +952,67 @@ namespace petuum {
     }
 
   }; // end class - Client send operation log message
+
+
+  struct ServerSendOpLogMsg : public ArbitrarySizedMsg {
+
+  public:
+
+    explicit ServerSendOpLogMsg(int32_t avai_size) {
+      own_mem_ = true;
+      mem_.Alloc(get_header_size() + avai_size);
+      InitMsg(avai_size);
+    }
+
+    explicit ServerSendOpLogMsg(void *msg):
+      ArbitrarySizedMsg(msg) {}
+
+    size_t get_header_size() {
+      return ArbitrarySizedMsg::get_header_size()
+        + sizeof(int32_t) // a 32 bit int to get the original sender
+        + sizeof(uint32_t) // a 32 bit unsigned int to denote the local version
+        + sizeof(int32_t) // a 32 bit int to store the global model version number on which gradient is calculated
+        ;
+    }
+
+    int32_t &get_original_sender_id() {
+      // 1st value
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + ArbitrarySizedMsg::get_header_size()));
+    }
+
+    uint32_t &get_original_version() {
+      // 2nd value after Arbitrary sized message header
+      return *(reinterpret_cast<uint32_t*>(mem_.get_mem()
+                                           + ArbitrarySizedMsg::get_header_size()
+                                           + sizeof(int32_t)));
+    }
+
+    int32_t &get_global_model_version() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + ArbitrarySizedMsg::get_header_size()
+                                          + sizeof(int32_t)
+                                          + sizeof(uint32_t)));
+    }
+
+    // data is to be accessed via SerializedOpLogAccessor
+    void *get_data() {
+      return mem_.get_mem() + get_header_size();
+    }
+
+    size_t get_size() {
+      return get_header_size() + get_avai_size();
+    }
+
+  protected:
+
+    virtual void InitMsg(int32_t avai_size) {
+      ArbitrarySizedMsg::InitMsg(avai_size);
+      get_msg_type() = kServerSendOpLog;
+    }
+
+  }; // end class - Server send operation log message to replica
+
 
 
 

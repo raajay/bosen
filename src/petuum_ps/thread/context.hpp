@@ -282,6 +282,18 @@ namespace petuum {
           } // end for -- over number of comm channels
         }
 
+        if(is_replica_client(host_iter->first)) {
+          // update replica host info
+          for (int i = 0; i < num_comm_channels_per_client_; ++i) {
+            int32_t replica_id = get_replica_thread_id(host_iter->first, i);
+            replica_map_.insert(std::make_pair(replica_id, host_info));
+            ++port_num;
+            std::stringstream ss; ss << port_num;
+            host_info.port = ss.str();
+            replica_ids_.push_back(replica_id);
+          } // end for -- over number of comm channels
+        }
+
 
       } // end for -- over hosts
     } // end function -- Init()

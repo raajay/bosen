@@ -4,6 +4,7 @@
 #include <petuum_ps/thread/ps_msgs.hpp>
 #include <petuum_ps_common/util/stats.hpp>
 #include <petuum_ps_common/thread/mem_transfer.hpp>
+#include <cstring>
 
 namespace petuum {
 
@@ -111,6 +112,24 @@ namespace petuum {
   }
 
 
+  void ServerThread::ConnectToReplica() {
+    int32_t replica_id = GlobalContext::get_replica_for_server(my_id_);
+
+    ServerConnectMsg server_connect_msg;
+    void *msg = server_connect_msg.get_mem();
+    int32_t msg_size = server_connect_msg.get_size();
+
+    if (comm_bus_->IsLocalEntity(replica_id)) {
+      comm_bus_->ConnectTo(replica_id, msg, msg_size);
+    } else {
+      HostInfo replica_info = GlobalContext::get_replica_info(replica_id);
+      std::string replica_addr = replica_info.ip + ":" + replica_info.port;
+      comm_bus_->ConnectTo(replica_id, replica_addr, msg, msg_size);
+    }
+    VLOG(5) << "Sent connection to replica node";
+  }
+
+
   int32_t ServerThread::GetConnection(bool *is_client, int32_t *client_id) {
     int32_t sender_id;
     zmq::message_t zmq_msg;
@@ -156,6 +175,7 @@ namespace petuum {
     // neither the name node nor scheduler respond.
     ConnectToNameNode();
     ConnectToScheduler();
+    ConnectToReplica();
 
     // wait for new connections
     int32_t num_connections;
@@ -316,6 +336,14 @@ namespace petuum {
 
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
+    // send a copy to replica
+    ServerSendOpLogMsg replica_msg(client_send_oplog_msg.get_avai_size());
+    replica_msg.get_original_sender_id() = sender_id;
+    replica_msg.get_original_version() = version;
+    replica_msg.get_global_model_version() = server_obj_.GetAsyncModelVersion();
+    memcpy(replica_msg.get_data(), client_send_oplog_msg.get_data(), client_send_oplog_msg.get_avai_size());
+    MemTransfer::TransferMem(comm_bus_, GlobalContext::get_replica_for_server(my_id_), &replica_msg);
+
 
     int32_t observed_delay;
     STATS_SERVER_ACCUM_APPLY_OPLOG_BEGIN();
@@ -337,13 +365,15 @@ namespace petuum {
         STATS_SERVER_CLOCK();
         // we remove the piece of code that will look at buffered updates
         // respond if their clock request is not satisfied. In asynchronous
-        // mode, we DO NOT buffer updates.
+        // mode, we DO NOT buffer row requests.
       } // end if -- clock changed
     } // end if -- is clock
 
     // always ack op log receipt, saying the version number for a particular
     // update from a client was applied to the model.
-    SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
+
+    // ack should be send only when replica also acks
+    // SendOpLogAckMsg(sender_id, server_obj_.GetBgVersion(sender_id));
 
     if (clock_changed) {
       // (raajay): the below does nothing when SSP consistency is desired.
@@ -454,6 +484,18 @@ namespace petuum {
           ClientSendOpLogMsg client_send_oplog_msg(msg_mem);
           //VLOG(15) << "Received an oplog msg from thread:" << sender_id;
           HandleOpLogMsg(sender_id, client_send_oplog_msg);
+        }
+        break;
+      case kReplicaOpLogAck:
+        {
+          ReplicaOpLogAckMsg replica_ack_msg(msg_mem);
+          ServerOpLogAckMsg server_oplog_ack_msg;
+          server_oplog_ack_msg.get_ack_version() = replica_ack_msg.get_ack_version();
+
+          size_t msg_size = server_oplog_ack_msg.get_size();
+          size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(replica_ack_msg.get_original_sender(),
+                                                                 server_oplog_ack_msg.get_mem(), msg_size);
+          CHECK_EQ(msg_size, sent_size);
         }
         break;
       default:

@@ -2,6 +2,7 @@
 #include <petuum_ps/client/table_group.hpp>
 #include <petuum_ps/thread/context.hpp>
 #include <petuum_ps/server/server_threads.hpp>
+#include <petuum_ps/server/replica_threads.hpp>
 #include <petuum_ps/server/aggregator_threads.hpp>
 #include <petuum_ps/server/name_node.hpp>
 #include <petuum_ps/server/scheduler.hpp>
@@ -87,8 +88,11 @@ namespace petuum {
     }
 
     if (GlobalContext::am_i_aggregator_client()) {
-      VLOG(1) << "Calling aggregator threads Init from table group.";
       AggregatorThreads::Init();
+    }
+
+    if (GlobalContext::am_i_replica_client()) {
+      ReplicaThreads::Init();
     }
 
     if (table_access) {
@@ -127,6 +131,10 @@ namespace petuum {
 
     if (GlobalContext::am_i_aggregator_client()) {
       AggregatorThreads::ShutDown();
+    }
+
+    if (GlobalContext::am_i_replica_client()) {
+      ReplicaThreads::ShutDown();
     }
 
     GlobalContext::comm_bus->ThreadDeregister();
