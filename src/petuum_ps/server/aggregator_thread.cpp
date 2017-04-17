@@ -128,6 +128,7 @@ namespace petuum {
       *is_client = false;
 
     }
+
     VLOG(1) << "[Aggregator Thread:" << my_id_ << " ] Received connection from thread:" << sender_id;
     return sender_id;
 
@@ -163,6 +164,7 @@ namespace petuum {
     for (num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;
       bool is_client;
+      VLOG(1) << "Waiting for " << num_connections + 1 << " connection.";
 
       int32_t sender_id = GetConnection(&is_client, &client_id);
 
