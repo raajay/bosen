@@ -2,6 +2,7 @@
 #pragma once
 
 #include <vector>
+#include <deque>
 #include <stdint.h>
 #include <pthread.h>
 
@@ -85,7 +86,7 @@ namespace petuum {
     CommBus* const comm_bus_;
 
     pthread_barrier_t *init_barrier_;
-    HighResolutionTimer replica_timer_;
+    std::deque<HighResolutionTimer*> replica_timers_;
   };
 
 }
