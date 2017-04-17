@@ -93,7 +93,6 @@ namespace petuum {
   }
 
 
-
   /*
    * InitScheduler completes the handshake with all the background worker threads.
    */
@@ -108,31 +107,24 @@ namespace petuum {
     int32_t num_servers = 0;
 
     VLOG(10) << "Number of expected connections at scheduler=" << num_expected_conns;
-
-    for(int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
-
+    int32_t num_connections;
+    for(num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;
       bool is_client;
       int32_t sender_id = GetConnection(&is_client, &client_id);
-
       if(is_client) {
-
         bg_worker_ids_[num_bgs++] = sender_id;
-
       } else {
-
         num_servers++;
-
       }
-
     }
 
     CHECK_EQ(num_bgs, GlobalContext::get_num_total_bg_threads());
-    VLOG(2) << "Received connect request from " << num_bgs << " bg worker threads.";
+    VLOG(5) << "Total connections received:" << num_connections;
 
+    VLOG(5) << "Name node - send connect server to all bg threads";
     ConnectServerMsg connect_server_msg;
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&connect_server_msg));
-
   }
 
 

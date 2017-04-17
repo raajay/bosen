@@ -79,7 +79,7 @@ namespace petuum {
       std::string name_node_addr = name_node_info.ip + ":" + name_node_info.port;
       comm_bus_->ConnectTo(name_node_id, name_node_addr, msg, msg_size);
     }
-    VLOG(1) << "Aggregator: " << my_id_ <<  " successfully connected to name node.";
+    VLOG(5) << "Send connection to Name Node";
   }
 
 
@@ -92,13 +92,12 @@ namespace petuum {
 
     if(comm_bus_->IsLocalEntity(scheduler_id)) {
       comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
-      VLOG(2) << "Init LOCAL handshake from aggregator thread=" << my_id_ << " to scheduler=" << scheduler_id;
     } else {
       HostInfo scheduler_info = GlobalContext::get_scheduler_info();
       std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
       comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
-      VLOG(2) << "Init handshake from aggregator thread=" << my_id_ << " to scheduler=" << scheduler_id << " at " << scheduler_addr;
     }
+    VLOG(5) << "Sent connection to Scheduler node";
   }
 
 
@@ -112,26 +111,19 @@ namespace petuum {
 
     if (msg_type == kClientConnect) {
       ClientConnectMsg msg(zmq_msg.data());
-
       *is_client = true;
       *client_id = msg.get_client_id();
-
+      VLOG(5) << "Receive connection from worker: " << msg.get_client_id();
     } else if (msg_type == kClientStart) {
-
       ClientStartMsg msg(zmq_msg.data());
       *is_client = false;
       *client_id = 0;
-
+      VLOG(5) << "Receive reply from server. ";
     } else {
-
       LOG(FATAL) << "Server received request from non bgworker/server";
       *is_client = false;
-
     }
-
-    VLOG(1) << "[Aggregator Thread:" << my_id_ << " ] Received connection from thread:" << sender_id;
     return sender_id;
-
   } // end function -- get connection
 
 
@@ -146,7 +138,6 @@ namespace petuum {
 
     ConnectToNameNode();
     ConnectToScheduler();
-    // these two will not reply
 
     // connect to all servers (server will respond with Client Start msg)
     // so get connection later should be cognizant of it
@@ -164,25 +155,25 @@ namespace petuum {
     for (num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;
       bool is_client;
-      VLOG(1) << "Waiting for " << num_connections + 1 << " connection.";
-
       int32_t sender_id = GetConnection(&is_client, &client_id);
-
       if(is_client) {
         bg_worker_ids_[num_bgs++] = sender_id;
       } else {
         num_servers++;
       }
-
     } // end for -- over expected connections
+
+    VLOG(5) << "Total connections from bgthreads: " << num_bgs++;
+    VLOG(5) << "Total connections from servers: " << num_servers++;
 
     // TODO create an aggregator object similar to server object
     // aggregator_obj_.Init(my_id_, bg_worker_ids_);
 
+    VLOG(5) << "Server Thread - send client start to all bg threads";
     ClientStartMsg client_start_msg;
-    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to " << num_bgs << " bg threads.";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
   }
+
 
 
   void AggregatorThread :: ConnectToServer(int32_t server_id) {
@@ -193,14 +184,11 @@ namespace petuum {
 
     if (comm_bus_->IsLocalEntity(server_id)) {
       comm_bus_->ConnectTo(server_id, msg, msg_size);
-      VLOG(2) << "Init LOCAL handshake from aggregator=" << my_id_ << " to server=" << server_id;
     } else {
       HostInfo server_info;
       server_info = GlobalContext::get_server_info(server_id);
       std::string server_addr = server_info.ip + ":" + server_info.port;
       comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
-      VLOG(2) << "Init handshake from aggregator=" << my_id_ << " to server="
-              << server_id << " at " << server_addr;
     }
   } // end function -- connect to server
 

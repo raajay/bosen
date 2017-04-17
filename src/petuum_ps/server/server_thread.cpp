@@ -90,7 +90,7 @@ namespace petuum {
       std::string name_node_addr = name_node_info.ip + ":" + name_node_info.port;
       comm_bus_->ConnectTo(name_node_id, name_node_addr, msg, msg_size);
     }
-    VLOG(1) << "Successfully connect to namenode.";
+    VLOG(5) << "Send connection to Name Node";
   }
 
   void ServerThread::ConnectToScheduler() {
@@ -107,12 +107,11 @@ namespace petuum {
       std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
       comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
     }
-    VLOG(1) << "Successfully connect to scheduler node.";
+    VLOG(5) << "Sent connection to Scheduler node";
   }
 
 
-  int32_t ServerThread::GetConnection(bool *is_client,
-                                      int32_t *client_id) {
+  int32_t ServerThread::GetConnection(bool *is_client, int32_t *client_id) {
     int32_t sender_id;
     zmq::message_t zmq_msg;
     (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
@@ -121,15 +120,16 @@ namespace petuum {
       ClientConnectMsg msg(zmq_msg.data());
       *is_client = true;
       *client_id = msg.get_client_id();
+      VLOG(5) << "Receive connection from worker: " << msg.get_client_id();
     } else if (msg_type == kAggregatorConnect) {
       AggregatorConnectMsg msg(zmq_msg.data());
       *is_client = false;
       *client_id = msg.get_client_id();
+      VLOG(5) << "Receive connection from aggregator: " << msg.get_client_id();
     } else {
       LOG(FATAL) << "Server received request from non bgworker/aggregator";
       *is_client = false;
     }
-    VLOG(1) << "[Thread:" << my_id_ << " ] Received connection from thread:" << sender_id;
     return sender_id;
   }
 
@@ -153,9 +153,9 @@ namespace petuum {
 
   void ServerThread::InitServer() {
 
+    // neither the name node nor scheduler respond.
     ConnectToNameNode();
     ConnectToScheduler();
-    // neither the name node nor scheduler respond.
 
     // wait for new connections
     int32_t num_connections;
@@ -164,35 +164,31 @@ namespace petuum {
     int32_t num_expected_connections = GlobalContext::get_num_worker_clients()
       + GlobalContext::get_num_aggregator_clients();
 
-    for (num_connections = 0; num_connections < num_expected_connections; ++num_connections) {
+    VLOG(5) << "Number of expected connections at server thread: " << num_expected_connections;
 
+    for (num_connections = 0; num_connections < num_expected_connections; ++num_connections) {
       int32_t client_id;
       bool is_client;
-
       int32_t sender_id = GetConnection(&is_client, &client_id);
-
       if(is_client) {
-
         bg_worker_ids_[num_bgs] = sender_id;
         num_bgs++;
-
       } else {
-
         aggregator_ids_[num_aggs] = sender_id;
         num_aggs++;
-
       }
     } // end waiting for connections from aggregator and bg worker
+
+    VLOG(5) << "Total connections from bgthreads: " << num_bgs++;
+    VLOG(5) << "Total connections from aggregators: " << num_aggs++;
 
     server_obj_.Init(my_id_, bg_worker_ids_);
     ClientStartMsg client_start_msg;
 
-    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to "
-            << num_bgs << " bg threads.";
+    VLOG(5) << "Server Thread - send client start to all bg threads";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
 
-    VLOG(1) << "[Thread:" << my_id_ << " ] Send Aggregator Start to "
-            << num_aggs << " aggregator threads.";
+    VLOG(5) << "Server Thread - send client start to all bg threads";
     SendToAllAggregatorThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
 
   } // end function -- init server

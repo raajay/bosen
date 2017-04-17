@@ -30,20 +30,20 @@ namespace petuum {
       ClientConnectMsg msg(zmq_msg.data());
       *is_client = true;
       *client_id = msg.get_client_id();
-      VLOG(10) << "Receive connection from worker: " << msg.get_client_id();
+      VLOG(5) << "Receive connection from worker: " << msg.get_client_id();
 
     } else if (msg_type == kAggregatorConnect) {
 
       AggregatorConnectMsg msg(zmq_msg.data());
       *is_client = false;
       CHECK_EQ(msg_type, kAggregatorConnect);
-      VLOG(10) << "Receive connection from aggregator: " << msg.get_client_id();
+      VLOG(5) << "Receive connection from aggregator: " << msg.get_client_id();
 
     } else {
 
       CHECK_EQ(msg_type, kServerConnect);
       *is_client = false;
-      VLOG(10) << "Receive connection from server.";
+      VLOG(5) << "Receive connection from server.";
 
     }
     return sender_id;
@@ -51,7 +51,6 @@ namespace petuum {
 
   void NameNodeThread::SendToAllBgThreads(MsgBase *msg){
     for (const auto &bg_id : bg_worker_ids_) {
-      VLOG(15) << "Send to: " << bg_id;
       size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(bg_id, msg->get_mem(), msg->get_size());
       CHECK_EQ(sent_size, msg->get_size());
     }
@@ -81,39 +80,32 @@ namespace petuum {
                                   GlobalContext::get_num_total_aggregator_threads());
 
     // name node treats aggregator as a server
-    VLOG(15) << "Number of expected connections at name node=" << num_expected_conns;
+    VLOG(5) << "Number of expected connections at name node=" << num_expected_conns;
 
-    for (int32_t num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
-
+    int32_t num_connections;
+    for (num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;
       bool is_client;
       int32_t sender_id = GetConnection(&is_client, &client_id);
-
       if (is_client) {
-
         bg_worker_ids_[num_bgs] = sender_id;
         ++num_bgs;
-
       } else {
-
         ++num_servers;
-
       }
-
-      VLOG(0) << "NameNode received connect request from thread:" << sender_id
-              << ", #bgs=" << num_bgs << ", #servers=" << num_servers;
     }
-
+    VLOG(5) << "Total connections received: " << num_connections;
     CHECK_EQ(num_bgs, GlobalContext::get_num_total_bg_threads());
+
     server_obj_.Init(0, bg_worker_ids_);
 
     // Note that we send two types of messages to the bg worker threads
     ConnectServerMsg connect_server_msg;
-    VLOG(15) << "Name node - send connect server to all bg threads";
+    VLOG(5) << "Name node - send connect server to all bg threads";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&connect_server_msg));
 
     ClientStartMsg client_start_msg;
-    VLOG(15) << "Name node - send client start to all bg threads";
+    VLOG(5) << "Name node - send client start to all bg threads";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
 
   } // end function -- init name node
