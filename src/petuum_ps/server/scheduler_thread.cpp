@@ -101,7 +101,7 @@ namespace petuum {
     // we expect connections from all bg workers threads on all clients
     int32_t num_expected_conns = GlobalContext::get_num_total_bg_threads() +
       GlobalContext::get_num_total_aggregator_threads() +
-      GlobalContext::get_num_total_server_threads();
+      GlobalContext::get_num_total_server_threads() + GlobalContext::get_num_total_replica_threads();
 
     int32_t num_bgs = 0; // total number of background worker threads
     int32_t num_servers = 0;
