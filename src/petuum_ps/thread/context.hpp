@@ -147,6 +147,13 @@ namespace petuum {
       return client_id >= kReplicaClientMinId && client_id <= kReplicaClientMaxId;
     }
 
+    static int32_t get_replica_for_server(int32_t server_id) {
+      int32_t server_client = thread_id_to_client_id(server_id);
+      int32_t comm_channel_idx = server_id - get_thread_id_min(server_client) - kServerThreadIDStartOffset;
+      int32_t replica_client = kReplicaClientMinId + (server_client % kServerClientMaxId);
+      return get_replica_thread_id(replica_cient, comm_channel_idx);
+    }
+
 
     // ************** END -- Functions that DO NOT depend on Init()
 
