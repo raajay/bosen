@@ -15,7 +15,7 @@ namespace petuum {
     ServerThread(int32_t my_id, pthread_barrier_t *init_barrier):
       my_id_(my_id),
       bg_worker_ids_(GlobalContext::get_num_worker_clients()),
-      bg_worker_ids_(GlobalContext::get_num_aggregator_clients()),
+      aggregator_ids_(GlobalContext::get_num_aggregator_clients()),
       num_shutdown_bgs_(0),
       comm_bus_(GlobalContext::comm_bus),
       init_barrier_(init_barrier) { }
