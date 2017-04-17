@@ -18,7 +18,7 @@ hostfile = os.environ.get('BOSEN_CONFIG_FILE',
 ssh_cmd = (
     "ssh "
     "-o StrictHostKeyChecking=no "
-    "-o UserKnownHostsFile=/dev/null "
+    #"-o UserKnownHostsFile=/dev/null "
     )
 
 # Get client: host IPs
