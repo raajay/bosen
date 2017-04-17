@@ -334,6 +334,9 @@ namespace petuum {
     int32_t bg_clock = client_send_oplog_msg.get_bg_clock(); // the value of clock at client
     uint32_t version = client_send_oplog_msg.get_version(); // the bg version of the oplog update
 
+    VLOG(5) << "Received client oplog msg from " << sender_id
+            << " orig_version=" << version << " orig_sender=" << sender_id;
+
     STATS_SERVER_ADD_PER_CLOCK_OPLOG_SIZE(client_send_oplog_msg.get_size());
 
     // send a copy to replica
