@@ -895,6 +895,7 @@ namespace petuum {
 
 
   void AbstractBgWorker::ConnectToNameNodeOrServer(int32_t server_id) {
+
     ClientConnectMsg client_connect_msg;
     client_connect_msg.get_client_id() = GlobalContext::get_client_id();
     void *msg = client_connect_msg.get_mem();
@@ -905,10 +906,16 @@ namespace petuum {
       VLOG(2) << "Init LOCAL handshake from bgworker=" << my_id_ << " to server=" << server_id;
     } else {
       HostInfo server_info;
-      if (server_id == GlobalContext::get_name_node_id())
+      if (server_id == GlobalContext::get_name_node_id()) {
         server_info = GlobalContext::get_name_node_info();
-      else
-        server_info = GlobalContext::get_server_info(server_id);
+      } else {
+        int32_t client_id = GlobalContext::thread_id_to_client_id(server_id);
+        if(GlobalContext::is_aggregator_client(client_id)) {
+          server_info = GlobalContext::get_aggregator_info(server_id);
+        } else {
+          server_info = GlobalContext::get_server_info(server_id);
+        }
+      }
 
       std::string server_addr = server_info.ip + ":" + server_info.port;
       comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
