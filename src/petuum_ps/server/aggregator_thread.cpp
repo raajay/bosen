@@ -212,7 +212,9 @@ namespace petuum {
     bool destroy_mem = false;
     long timeout_milli = GlobalContext::get_server_idle_milli();
 
+    VLOG(5) << "Entering the while loop on aggregator thread";
     while(1) {
+
       bool received = WaitMsg_(&sender_id, &zmq_msg, timeout_milli);
       if (!received) {
         timeout_milli = ServerIdleWork();
