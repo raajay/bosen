@@ -44,6 +44,8 @@ namespace petuum {
 
     void SetUpCommBus();
     void ConnectToNameNode();
+    void ConnectToScheduler();
+
     int32_t GetConnection(bool *is_client, int32_t *client_id);
 
     void SendToAllBgThreads(MsgBase *msg);

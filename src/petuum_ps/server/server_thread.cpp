@@ -93,6 +93,22 @@ namespace petuum {
     VLOG(1) << "Successfully connect to namenode.";
   }
 
+  void ServerThread::ConnectToScheduler() {
+    int32_t scheduler_id = GlobalContext::get_scheduler_id();
+
+    ServerConnectMsg server_connect_msg;
+    void *msg = server_connect_msg.get_mem();
+    int32_t msg_size = server_connect_msg.get_size();
+
+    if (comm_bus_->IsLocalEntity(scheduler_id)) {
+      comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
+    } else {
+      HostInfo scheduler_info = GlobalContext::get_scheduler_info();
+      std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
+      comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
+    }
+    VLOG(1) << "Successfully connect to scheduler node.";
+  }
 
 
   int32_t ServerThread::GetConnection(bool *is_client,
@@ -136,16 +152,19 @@ namespace petuum {
   }
 
   void ServerThread::InitServer() {
+
     ConnectToNameNode();
+    ConnectToScheduler();
+    // neither the name node nor scheduler respond.
 
     // wait for new connections
     int32_t num_connections;
     int32_t num_bgs = 0;
     int32_t num_aggs = 0;
+    int32_t num_expected_connections = GlobalContext::get_num_worker_clients()
+      + GlobalContext::get_num_aggregator_clients();
 
-    for (num_connections = 0;
-         num_connections < GlobalContext::get_num_worker_clients() + GlobalContext::get_num_aggregator_clients();
-         ++num_connections) {
+    for (num_connections = 0; num_connections < num_expected_connections; ++num_connections) {
 
       int32_t client_id;
       bool is_client;
@@ -153,22 +172,32 @@ namespace petuum {
       int32_t sender_id = GetConnection(&is_client, &client_id);
 
       if(is_client) {
+
         bg_worker_ids_[num_bgs] = sender_id;
         num_bgs++;
+
       } else {
+
         aggregator_ids_[num_aggs] = sender_id;
         num_aggs++;
+
       }
-    }
+    } // end waiting for connections from aggregator and bg worker
 
     server_obj_.Init(my_id_, bg_worker_ids_);
     ClientStartMsg client_start_msg;
-    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to " << num_bgs << " bg threads.";
+
+    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to "
+            << num_bgs << " bg threads.";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
-    VLOG(1) << "[Thread:" << my_id_ << " ] Send aggregator Start to " << num_aggs << " aggregator threads.";
+
+    VLOG(1) << "[Thread:" << my_id_ << " ] Send Aggregator Start to "
+            << num_aggs << " aggregator threads.";
     SendToAllAggregatorThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
 
-  }
+  } // end function -- init server
+
+
 
 
   bool ServerThread::HandleShutDownMsg() {

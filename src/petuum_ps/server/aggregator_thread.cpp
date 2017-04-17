@@ -64,10 +64,10 @@ namespace petuum {
   void AggregatorThread::ConnectToNameNode() {
     int32_t name_node_id = GlobalContext::get_name_node_id();
 
-    // TODO do we need agg connect?
-    ServerConnectMsg server_connect_msg;
-    void *msg = server_connect_msg.get_mem();
-    int32_t msg_size = server_connect_msg.get_size();
+    AggregatorConnectMsg aggregator_connect_msg;
+    aggregator_connect_msg.get_client_id() = my_id_;
+    void *msg = aggregator_connect_msg.get_mem();
+    int32_t msg_size = aggregator_connect_msg.get_size();
 
     if (comm_bus_->IsLocalEntity(name_node_id)) {
       comm_bus_->ConnectTo(name_node_id, msg, msg_size);
@@ -79,11 +79,33 @@ namespace petuum {
     VLOG(1) << "Aggregator: " << my_id_ <<  " successfully connected to name node.";
   }
 
+  void AggregatorThread::ConnectToScheduler() {
+    int32_t scheduler_id = GlobalContext::get_scheduler_id();
+
+    AggregatorConnectMsg aggregator_connect_msg;
+    aggregator_connect_msg.get_client_id() = my_id_;
+    void *msg = aggregator_connect_msg.get_mem();
+    int32_t msg_size = aggregator_connect_msg.get_size();
+
+    if (comm_bus_->IsLocalEntity(scheduler_id)) {
+      comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
+    } else {
+      HostInfo scheduler_info = GlobalContext::get_scheduler_info();
+      std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
+      comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
+    }
+    VLOG(1) << "Aggregator: " << my_id_ <<  " successfully connected to scheduler.";
+  }
 
   void AggregatorThread::InitAggregator() {
+
     ConnectToNameNode();
+    ConnectToScheduler();
 
     // connect to all servers
+    for (const auto &server_id : server_ids_) {
+      ConnectToServer(server_id);
+    }
 
 
     // wait for connection from all bg threads

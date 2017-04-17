@@ -17,8 +17,11 @@ public:
     my_comm_channel_idx_(comm_channel_idx),
     comm_bus_(GlobalContext::comm_bus),
     init_barrier_(init_barrier),
-    bg_worker_ids_(GlobalContext::get_num_worker_clients()),
-    server_ids_(GlobalContext::get_num_server_client()) {}
+    bg_worker_ids_(GlobalContext::get_num_worker_clients()) {
+
+    GlobalContext::GetServerThreadIDs(my_comm_channel_idx_, &(server_ids_));
+
+  }
 
   virtual ~AggregatorThread() {}
 

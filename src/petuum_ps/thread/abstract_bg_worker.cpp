@@ -31,16 +31,16 @@ namespace petuum {
     create_table_barrier_(create_table_barrier) {
 
     GlobalContext::GetServerThreadIDs(my_comm_channel_idx_, &(server_ids_));
+
     for (const auto &server_id : server_ids_) {
-      server_table_oplog_size_map_.insert(
-                                          std::make_pair(server_id, std::map<int32_t, size_t>()));
+      server_table_oplog_size_map_.insert(std::make_pair(server_id, std::map<int32_t, size_t>()));
       server_oplog_msg_map_.insert({server_id, 0});
       table_num_bytes_by_server_.insert({server_id, 0});
     }
 
     GlobalContext::GetAggregatorThreadIDs(my_comm_channel_idx_, &(aggregator_ids_));
 
-  }
+  } // end function -- constructor
 
   AbstractBgWorker::~AbstractBgWorker() {
     for (auto &serializer_pair : row_oplog_serializer_map_) {
