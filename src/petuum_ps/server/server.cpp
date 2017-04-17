@@ -15,7 +15,9 @@ namespace petuum {
   Server::~Server() {}
 
   // Each server thread has its own copy of Server object.
-  void Server::Init(int32_t server_id, const std::vector<int32_t> &bg_ids) {
+  void Server::Init(int32_t server_id,
+                    const std::vector<int32_t> &bg_ids,
+                    bool is_replica) {
     // bg_clock is vector clock. We set it to be zero for all bg threads (one
     // from each worker client)
     for (auto iter = bg_ids.cbegin(); iter != bg_ids.cend(); iter++){
@@ -29,6 +31,7 @@ namespace petuum {
     push_row_msg_data_size_ = kPushRowMsgSizeInit;
     server_id_ = server_id;
     accum_oplog_count_ = 0;
+    is_replica_ = is_replica;
 
   } // end function - Init
 
@@ -155,9 +158,13 @@ namespace petuum {
                                        uint32_t version,
                                        int32_t *observed_delay) {
 
-    CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
-    // Update the version from a single bg thread that has been applied to the model.
-    bg_version_map_[bg_thread_id] = version;
+    if(!is_replica_) {
+      CHECK_EQ(bg_version_map_[bg_thread_id] + 1, version);
+      // Update the version from a single bg thread that has been applied to the model.
+      bg_version_map_[bg_thread_id] = version;
+    }
+
+
     *observed_delay = -1;
 
     if (oplog_size == 0) {

@@ -33,7 +33,7 @@ namespace petuum {
     Server();
     ~Server();
 
-    void Init(int32_t server_id, const std::vector<int32_t> &bg_ids);
+    void Init(int32_t server_id, const std::vector<int32_t> &bg_ids, bool is_replica=false);
 
     void CreateTable(int32_t table_id, TableInfo &table_info);
 
@@ -67,6 +67,9 @@ namespace petuum {
     size_t push_row_msg_data_size_;
     int32_t server_id_;
     size_t accum_oplog_count_;
+
+    bool is_replica_;
+
   }; // end class -- Server
 
 }  // namespace petuum
