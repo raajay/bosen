@@ -193,6 +193,24 @@ namespace petuum {
   } // end function -- connect to server
 
 
+  // msg handler
+
+  void AggregatorThread::HandleCreateTable(int32_t sender_id,
+                                           CreateTableMsg &create_table_msg) {
+    VLOG(5)  << "Aggregator received create table request from sender:" << sender_id
+             << " table=" << create_table_msg.get_table_id();
+
+    int32_t table_id = create_table_msg.get_table_id();
+
+    CreateTableReplyMsg create_table_reply_msg;
+    create_table_reply_msg.get_table_id() = create_table_msg.get_table_id();
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(sender_id,
+                                                           create_table_reply_msg.get_mem(),
+                                                           create_table_reply_msg.get_size());
+    CHECK_EQ(sent_size, create_table_reply_msg.get_size());
+    // TODO create the server obj equivalent
+  }
+
 
 
   void *AggregatorThread::operator() () {
@@ -236,6 +254,13 @@ namespace petuum {
       }
 
       switch(msg_type) {
+
+      case kCreateTable:
+        {
+          CreateTableMsg create_table_msg(msg_mem);
+          HandleCreateTable(sender_id, create_table_msg);
+          break;
+        }
       default:
         LOG(FATAL) << "Unrecognized message type " << msg_type;
         break;

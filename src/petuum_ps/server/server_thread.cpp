@@ -188,7 +188,7 @@ namespace petuum {
     VLOG(5) << "Server Thread - send client start to all bg threads";
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
 
-    VLOG(5) << "Server Thread - send client start to all bg threads";
+    VLOG(5) << "Server Thread - send client start to all aggregators";
     SendToAllAggregatorThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
 
   } // end function -- init server
