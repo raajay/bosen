@@ -1,4 +1,9 @@
 #include <petuum_ps/server/aggregator_thread.hpp>
+#include <petuum_ps_common/thread/mem_transfer.hpp>
+#include <petuum_ps/thread/context.hpp>
+#include <petuum_ps_common/util/stats.hpp>
+#include <petuum_ps/thread/ps_msgs.hpp>
+#include <petuum_ps_common/thread/msg_base.hpp>
 
 namespace petuum {
 
@@ -44,7 +49,7 @@ namespace petuum {
   }
 
 
-  void ServerThread::SetUpCommBus() {
+  void AggregatorThread::SetUpCommBus() {
     CommBus::Config comm_config;
     comm_config.entity_id_ = my_id_;
 
@@ -79,57 +84,6 @@ namespace petuum {
     VLOG(1) << "Aggregator: " << my_id_ <<  " successfully connected to name node.";
   }
 
-  void AggregatorThread::ConnectToScheduler() {
-    int32_t scheduler_id = GlobalContext::get_scheduler_id();
-
-    AggregatorConnectMsg aggregator_connect_msg;
-    aggregator_connect_msg.get_client_id() = my_id_;
-    void *msg = aggregator_connect_msg.get_mem();
-    int32_t msg_size = aggregator_connect_msg.get_size();
-
-    if (comm_bus_->IsLocalEntity(scheduler_id)) {
-      comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
-    } else {
-      HostInfo scheduler_info = GlobalContext::get_scheduler_info();
-      std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
-      comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
-    }
-    VLOG(1) << "Aggregator: " << my_id_ <<  " successfully connected to scheduler.";
-  }
-
-  void AggregatorThread::InitAggregator() {
-
-    ConnectToNameNode();
-    ConnectToScheduler();
-
-    // connect to all servers
-    for (const auto &server_id : server_ids_) {
-      ConnectToServer(server_id);
-    }
-
-
-    // wait for connection from all bg threads
-    int32_t num_bgs;
-    for (num_bgs = 0; num_bgs < GlobalContext::get_num_worker_clients(); ++num_bgs) {
-      int32_t client_id;
-      bool is_client;
-      int32_t bg_id = GetConnection(&is_client, &client_id);
-      CHECK(is_client);
-      bg_worker_ids_[num_bgs] = bg_id;
-    }
-
-    // create an aggregator object similar to server object
-    aggregator_obj_.Init(my_id_, bg_worker_ids_);
-    ClientStartMsg client_start_msg;
-    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to "
-            << num_bgs << " bg threads.";
-    SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
-  }
-
-
-  void AggregatorThread :: ConnectToServer(int32_t server_id) {
-    //TODO complete this information
-  }
 
   void AggregatorThread :: ConnectToScheduler() {
     int32_t scheduler_id = GlobalContext::get_scheduler_id();
@@ -147,23 +101,110 @@ namespace petuum {
       comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
       VLOG(2) << "Init handshake from aggregator thread=" << my_id_ << " to scheduler=" << scheduler_id << " at " << scheduler_addr;
     }
-
-
-    // and now we wait for the response...
-    {
-      zmq::message_t zmq_msg;
-      int32_t sender_id;
-      if(comm_bus_->IsLocalEntity(scheduler_id)) {
-        comm_bus_->RecvInProc(&sender_id, &zmq_msg);
-      } else {
-        comm_bus_->RecvInterProc(&sender_id, &zmq_msg);
-      }
-      MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
-      CHECK_EQ(sender_id, scheduler_id);
-      CHECK_EQ(msg_type, kConnectServer) << "sender_id = " << sender_id;
-    }
-    VLOG(2) << "Aggregator thread:" << my_id_ << " completed handshake with scheduler";
   }
+
+
+  int32_t AggregatorThread::GetConnection(bool *is_client, int32_t *client_id) {
+
+    int32_t sender_id;
+    zmq::message_t zmq_msg;
+
+    (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
+    MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
+
+    if (msg_type == kClientConnect) {
+      ClientConnectMsg msg(zmq_msg.data());
+
+      *is_client = true;
+      *client_id = msg.get_client_id();
+
+    } else if (msg_type == kClientStart) {
+
+      ClientStartMsg msg(zmq_msg.data());
+      *is_client = false;
+      *client_id = 0;
+
+    } else {
+
+      LOG(FATAL) << "Server received request from non bgworker/server";
+      *is_client = false;
+
+    }
+    VLOG(1) << "[Aggregator Thread:" << my_id_ << " ] Received connection from thread:" << sender_id;
+    return sender_id;
+
+  } // end function -- get connection
+
+
+  void AggregatorThread::SendToAllBgThreads(MsgBase *msg) {
+    for (const auto &bg_worker_id : bg_worker_ids_) {
+      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_)) (bg_worker_id, msg->get_mem(), msg->get_size());
+      CHECK_EQ(sent_size, msg->get_size());
+    }
+  }
+
+  void AggregatorThread::InitAggregator() {
+
+    ConnectToNameNode();
+    ConnectToScheduler();
+    // these two will not reply
+
+    // connect to all servers (server will respond with Client Start msg)
+    // so get connection later should be cognizant of it
+    for (const auto &server_id : server_ids_) {
+      ConnectToServer(server_id);
+    }
+
+    // wait for connection from all bg threads and replied from all server
+    int32_t num_expected_conns = GlobalContext::get_num_worker_clients() + GlobalContext::get_num_server_clients();
+
+    int32_t num_bgs = 0;
+    int32_t num_servers = 0;
+    int32_t num_connections;
+
+    for (num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
+      int32_t client_id;
+      bool is_client;
+
+      int32_t sender_id = GetConnection(&is_client, &client_id);
+
+      if(is_client) {
+        bg_worker_ids_[num_bgs++] = sender_id;
+      } else {
+        num_servers++;
+      }
+
+    } // end for -- over expected connections
+
+    // TODO create an aggregator object similar to server object
+    // aggregator_obj_.Init(my_id_, bg_worker_ids_);
+
+    ClientStartMsg client_start_msg;
+    VLOG(1) << "[Thread:" << my_id_ << " ] Send Client Start to " << num_bgs << " bg threads.";
+    SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
+  }
+
+
+  void AggregatorThread :: ConnectToServer(int32_t server_id) {
+    AggregatorConnectMsg aggregator_connect_msg;
+    aggregator_connect_msg.get_client_id() = GlobalContext::get_client_id();
+    void *msg = aggregator_connect_msg.get_mem();
+    int32_t msg_size = aggregator_connect_msg.get_size();
+
+    if (comm_bus_->IsLocalEntity(server_id)) {
+      comm_bus_->ConnectTo(server_id, msg, msg_size);
+      VLOG(2) << "Init LOCAL handshake from aggregator=" << my_id_ << " to server=" << server_id;
+    } else {
+      HostInfo server_info;
+      server_info = GlobalContext::get_server_info(server_id);
+      std::string server_addr = server_info.ip + ":" + server_info.port;
+      comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
+      VLOG(2) << "Init handshake from aggregator=" << my_id_ << " to server="
+              << server_id << " at " << server_addr;
+    }
+  } // end function -- connect to server
+
+
 
 
   void *AggregatorThread::operator() () {

@@ -34,6 +34,7 @@ namespace petuum {
 
     } else if (msg_type == kAggregatorConnect) {
 
+      AggregatorConnectMsg msg(zmq_msg.data());
       *is_client = false;
       CHECK_EQ(msg_type, kAggregatorConnect);
       VLOG(10) << "Receive connection from aggregator: " << msg.get_client_id();
