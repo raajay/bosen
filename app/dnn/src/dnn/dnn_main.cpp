@@ -227,5 +227,7 @@ int main(int argc, char *argv[]) {
   // required because we do not want the process to terminate.
   petuum::PSTableGroup::ShutDown();
 
+  std::cout << "...DONE." << std::endl;
+  VLOG(0) << "...DONE." << std::endl;
   return 0;
 }
