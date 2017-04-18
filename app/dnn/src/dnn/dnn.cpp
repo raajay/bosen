@@ -732,7 +732,7 @@ void dnn::run(std::string model_weight_file,
         std::cout<<"init parameters done"<<std::endl;
         VLOG(2) << "init parameters took " << init_paras_timer.elapsed() << " seconds.";
     }
-    process_barrier->wait(); // Why do we have process level barrier? Shouldn't it be all workers across all clients?
+    process_barrier->wait();
 
     // do DNN training
     if (client_index == 0 && (*thread_id) == 0) {
