@@ -272,15 +272,15 @@ namespace petuum {
     VLOG(20) <<  "Handling row request sender=" << sender_id
              << " table_id=" << table_id << " row=" << row_id;
 
-    if(GlobalContext::is_asynchronous_mode()) {
 
+    if(!GlobalContext::is_asynchronous_mode()) {
       // check only in synchronous mode
       if (server_clock < clock) {
         // not fresh enough, wait
         server_obj_.AddRowRequest(sender_id, table_id, row_id, clock);
+        VLOG(15) << "Buffering row request";
         return;
       }
-
     }
 
     uint32_t version = server_obj_.GetBgVersion(sender_id);
@@ -354,6 +354,7 @@ namespace petuum {
       replica_msg.get_global_model_version() = server_obj_.GetAsyncModelVersion();
       memcpy(replica_msg.get_data(), client_send_oplog_msg.get_data(), client_send_oplog_msg.get_avai_size());
       MemTransfer::TransferMem(comm_bus_, GlobalContext::get_replica_for_server(my_id_), &replica_msg);
+      VLOG(15) << "Send a copy of the oplog to replica.";
     }
 
     int32_t observed_delay;
@@ -375,6 +376,7 @@ namespace petuum {
 
         if(!GlobalContext::is_asynchronous_mode()) {
 
+          VLOG(15) << "Reply to buffered row requests";
           std::vector<ServerRowRequest> requests;
           for(auto request_iter = requests.begin();
               request_iter != requests.end(); request_iter++) {
