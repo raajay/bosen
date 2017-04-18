@@ -121,6 +121,8 @@ int main(int argc, char *argv[]) {
 
   // By this time Global Context is initialized, the background workers and
   // servers that are initialized.
+  petuum::GlobalContext::set_asynchronous(true);
+  petuum::GlobalContext::use_replication(false);
 
   if (petuum::GlobalContext::am_i_worker_client()) {
     // Only on worker clients, we will initiate create tables

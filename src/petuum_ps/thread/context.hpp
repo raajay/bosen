@@ -165,6 +165,10 @@ namespace petuum {
       return use_replication_;
     }
 
+    static void set_replication(bool state) {
+      use_replication_ = state;
+    }
+
     // ************** END -- Functions that DO NOT depend on Init()
 
 
@@ -590,6 +594,10 @@ namespace petuum {
 
     static bool is_asynchronous_mode() {
       return is_asynchronous_mode_;
+    }
+
+    static void set_asynchronous(bool state) {
+      is_asynchronous_mode_ = state;
     }
 
     // ********* END - Functions that depend on Init()

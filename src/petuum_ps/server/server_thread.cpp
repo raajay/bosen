@@ -267,18 +267,21 @@ namespace petuum {
     int32_t table_id = row_request_msg.get_table_id();
     int32_t row_id = row_request_msg.get_row_id();
     int32_t clock = row_request_msg.get_clock();
-    //int32_t server_clock = server_obj_.GetMinClock();
+    int32_t server_clock = server_obj_.GetMinClock();
 
     VLOG(20) <<  "Handling row request sender=" << sender_id
              << " table_id=" << table_id << " row=" << row_id;
 
-    /* -- we do not buffer the requests in asynchronous mode. Always, reply for an request immediately.
-    if (server_clock < clock) {
-      // not fresh enough, wait
-      server_obj_.AddRowRequest(sender_id, table_id, row_id, clock);
-      return;
+    if(GlobalContext::is_asynchronous_mode()) {
+
+      // check only in synchronous mode
+      if (server_clock < clock) {
+        // not fresh enough, wait
+        server_obj_.AddRowRequest(sender_id, table_id, row_id, clock);
+        return;
+      }
+
     }
-    */
 
     uint32_t version = server_obj_.GetBgVersion(sender_id);
     int32_t global_model_version = server_obj_.GetAsyncModelVersion();
@@ -288,12 +291,13 @@ namespace petuum {
     // row subscribe is a null function ...
     RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(sender_id));
 
+    int32_t return_clock = (GlobalContext::is_asynchronous_mode()) ? clock : server_clock;
+
     ReplyRowRequest(sender_id,
                     server_row,
                     table_id,
                     row_id,
-                    // server_clock,
-                    clock, // we for each we return a model view with its own clock information
+                    return_clock,
                     version,
                     global_model_version);
 
@@ -368,11 +372,32 @@ namespace petuum {
     if (is_clock) {
       clock_changed = server_obj_.ClockUntil(sender_id, bg_clock);
       if (clock_changed) {
+
+        if(!GlobalContext::is_asynchronous_mode()) {
+
+          std::vector<ServerRowRequest> requests;
+          for(auto request_iter = requests.begin();
+              request_iter != requests.end(); request_iter++) {
+            int32_t table_id = request_iter->table_id;
+            int32_t row_id = request_iter->row_id;
+            int32_t bg_id = request_iter->bg_id;
+            uint32_t version = server_obj_.GetBgVersion(bg_id);
+            ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
+            RowSubscribe(server_row, GlobalContext::thread_id_to_client_id(bg_id));
+            int32_t server_clock = server_obj_.GetMinClock();
+            ReplyRowRequest(bg_id,
+                            server_row,
+                            table_id,
+                            row_id,
+                            server_clock,
+                            version,
+                            server_obj_.GetAsyncModelVersion());
+          }
+
+        }
         // update the stats clock
         STATS_SERVER_CLOCK();
-        // we remove the piece of code that will look at buffered updates
-        // respond if their clock request is not satisfied. In asynchronous
-        // mode, we DO NOT buffer row requests.
+
       } // end if -- clock changed
     } // end if -- is clock
 
