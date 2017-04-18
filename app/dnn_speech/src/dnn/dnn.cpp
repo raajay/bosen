@@ -52,7 +52,7 @@ dnn::dnn(dnn_paras para,int client_id, int num_worker_threads, int staleness, in
   this->num_worker_threads=num_worker_threads;
   process_barrier.reset(new boost::barrier(num_worker_threads));
   thread_counter=0;
-    
+
   this->client_id=client_id;
   this->staleness=staleness;
   this->num_train_data=num_train_data;
@@ -73,7 +73,7 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
   }
   for(int l=0;l<num_layers-1;l++)
     memset(delta_biases[l],0,sizeof(float)*num_units_ineach_layer[l+1]);
-  
+
   //local_weights is the local copy of weight tables, local_biases is the local copy of bias tables
   petuum::RowAccessor row_acc;
   //fetch parameters from PS tables to local parameter buffers
@@ -82,8 +82,8 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     for(int j=0;j<dim1;j++){
       int rnd_idx=rand_idxes_weight[l][j];
   	  const auto& r = weights[l].Get<petuum::DenseRow<float> >(rnd_idx, &row_acc);
-//      weights[l].Get(rnd_idx, &row_acc);
-//      const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
+      //      weights[l].Get(rnd_idx, &row_acc);
+      //      const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
       for(int i=0;i<dim2;i++)
         local_weights[l][rnd_idx][i]=r[i];
     }
@@ -92,8 +92,8 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
     int rnd_idx=rand_idxes_bias[l];
     int dim=num_units_ineach_layer[rnd_idx+1];
     const auto& r = biases[rnd_idx].Get<petuum::DenseRow<float> >(0, &row_acc);
-//    biases[rnd_idx].Get(0, &row_acc);
-//    const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
+    //    biases[rnd_idx].Get(0, &row_acc);
+    //    const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
     for(int j=0;j<dim;j++)
       local_biases[rnd_idx][j]=r[j];
   }
@@ -108,12 +108,12 @@ void dnn::sgd_mini_batch(int * idxes_batch, mat* weights, mat* biases, float ***
   for(int l=0;l<num_layers-1;l++){
     int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
     for(int j=0;j<dim1;j++){
-       int rnd_idx=rand_idxes_weight[l][j];
-	petuum::UpdateBatch<float> update_batch;
-	for (int i = 0; i < dim2; ++i) {
-         update_batch.Update(i, coeff_update*delta_weights[l][rnd_idx][i]);
-	}
-       weights[l].BatchInc(rnd_idx, update_batch);
+      int rnd_idx=rand_idxes_weight[l][j];
+      petuum::UpdateBatch<float> update_batch;
+      for (int i = 0; i < dim2; ++i) {
+        update_batch.Update(i, coeff_update*delta_weights[l][rnd_idx][i]);
+      }
+      weights[l].BatchInc(rnd_idx, update_batch);
 
     }
   }
@@ -138,7 +138,7 @@ void dnn::compute_gradient_single_data(int idx_data,float *** local_weights, flo
   //forward propagation
   for(int i=1;i<num_layers;i++)
     forward_activation(i-1, local_weights[i-1], local_biases[i-1], z[i-1], z[i]);
-	
+
   //backward propagation
   compute_error_output_layer(delta[num_layers-2], z[num_layers-1],idx_data);
   for(int l=num_layers-3;l>=0;l--)
@@ -161,7 +161,6 @@ void dnn::compute_gradient_single_data(int idx_data,float *** local_weights, flo
 }
 
 
-  
 
 void dnn::forward_activation(int index_lower_layer, float ** local_weights, float * local_bias, float * visible, float * hidden)
 {
@@ -169,7 +168,7 @@ void dnn::forward_activation(int index_lower_layer, float ** local_weights, floa
   int num_units_visible=num_units_ineach_layer[index_lower_layer];
   matrix_vector_multiply(local_weights, visible, hidden, num_units_hidden, num_units_visible);
   add_vector(hidden, local_bias, num_units_hidden);
-  if(index_lower_layer<num_layers-2)	
+  if(index_lower_layer<num_layers-2)
     activate_logistic(hidden, num_units_hidden);
   else if(index_lower_layer==num_layers-2)
     log2ori(hidden,num_units_hidden );
@@ -186,7 +185,7 @@ void dnn::compute_error_output_layer(float * error_output_layer, float * activat
     if(label==k)
       error_output_layer[k]=activation_output_layer[k]-1;
     else
-      error_output_layer[k]=activation_output_layer[k];	
+      error_output_layer[k]=activation_output_layer[k];
   }
 }
 
@@ -213,7 +212,7 @@ void dnn::train(mat * weights, mat * biases)
   for(int i=0;i<num_layers;i++)
     z[i]=new float[num_units_ineach_layer[i]];
 
-  float ** delta=new float*[num_layers-1]; 
+  float ** delta=new float*[num_layers-1];
   for(int i=0;i<num_layers-1;i++)
     delta[i]=new float[num_units_ineach_layer[i+1]];
 
@@ -259,16 +258,16 @@ void dnn::train(mat * weights, mat * biases)
   //randomly permute the row indexes to reduce thread contention of tables
   int ** rand_idxes_weight=new int*[num_layers-1];
   for(int l=0;l<num_layers-1;l++)
-  {
-    int dim=num_units_ineach_layer[l+1];
-    rand_idxes_weight[l]=new int[dim];
-    std::vector<int> output_idx_perm;
-    for(int i=0;i<dim;i++)
-      output_idx_perm.push_back(i);
-    std::random_shuffle ( output_idx_perm.begin(), output_idx_perm.end(), myrandom);
-    for(int i=0;i<dim;i++)
-      rand_idxes_weight[l][i]=output_idx_perm[i];
-  }
+    {
+      int dim=num_units_ineach_layer[l+1];
+      rand_idxes_weight[l]=new int[dim];
+      std::vector<int> output_idx_perm;
+      for(int i=0;i<dim;i++)
+        output_idx_perm.push_back(i);
+      std::random_shuffle ( output_idx_perm.begin(), output_idx_perm.end(), myrandom);
+      for(int i=0;i<dim;i++)
+        rand_idxes_weight[l][i]=output_idx_perm[i];
+    }
   int * rand_idxes_bias=new int[num_layers-1];
   {
     std::vector<int> output_idx_perm;
@@ -289,35 +288,35 @@ void dnn::train(mat * weights, mat * biases)
       // Advance Parameter Server iteration
       petuum::PSTableGroup::Clock();
 
-      it++;	
-      
-       //evalutate objective function
-      	if(it%num_iters_evaluate==0&&client_id==0&&(*thread_id)==0)
-       {
-         petuum::RowAccessor row_acc;
-         //fetch parameters
-         for(int l=0;l<num_layers-1;l++){
-           int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
-           for(int j=0;j<dim1;j++){
-       	     const auto& r = weights[l].Get<petuum::DenseRow<float> >(j, &row_acc);
-//             weights[l].Get(j, &row_acc);
-//             const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
-             for(int i=0;i<dim2;i++)
-               local_weights[l][j][i]=r[i];
-	    }
-         }
-         for(int l=0;l<num_layers-1;l++){
-           int dim=num_units_ineach_layer[l+1];
-           const auto& r = biases[l].Get<petuum::DenseRow<float> >(0, &row_acc);
-//		   biases[l].Get(0, &row_acc);
-//           const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
+      it++;
+
+      //evalutate objective function
+      if(it%num_iters_evaluate==0&&client_id==0&&(*thread_id)==0)
+        {
+          petuum::RowAccessor row_acc;
+          //fetch parameters
+          for(int l=0;l<num_layers-1;l++){
+            int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
+            for(int j=0;j<dim1;j++){
+              const auto& r = weights[l].Get<petuum::DenseRow<float> >(j, &row_acc);
+              //             weights[l].Get(j, &row_acc);
+              //             const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
+              for(int i=0;i<dim2;i++)
+                local_weights[l][j][i]=r[i];
+            }
+          }
+          for(int l=0;l<num_layers-1;l++){
+            int dim=num_units_ineach_layer[l+1];
+            const auto& r = biases[l].Get<petuum::DenseRow<float> >(0, &row_acc);
+            //		   biases[l].Get(0, &row_acc);
+            //           const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
             for(int j=0;j<dim;j++)
               local_biases[l][j]=r[j];
           }
           float loss=compute_loss(local_weights, local_biases);
           if(client_id==0&&(*thread_id)==0)
             std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
-       }
+        }
     }
   }
 
@@ -329,7 +328,7 @@ void dnn::train(mat * weights, mat * biases)
   for(int i=0;i<num_layers;i++)
     delete[]z[i];
   delete []z;
-	
+
   //release parameter buffer
   for(int l=0;l<num_layers-1;l++){
     int dim1=num_units_ineach_layer[l+1];
@@ -344,12 +343,12 @@ void dnn::train(mat * weights, mat * biases)
   delete []local_biases;
 
   for(int l=0;l<num_layers-1;l++)
-  {
-    int dim1=num_units_ineach_layer[l+1];
-    for(int i=0;i<dim1;i++)
-      delete []delta_weights[l][i];
-    delete[]delta_weights[l];
-  }
+    {
+      int dim1=num_units_ineach_layer[l+1];
+      for(int i=0;i<dim1;i++)
+        delete []delta_weights[l][i];
+      delete[]delta_weights[l];
+    }
   delete[]delta_weights;
   for(int l=0;l<num_layers-1;l++)
     delete []delta_biases[l];
@@ -364,18 +363,18 @@ float dnn::compute_loss(float *** weights, float ** biases)
   double loss=0;
   int cnt=0;
   for(int smp=0;smp<num_train_data;smp++)
-  {
-    if(((rand()%100000)/100000.0)>(num_smps_evaluate*1.0/num_train_data))
-      continue;
-    //copy the first layer
-    copy_vec(z[0], input_features[smp], num_units_ineach_layer[0]);
-    //forward propagation
-    for(int i=1;i<num_layers;i++)
-      forward_activation(i-1, weights[i-1], biases[i-1], z[i-1], z[i]);
-    //compute cross entropy loss
-    loss+=compute_cross_entropy_loss(z[num_layers-1], smp);
-    cnt++;
-  }
+    {
+      if(((rand()%100000)/100000.0)>(num_smps_evaluate*1.0/num_train_data))
+        continue;
+      //copy the first layer
+      copy_vec(z[0], input_features[smp], num_units_ineach_layer[0]);
+      //forward propagation
+      for(int i=1;i<num_layers;i++)
+        forward_activation(i-1, weights[i-1], biases[i-1], z[i-1], z[i]);
+      //compute cross entropy loss
+      loss+=compute_cross_entropy_loss(z[num_layers-1], smp);
+      cnt++;
+    }
   loss/=cnt;
   for(int i=0;i<num_layers;i++)
     delete[]z[i];
@@ -387,49 +386,49 @@ float dnn::compute_loss(float *** weights, float ** biases)
 float dnn::compute_cross_entropy_loss(float * output, int idx_data)
 {
   float los=0;
-  int label=output_labels[idx_data];
+  int label = output_labels[idx_data];
   if(std::abs(output[label])<1e-10)
-    output[label]=1e-10;
-  los-=log(output[label]);
+    output[label] = 1e-10;
+  los -= log(output[label]);
   return los;
 }
 
-  void dnn::load_data(char * data_file){
-    std::string feature_file(data_file);
-	std::string label_file(data_file);
-	feature_file += ".fea";
-	label_file += ".label";
-	std::cout << "Feature_file: " << feature_file << std::endl;
-	std::cout << "Label_file: " << label_file << std::endl;
-	int feadim=num_units_ineach_layer[0];
-    std::cout<<"Start of load_data"<<std::endl;
+void dnn::load_data(char * data_file){
+  std::string feature_file(data_file);
+  std::string label_file(data_file);
+  feature_file += ".fea";
+  label_file += ".label";
+  std::cout << "Feature_file: " << feature_file << std::endl;
+  std::cout << "Label_file: " << label_file << std::endl;
+  int feadim=num_units_ineach_layer[0];
+  std::cout<<"Start of load_data"<<std::endl;
 
-    input_features=new float*[num_train_data];
-    std::cout<<"input_features intialized"<<std::endl;
-    for(int i=0;i<num_train_data;i++){
-      input_features[i]=new float[feadim];
-    }
-    LOG(INFO) << "feature file = " << feature_file;
-    std::ifstream infile(feature_file.c_str(),std::ios::in);
-    for (int i = 0; i < num_train_data; i++) {
-	for (int j = 0; j < feadim; j++) {
-	    infile >> input_features[i][j];
-	}
-    }
-    infile.close();
-    LOG(INFO)<<"input_features loaded, with feature dimension = "<< feadim << std::endl;
-
-
-    output_labels=new int[num_train_data];
-    FILE * tmpfp=fopen(label_file.c_str(),"r");
-	for (int i = 0; i < num_train_data; i++){
-		fscanf(tmpfp, "%d", &output_labels[i]);
-	}
-	fclose(tmpfp);
-    LOG(INFO)<<"output_labels loaded"<<std::endl;
-    LOG(INFO)<<"End of load_data"<<std::endl;
-
+  input_features=new float*[num_train_data];
+  std::cout<<"input_features intialized"<<std::endl;
+  for(int i=0;i<num_train_data;i++){
+    input_features[i]=new float[feadim];
   }
+  LOG(INFO) << "feature file = " << feature_file;
+  std::ifstream infile(feature_file.c_str(),std::ios::in);
+  for (int i = 0; i < num_train_data; i++) {
+	for (int j = 0; j < feadim; j++) {
+      infile >> input_features[i][j];
+	}
+  }
+  infile.close();
+  LOG(INFO)<<"input_features loaded, with feature dimension = "<< feadim << std::endl;
+
+
+  output_labels=new int[num_train_data];
+  FILE * tmpfp=fopen(label_file.c_str(),"r");
+  for (int i = 0; i < num_train_data; i++){
+    fscanf(tmpfp, "%d", &output_labels[i]);
+  }
+  fclose(tmpfp);
+  LOG(INFO)<<"output_labels loaded"<<std::endl;
+  LOG(INFO)<<"End of load_data"<<std::endl;
+
+}
 void dnn::save_model_kaldiformat(mat * weights, mat *biases, const char * mdl){
 
   //save weight matrices
@@ -440,7 +439,6 @@ void dnn::save_model_kaldiformat(mat * weights, mat *biases, const char * mdl){
   for(int l=0;l<num_layers-1;l++){
     int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
 	outfile << "<AffineComponentPreconditioned> <LearningRate> " << stepsize << " <LinearParams> [ ";
-	
     for(int j=0;j<dim1;j++){
 	  const auto& r = weights[l].Get<petuum::DenseRow<float> >(j, &row_acc);
       for(int i=0;i<dim2;i++){
@@ -457,14 +455,14 @@ void dnn::save_model_kaldiformat(mat * weights, mat *biases, const char * mdl){
 	outfile<<"]"<<"\n";
 	outfile << "<Alpha> 0 <MaxChange> 0 </AffineComponentPreconditioned>" << std::endl;
 	if(l<num_layers-2) {
-		outfile << "<SigmoidComponent> <Dim> " << num_units_ineach_layer[l+1] << " <ValueSum> [  ]" << std::endl;
-		outfile << "<DerivSum> [  ] " << std::endl;
-		outfile << "<Count> 0 </SigmoidComponent>" << std::endl;
+      outfile << "<SigmoidComponent> <Dim> " << num_units_ineach_layer[l+1] << " <ValueSum> [  ]" << std::endl;
+      outfile << "<DerivSum> [  ] " << std::endl;
+      outfile << "<Count> 0 </SigmoidComponent>" << std::endl;
 	}
 	else {
-		outfile << "<SoftmaxComponent> <Dim> " << num_units_ineach_layer[l+1] << " <ValueSum> [  ]" << std::endl;
-		outfile << "<DerivSum> [ ] " << std::endl;
-		outfile << "<Count> 0 </SoftmaxComponent>" << std::endl;
+      outfile << "<SoftmaxComponent> <Dim> " << num_units_ineach_layer[l+1] << " <ValueSum> [  ]" << std::endl;
+      outfile << "<DerivSum> [ ] " << std::endl;
+      outfile << "<Count> 0 </SoftmaxComponent>" << std::endl;
 	}
   }
   outfile.close();
@@ -475,25 +473,25 @@ void dnn::init_paras(mat *weights,mat *biases ){
     int num_rows=num_units_ineach_layer[i+1];
     int num_cols=num_units_ineach_layer[i];
     for(int j=0;j<num_rows;j++){
-       petuum::UpdateBatch<float> update_batch;
-       for(int k=0;k<num_cols;k++){
-	      float tmp = randfloat();
-              update_batch.Update(k, tmp);
-	}
-	{
-	  weights[i].BatchInc(j,update_batch);
-	}
+      petuum::UpdateBatch<float> update_batch;
+      for(int k=0;k<num_cols;k++){
+        float tmp = randfloat();
+        update_batch.Update(k, tmp);
+      }
+      {
+        weights[i].BatchInc(j,update_batch);
+      }
     }
     {
-       petuum::UpdateBatch<float> update_batch;
-       for(int j=0;j<num_rows;j++) {
-		 float tmp = randfloat();
-                 update_batch.Update(j, tmp);
-	   }
-	   {
-		 biases[i].BatchInc(0,update_batch);
-           }
-    }       
+      petuum::UpdateBatch<float> update_batch;
+      for(int j=0;j<num_rows;j++) {
+        float tmp = randfloat();
+        update_batch.Update(j, tmp);
+      }
+      {
+        biases[i].BatchInc(0,update_batch);
+      }
+    }
   }
 }
 
@@ -518,8 +516,8 @@ void dnn::run(std::string model_para_file)
   // Run additional iterations to let stale values finish propagating
   for (int iter = 0; iter < staleness; ++iter) {
     petuum::PSTableGroup::Clock();
-  } 
-  
+  }
+
   // initialize parameters
   if (client_id==0&&(*thread_id) == 0){
     std::cout<<"init parameters"<<std::endl;
@@ -527,12 +525,12 @@ void dnn::run(std::string model_para_file)
     std::cout<<"init parameters done"<<std::endl;
   }
   process_barrier->wait();
-  
+
   // do DNN training
   if (client_id==0&&(*thread_id) == 0)
     std::cout<<"training starts"<<std::endl;
   train(weights, biases);
-  
+
   // Run additional iterations to let stale values finish propagating
   for (int iter = 0; iter < staleness; ++iter) {
     petuum::PSTableGroup::Clock();
@@ -540,23 +538,11 @@ void dnn::run(std::string model_para_file)
 
   //save model
   if(client_id==0&&(*thread_id)==0)
-  {
-	save_model_kaldiformat(weights, biases, model_para_file.c_str());
-  }
+    {
+      save_model_kaldiformat(weights, biases, model_para_file.c_str());
+    }
 
   delete[]weights;
   delete[]biases;
   petuum::PSTableGroup::DeregisterThread();
 }
-
-
-
-
-
-
-
-
-
-
-
-

@@ -238,7 +238,7 @@ void dnn::sgd_mini_batch(int * idxes_batch,
 
     //compute gradient of the mini batch
     petuum::HighResolutionTimer mini_batch_timer;
-    for(int i=0;i<size_minibatch;i++)
+    for(int i=0; i < size_minibatch; i++)
         compute_gradient_single_data(idxes_batch[i], local_weights,  local_biases, delta_weights, delta_biases, z,  delta );
     VLOG(2) << "SGD minibatch took " << mini_batch_timer.elapsed() << " s for " << size_minibatch << " records.";
 
@@ -285,16 +285,26 @@ void dnn::compute_gradient_single_data(int idx_data,
                                        float ** z,
                                        float ** delta) {
 
+  // z[0] is nothing but the input vector
     copy_vec(z[0], input_features[idx_data], num_units_ineach_layer[0]);
 
     //forward propagation
-    for(int i=1;i<num_layers;i++)
-        forward_activation(i-1, local_weights[i-1], local_biases[i-1], z[i-1], z[i]);
+    for(int i = 1; i < num_layers; i++) {
+      // modifies last argument, z[i]
+      forward_activation(i-1, local_weights[i-1], local_biases[i-1], z[i-1], z[i]);
+    }
 
-    //backward propagation
+    //backward propagation -- compute error in is the first step in back propagation
+
+    // modifies argument 1: delta
     compute_error_output_layer(delta[num_layers-2], z[num_layers-1],idx_data);
-    for(int l=num_layers-3;l>=0;l--)
-        backward_error_computation(l, local_weights[l+1], z[l+1], delta[l], delta[l+1]);
+
+
+    for(int l = num_layers-3; l>=0; l--) {
+      // modified delta[l] -- the lower layer, last but one argument
+      backward_error_computation(l, local_weights[l+1], z[l+1], delta[l], delta[l+1]);
+    }
+
 
     //accumulate gradient of weights matrices and bias vectors
     for(int l=0;l<num_layers-1;l++){
@@ -323,12 +333,18 @@ void dnn::forward_activation(int index_lower_layer,
 
     int num_units_hidden=num_units_ineach_layer[index_lower_layer+1];
     int num_units_visible=num_units_ineach_layer[index_lower_layer];
+
+    // hidden is updated
     matrix_vector_multiply(local_weights, visible, hidden, num_units_hidden, num_units_visible);
+
     add_vector(hidden, local_bias, num_units_hidden);
-    if(index_lower_layer<num_layers-2)
-        activate_logistic(hidden, num_units_hidden);
-    else if(index_lower_layer==num_layers-2)
-        log2ori(hidden,num_units_hidden );
+
+    if(index_lower_layer < num_layers-2) {
+      activate_logistic(hidden, num_units_hidden);
+    }
+    else if(index_lower_layer == num_layers-2) {
+      log2ori(hidden,num_units_hidden );
+    }
 
 }
 
@@ -338,14 +354,18 @@ void dnn::compute_error_output_layer(float * error_output_layer,
                                      float * activation_output_layer,
                                      int idx_data) {
 
-    int num_units_output_layer=num_units_ineach_layer[num_layers-1];
-    int label=output_labels[idx_data];
-    for(int k=0;k<num_units_output_layer;k++){
-        if(label==k)
-            error_output_layer[k]=activation_output_layer[k]-1;
-        else
-            error_output_layer[k]=activation_output_layer[k];
+  int num_units_output_layer=num_units_ineach_layer[num_layers-1];
+  int label=output_labels[idx_data];
+  for(int k=0;k<num_units_output_layer;k++){
+    if(label == k) {
+      // if label is k, and the activation at last layer is 1, then there is no error.
+      // other wise error is negative, asking you to increase the value?
+      error_output_layer[k]=activation_output_layer[k]-1; // output should be 1
+    } else {
+      // for all other than label output should be 0,
+      error_output_layer[k]=activation_output_layer[k];
     }
+  }
 }
 
 
