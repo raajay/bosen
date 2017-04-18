@@ -423,7 +423,7 @@ void dnn::train(mat * weights,
     // then we need (num_train_data/n/size_minibatch), iterations to complete one epoch
     int inner_iter = std::max(num_train_data / num_worker_threads /size_minibatch, 1);
     if((*thread_id) == 0) {
-        VLOG(2) << "Value of inner_iter = " << inner_iter;
+        VLOG(5) << "Value of inner_iter = " << inner_iter;
     }
 
     srand (time(NULL));
@@ -456,9 +456,7 @@ void dnn::train(mat * weights,
 
     // Star the actual training process
     for(int iter=0;iter<num_epochs;iter++){
-
         for(int i=0;i<inner_iter;i++) {
-
             //sample mini batch
             rand_init_vec_int(idxes_batch, size_minibatch, num_train_data);
             //run sgd
@@ -513,7 +511,8 @@ void dnn::train(mat * weights,
               }
             }
             */ // disable stats print for now
-
+        }
+    }
     //release data
     delete []idxes_batch;
     for(int i=0;i<num_layers-1;i++)
@@ -551,8 +550,7 @@ void dnn::train(mat * weights,
 
 
 
-float dnn::compute_loss(float *** weights,
-                        float ** biases) {
+float dnn::compute_loss(float *** weights, float ** biases) {
 
     float ** z=new float*[num_layers];
     for(int i=0;i<num_layers;i++)
@@ -578,7 +576,7 @@ float dnn::compute_loss(float *** weights,
     }
 
     loss/=cnt;
-    for(int i=0;i<num_layers;i++) {
+    for(int i=0; i < num_layers; i++) {
       delete[]z[i];
     }
 
