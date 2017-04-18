@@ -456,9 +456,11 @@ void dnn::train(mat * weights,
 
     // Star the actual training process
     for(int iter=0;iter<num_epochs;iter++){
+
         for(int i=0;i<inner_iter;i++) {
+
             //sample mini batch
-            rand_init_vec_int(idxes_batch,size_minibatch, num_train_data);
+            rand_init_vec_int(idxes_batch, size_minibatch, num_train_data);
             //run sgd
             sgd_mini_batch(idxes_batch, weights, biases, local_weights,  local_biases, delta_weights,  delta_biases, z,  delta, rand_idxes_weight,rand_idxes_bias);
 
@@ -468,7 +470,9 @@ void dnn::train(mat * weights,
             it++;
 
             //evalutate objective function
-            if(it%num_iters_evaluate == 0 && client_index == 0 && (*thread_id)==0) {
+
+            //if(it % num_iters_evaluate == 0 && client_index == 0 && (*thread_id)==0) {
+            if(it % num_iters_evaluate == 0 && (*thread_id)==0) {
 
                 petuum::RowAccessor row_acc;
                 //fetch parameters
@@ -476,28 +480,28 @@ void dnn::train(mat * weights,
                     int dim1=num_units_ineach_layer[l+1], dim2=num_units_ineach_layer[l];
                     for(int j = 0; j < dim1; j++) {
                         const auto& r = weights[l].Get<petuum::DenseRow<float> >(j, &row_acc);
-                        //             weights[l].Get(j, &row_acc);
-                        //             const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
                         for(int i=0;i<dim2;i++) {
                             local_weights[l][j][i]=r[i];
                         }
-
                     }
                 }
 
                 for(int l=0;l<num_layers-1;l++) {
                     int dim=num_units_ineach_layer[l+1];
                     const auto& r = biases[l].Get<petuum::DenseRow<float> >(0, &row_acc);
-                    //       biases[l].Get(0, &row_acc);
-                    //           const petuum::DenseRow<float>& r = row_acc.Get<petuum::DenseRow<float> >();
                     for(int j=0;j<dim;j++)
                         local_biases[l][j]=r[j];
                 }
-                float loss=compute_loss(local_weights, local_biases);
-                if(client_index == 0 && (*thread_id)==0)
-                    std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
+
+                float loss = compute_loss(local_weights, local_biases);
+
+                if((*thread_id)==0) {
+                  std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
+                }
+
             }
 
+            /*
             if(it % num_iters_print_stats == 0) {
               VLOG(2) << "Synchronize stats from thread: " << (*thread_id);
               STATS_SYNCHRONIZE();
@@ -508,9 +512,7 @@ void dnn::train(mat * weights,
                 STATS_PRINT();
               }
             }
-
-        }
-    }
+            */ // disable stats print for now
 
     //release data
     delete []idxes_batch;
@@ -557,22 +559,29 @@ float dnn::compute_loss(float *** weights,
         z[i]=new float[num_units_ineach_layer[i]];
     double loss=0;
     int cnt=0;
-    for(int smp=0;smp<num_train_data;smp++)
-    {
+
+    for(int smp=0; smp < num_train_data;smp++) {
+
         if(((rand()%100000)/100000.0)>(num_smps_evaluate*1.0/num_train_data))
             continue;
+
         //copy the first layer
         copy_vec(z[0], input_features[smp], num_units_ineach_layer[0]);
+
         //forward propagation
-        for(int i=1;i<num_layers;i++)
+        for(int i = 1; i < num_layers; i++)
             forward_activation(i-1, weights[i-1], biases[i-1], z[i-1], z[i]);
+
         //compute cross entropy loss
         loss+=compute_cross_entropy_loss(z[num_layers-1], smp);
         cnt++;
     }
+
     loss/=cnt;
-    for(int i=0;i<num_layers;i++)
-        delete[]z[i];
+    for(int i=0;i<num_layers;i++) {
+      delete[]z[i];
+    }
+
     delete[]z;
     return loss;
 }
