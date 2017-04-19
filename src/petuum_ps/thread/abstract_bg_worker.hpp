@@ -162,6 +162,7 @@ namespace petuum {
 
     std::unordered_map<int32_t, ClientSendOpLogMsg*> backlog_msgs_;
     int32_t model_version_prepared_;
+    int32_t current_unique_id_;
   };
 
 } // end namespace -- petuum
