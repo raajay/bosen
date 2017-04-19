@@ -67,6 +67,7 @@ private :
   int client_index; // the index of the client
   int latest_model_version;
   petuum::HighResolutionTimer all_the_way_from_start;
+  int client_iteration_number;
 
   int num_smps_evaluate;//when evaluating objective function, randomly sample <num_smps_evaluate> points to evaluate the objective function
   int num_iters_evaluate;//every <num_iters_evaluate> iterations, evaluate the objective function

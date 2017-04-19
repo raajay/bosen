@@ -70,6 +70,11 @@ dnn::dnn(dnn_paras para,
     num_smps_evaluate=para.num_smps_evaluate;
     num_iters_evaluate=para.num_iters_evaluate;
     num_iters_print_stats = para.num_iters_print_stats;
+
+
+    latest_model_version = 0;
+    client_iteration_number = 0;
+
 }
 
 
@@ -216,7 +221,9 @@ void dnn::sgd_mini_batch(int * idxes_batch,
   // been sent, not individually)
   petuum::HighResolutionTimer buffer_timer;
   buffer_in_model(weights, biases, rand_idxes_weight, rand_idxes_bias);
-  VLOG(2) << "Buffering weights and biases took " << buffer_timer.elapsed() << " s.";
+  VLOG(2) << "Buffering weights and biases took " << buffer_timer.elapsed()
+          << " s. Iteration " << client_iteration_number
+          << " version " << latest_model_version;
 
 
   // read the new rows from the process storage
@@ -240,7 +247,10 @@ void dnn::sgd_mini_batch(int * idxes_batch,
     petuum::HighResolutionTimer mini_batch_timer;
     for(int i=0; i < size_minibatch; i++)
         compute_gradient_single_data(idxes_batch[i], local_weights,  local_biases, delta_weights, delta_biases, z,  delta );
-    VLOG(2) << "SGD minibatch took " << mini_batch_timer.elapsed() << " s for " << size_minibatch << " records.";
+    VLOG(2) << "SGD minibatch took " << mini_batch_timer.elapsed()
+            << " s for " << size_minibatch << " records. "
+            << "Iteration " << client_iteration_number
+            << " version " << latest_model_version;
 
 
     STATS_APP_DEFINED_ACCUM_VAL_INC(mini_batch_timer.elapsed()); // used to test stats synchronization
@@ -489,6 +499,7 @@ void dnn::train(mat * weights,
             petuum::PSTableGroup::Clock();
 
             it++;
+            client_iteration_number++;
 
             //evalutate objective function
 
