@@ -717,16 +717,14 @@ namespace petuum {
       InitMsg();
     }
 
-
-
     explicit TransferRequestMsg (void *msg):
       NumberedMsg(msg) { }
-
 
     // 1. server thread id
     // 2. size in bytes
     // 3. version
     // 4. norm
+    // 5. unique id
 
 
     size_t get_size() {
@@ -734,8 +732,8 @@ namespace petuum {
         sizeof(int32_t) +
         sizeof(int32_t) +
         sizeof(int32_t) +
-        sizeof(float)
-        ;
+        sizeof(float) +
+        sizeof(int32_t) ;
     }
 
     int32_t &get_server_id() {
@@ -764,19 +762,28 @@ namespace petuum {
                                         + sizeof(int32_t)));
     }
 
+    int32_t &get_unique_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                        + NumberedMsg::get_size()
+                                        + sizeof(int32_t)
+                                        + sizeof(int32_t)
+                                        + sizeof(int32_t)
+                                        + sizeof(float)
+                                        ));
+    }
 
   protected:
     void InitMsg() {
       NumberedMsg::InitMsg();
-      get_msg_type() = kReplicaOpLogAck;
+      get_msg_type() = kTransferRequest;
     }
   };
 
 
 
-  struct TransferReplyMsg : public NumberedMsg {
+  struct TransferResponseMsg : public NumberedMsg {
   public:
-    TransferReplyMsg() {
+    TransferResponseMsg() {
       if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
         own_mem_ = true;
         use_stack_buff_ = false;
@@ -789,14 +796,16 @@ namespace petuum {
       InitMsg();
     }
 
-    explicit TransferReplyMsg (void *msg):
+    explicit TransferResponseMsg (void *msg):
       NumberedMsg(msg) { }
 
     // 1. new destination, -1 implies drop
-    // 2. new rate, in bytes per second
+    // 2. new rate, in bits per second
+    // 3. Unique id
 
     size_t get_size() {
       return NumberedMsg::get_size() +
+        sizeof(int32_t) +
         sizeof(int32_t) +
         sizeof(int32_t)
         ;
@@ -813,10 +822,17 @@ namespace petuum {
                                           + sizeof(int32_t)));
     }
 
+    int32_t &get_unique_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(int32_t)
+                                          + sizeof(int32_t)));
+    }
+
   protected:
     void InitMsg() {
       NumberedMsg::InitMsg();
-      get_msg_type() = kReplicaOpLogAck;
+      get_msg_type() = kTransferResponse;
     }
   };
 

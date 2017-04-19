@@ -31,10 +31,11 @@ namespace petuum {
     // communication functions
     int32_t GetConnection(bool *is_client, int32_t *client_id);
     void SendToAllBgThreads(MsgBase* msg);
+    size_t SendMsg(int32_t destination_id, MsgBase *msg);
 
 
     // communication functions
-    bool HandlePreTransmitPing();
+    bool HandleTransferRequest(int32_t bg_id, TransferRequestMsg &request_msg);
 
     // internal data structures
     int32_t my_id_;    // the id of the scheduler thread

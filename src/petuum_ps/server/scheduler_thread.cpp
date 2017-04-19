@@ -4,6 +4,7 @@
 #include <petuum_ps/server/scheduler_thread.hpp>
 #include <petuum_ps/thread/context.hpp>
 #include <pthread.h>
+#include <petuum_ps/thread/ps_msgs.hpp>
 
 namespace petuum {
 
@@ -129,7 +130,26 @@ namespace petuum {
 
 
 
-  bool SchedulerThread::HandlePreTransmitPing() {
+  bool SchedulerThread::HandleTransferRequest(int32_t bg_id, TransferRequestMsg &request_msg) {
+    int32_t unique_id = request_msg.get_unique_id();
+    int32_t server_id = request_msg.get_server_id();
+    VLOG(10) << " Handling transfer request "
+             << " unique id " << unique_id
+             << " sender " << bg_id
+             << " server " << server_id
+             << " size " << request_msg.get_gradient_size()
+             << " version " << request_msg.get_gradient_version();
+
+
+
+    // for now immediately respond with Transfer Response
+    TransferResponseMsg response_msg;
+    response_msg.get_destination_id() = server_id;
+    response_msg.get_unique_id() = unique_id;
+    response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
+
+    SendMsg(bg_id, &response_msg);
+
     return false;
   }
 
@@ -143,12 +163,10 @@ namespace petuum {
     ThreadContext::RegisterThread(my_id_);
 
     SetupCommBus();
-
     // one this location has been hit, the thread that initialized the scheduler
     // thread can proceed. this ensure, that comm_bus is set up after the thread
     // has been created.
     pthread_barrier_wait(init_barrier_);
-
     // this function waits till all background threads have sent their request
     // to connect. it also responds to each background thread with a 'OK'
     // response.
@@ -156,6 +174,7 @@ namespace petuum {
 
     zmq::message_t zmq_msg;
     int32_t sender_id;
+
     // poll, for new messages
     while(1) {
 
@@ -164,21 +183,27 @@ namespace petuum {
         MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
 
         switch(msg_type) {
-
-            case kTransferRequest:
-                HandlePreTransmitPing();
-                break;
-
-            default:
+        case kTransferRequest:
+          {
+            TransferRequestMsg transfer_request_msg(zmq_msg.data());
+            HandleTransferRequest(sender_id, transfer_request_msg);
+            break;
+          }
+        default:
               LOG(FATAL) << "Unrecognized message type " << msg_type
                   << " sender = " << sender_id;
-
         } // end switch
-
     } // end while -- infinite loop
-
   } // end function -- operator
 
+
+
+
+  size_t SchedulerThread::SendMsg(int32_t destination_id, MsgBase *msg) {
+    size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(destination_id, msg->get_mem(), msg->get_size());
+    CHECK_EQ(sent_size, msg->get_size());
+    return sent_size;
+  }
 
 
 
