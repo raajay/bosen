@@ -609,7 +609,8 @@ namespace petuum {
         VLOG(2) << "Oplog sent: client_clock=" << client_clock_
                 <<" server=" << server_id
                 <<" clientversion=" << version_
-                << " size=" << accum_size;
+                << " size=" << accum_size
+                << " time=" << GetElapsedTime();
 
       } else {
 
