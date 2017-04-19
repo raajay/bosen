@@ -376,8 +376,9 @@ namespace petuum {
 
         if(!GlobalContext::is_asynchronous_mode()) {
 
-          VLOG(15) << "Reply to buffered row requests";
           std::vector<ServerRowRequest> requests;
+          server_obj_.GetFulfilledRowRequests(&requests);
+
           for(auto request_iter = requests.begin();
               request_iter != requests.end(); request_iter++) {
             int32_t table_id = request_iter->table_id;
@@ -395,6 +396,7 @@ namespace petuum {
                             version,
                             server_obj_.GetAsyncModelVersion());
           }
+          VLOG(15) << "Successively replied to buffered requests.";
 
         }
         // update the stats clock
