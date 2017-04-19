@@ -159,6 +159,9 @@ namespace petuum {
     std::unordered_map<int32_t, int32_t> append_only_buff_proc_count_;
 
     std::unordered_map<int32_t, RowOpLogSerializer*> row_oplog_serializer_map_;
+
+    std::unordered_map<int32_t, ClientSendOpLogMsg*> backlog_msgs_;
+    int32_t model_version_prepared_;
   };
 
 } // end namespace -- petuum

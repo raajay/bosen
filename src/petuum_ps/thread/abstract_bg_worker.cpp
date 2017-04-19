@@ -588,6 +588,7 @@ namespace petuum {
     for (const auto &server_id : server_ids_) {
 
       // server_oplog_msg_msp will be populated in Create Op Log Msgs
+
       auto oplog_msg_iter = server_oplog_msg_map_.find(server_id);
       STATS_MLFABRIC_CLIENT_PUSH_BEGIN(server_id, version_);
 
@@ -602,6 +603,7 @@ namespace petuum {
 
         accum_size += oplog_msg_iter->second->get_size();
         MemTransfer::TransferMem(comm_bus_, server_id, oplog_msg_iter->second);
+
         // delete message after send
         delete oplog_msg_iter->second;
         oplog_msg_iter->second = 0;
