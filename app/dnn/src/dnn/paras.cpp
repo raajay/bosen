@@ -54,5 +54,7 @@ void load_dnn_paras(dnn_paras & para, const char * file_dnn_para)
   infile>>tmp>>para.num_smps_evaluate;
   infile>>tmp>>para.num_iters_evaluate;
   infile>>tmp>>para.num_iters_print_stats;
+  infile>>tmp>>para.asynchronous;
+  infile>>tmp>>para.replication;
   infile.close();
 }
