@@ -31,7 +31,7 @@
 #define DNN_H_
 
 #include <petuum_ps_common/include/petuum_ps.hpp>
-
+#include <petuum_ps_common/util/high_resolution_timer.hpp>
 
 #include "paras.h"
 #include "util.h"
@@ -54,7 +54,7 @@ private :
   //data
   float ** input_features;//input features
   int * output_labels;//labels
-  int num_train_data;//number of training data	
+  int num_train_data;//number of training data
 
   //thread control
   boost::scoped_ptr<boost::barrier> process_barrier;//process barrier to sync threads
@@ -65,6 +65,8 @@ private :
   int staleness;//staleness value
   int client_id;//id of the client (machine)
   int client_index; // the index of the client
+  int latest_model_version;
+  petuum::HighResolutionTimer all_the_way_from_start;
 
   int num_smps_evaluate;//when evaluating objective function, randomly sample <num_smps_evaluate> points to evaluate the objective function
   int num_iters_evaluate;//every <num_iters_evaluate> iterations, evaluate the objective function

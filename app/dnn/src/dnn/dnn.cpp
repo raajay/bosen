@@ -271,6 +271,8 @@ void dnn::sgd_mini_batch(int * idxes_batch,
         biases[rnd_idx].BatchInc(0, update_batch, min_version);
     } // end for -- over number layers of a neural network
 
+    latest_model_version = min_version;
+
     VLOG(2) << "Batch Inc tables took " << update_tables_timer.elapsed() << " s";
 
 } // end function - sgd mini batch
@@ -475,6 +477,7 @@ void dnn::train(mat * weights,
 
 
     // Star the actual training process
+    all_the_way_from_start.restart();
     for(int iter=0;iter<num_epochs;iter++){
         for(int i=0;i<inner_iter;i++) {
             //sample mini batch
@@ -517,7 +520,10 @@ void dnn::train(mat * weights,
 
                 if((*thread_id)==0) {
                   std::cout<< "client " << client_id << " worker " << (*thread_id) << " iter " << it
-                           << " loss is " << 100.0 * prediction_error << " %" << std::endl;
+                           << " loss is " << 100.0 * prediction_error << " % "
+                           << " version " << latest_model_version
+                           << " time " << all_the_way_from_start.elapsed() << " s."
+                           << std::endl;
                 }
 
             }
