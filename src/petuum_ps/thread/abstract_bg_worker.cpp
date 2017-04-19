@@ -40,6 +40,9 @@ namespace petuum {
 
     GlobalContext::GetAggregatorThreadIDs(my_comm_channel_idx_, &(aggregator_ids_));
 
+    model_version_prepared_ = 0;
+    current_unique_id_ = 0;
+
   } // end function -- constructor
 
   AbstractBgWorker::~AbstractBgWorker() {
