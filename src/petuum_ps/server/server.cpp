@@ -52,7 +52,7 @@ namespace petuum {
                                       GlobalContext::get_resume_clock());
     }
 
-  } // end func -- CreateTable
+  } // end function -- Create table
 
 
 
@@ -68,7 +68,7 @@ namespace petuum {
     }
     server_row = server_table.CreateRow(row_id);
     return server_row;
-  } // end func -- FindCreateRow
+  } // end function -- Find create row
 
 
 

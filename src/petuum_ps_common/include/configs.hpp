@@ -258,6 +258,20 @@ struct TableInfo {
   int32_t row_oplog_type;
 
   size_t dense_row_oplog_capacity;
+
+  std::string toString() {
+    std::stringstream ss;
+    ss << "TableInfo:" << std::endl;
+    ss << "  table_staleness: " << table_staleness << std::endl;
+    ss << "  row_type: " << row_type << std::endl;
+    ss << "  row_capacity: " << row_capacity << std::endl;
+    ss << "  row_capacity: " << row_capacity << std::endl;
+    ss << "  oplog_dense_serialized: " << oplog_dense_serialized << std::endl;
+    ss << "  row_oplog_type: " << row_oplog_type << std::endl;
+    ss << "  dense_row_oplog_capacity: " << dense_row_oplog_capacity << std::endl;
+    return ss.str();
+  }
+
 };
 
 /**
