@@ -516,7 +516,8 @@ void dnn::train(mat * weights,
                 float prediction_error = compute_prediction_loss(local_weights, local_biases);
 
                 if((*thread_id)==0) {
-                  std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<prediction_error<<std::endl;
+                  std::cout<< "client " << client_id << " worker " << (*thread_id) << " iter " << it
+                           << " loss is " << 100.0 * prediction_error << " %" << std::endl;
                 }
 
             }
