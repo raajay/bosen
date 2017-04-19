@@ -84,6 +84,7 @@ private :
   float compute_loss( float*** weights, float** biases);
   //compute the cross entropy loss
   float compute_cross_entropy_loss(float * output, int idx_data);
+  float compute_zero_one_loss(float* output, int num_classes, int idx_data);
   //train neural network
   void train(mat * weights, mat* biases);
   //save model

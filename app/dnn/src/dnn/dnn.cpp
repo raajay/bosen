@@ -578,6 +578,8 @@ float dnn::compute_loss(float *** weights, float ** biases) {
     double loss=0;
     int cnt=0;
 
+    double prediction_loss = 0.0;
+
     for(int smp=0; smp < num_train_data;smp++) {
 
         if(((rand()%100000)/100000.0)>(num_smps_evaluate*1.0/num_train_data))
@@ -592,16 +594,35 @@ float dnn::compute_loss(float *** weights, float ** biases) {
 
         //compute cross entropy loss
         loss+=compute_cross_entropy_loss(z[num_layers-1], smp);
+        prediction_loss += compute_zero_one_loss(z[num_layers-1], num_units_ineach_layer[num_layers-1], smp);
         cnt++;
     }
 
     loss/=cnt;
+
+    prediction_los /= cnt; // average loss over all samples
+    std::cout << "Prediction error = " << prediction_loss;
+
     for(int i=0; i < num_layers; i++) {
       delete[]z[i];
     }
-
     delete[]z;
     return loss;
+}
+
+
+float dnn::compute_zero_one_loss(float* output, int D, int idx_data) {
+  int label = output_labels[idx_data];
+
+  float maxv = -1.0;
+  int maxid = -1;
+  for(int i = 0; i < D; i++) {
+    if(output[i] > maxv) {
+      maxv = output[i];
+      maxid = i;
+    }
+  }
+  return (maxid == label) ? 0.0 : 1.0;
 }
 
 
