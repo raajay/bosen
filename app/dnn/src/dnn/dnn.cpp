@@ -600,7 +600,7 @@ float dnn::compute_loss(float *** weights, float ** biases) {
 
     loss/=cnt;
 
-    prediction_los /= cnt; // average loss over all samples
+    prediction_loss /= cnt; // average loss over all samples
     std::cout << "Prediction error = " << prediction_loss;
 
     for(int i=0; i < num_layers; i++) {
