@@ -12,6 +12,7 @@
 #include <petuum_ps_common/util/vector_clock.hpp>
 #include <petuum_ps/server/server_table.hpp>
 #include <petuum_ps/thread/ps_msgs.hpp>
+#include <petuum_ps_common/util/high_resolution_timer.hpp>
 
 namespace petuum {
 
@@ -67,8 +68,8 @@ namespace petuum {
     size_t push_row_msg_data_size_;
     int32_t server_id_;
     size_t accum_oplog_count_;
-
     bool is_replica_;
+    HighResolutionTimer from_start_timer_;
 
   }; // end class -- Server
 

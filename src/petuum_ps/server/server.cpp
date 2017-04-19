@@ -32,6 +32,7 @@ namespace petuum {
     server_id_ = server_id;
     accum_oplog_count_ = 0;
     is_replica_ = is_replica;
+    from_start_timer_.restart();
 
   } // end function - Init
 
