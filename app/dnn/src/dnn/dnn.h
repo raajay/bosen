@@ -82,6 +82,7 @@ private :
   void sgd_mini_batch(int * idxes_batch, mat * weights, mat* biases, float *** local_weights, float ** local_biases, float *** delta_weights, float ** delta_biases, float ** z, float ** delta, int ** rand_idxes_weight, int * rand_idxes_bias);
   //compute loss over the whole batch
   float compute_loss( float*** weights, float** biases);
+  float compute_prediction_loss(float*** weights, float** biases);
   //compute the cross entropy loss
   float compute_cross_entropy_loss(float * output, int idx_data);
   float compute_zero_one_loss(float* output, int num_classes, int idx_data);

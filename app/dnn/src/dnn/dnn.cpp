@@ -511,10 +511,12 @@ void dnn::train(mat * weights,
                         local_biases[l][j]=r[j];
                 }
 
-                float loss = compute_loss(local_weights, local_biases);
+                //float loss = compute_loss(local_weights, local_biases);
+
+                float prediction_error = compute_prediction_loss(local_weights, local_biases);
 
                 if((*thread_id)==0) {
-                  std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<loss<<std::endl;
+                  std::cout<<"client "<<client_id<<" worker "<<(*thread_id)<<" iter "<<it<<" loss is "<<prediction_error<<std::endl;
                 }
 
             }
@@ -609,6 +611,48 @@ float dnn::compute_loss(float *** weights, float ** biases) {
     delete[]z;
     return loss;
 }
+
+
+float dnn::compute_prediction_loss(float *** weights, float ** biases) {
+
+    float ** z=new float*[num_layers];
+    for(int i=0;i<num_layers;i++) {
+      z[i]=new float[num_units_ineach_layer[i]];
+    }
+
+    int cnt=0;
+
+    double prediction_loss = 0.0;
+
+    for(int smp=0; smp < num_train_data;smp++) {
+
+        if(((rand()%100000)/100000.0)>(num_smps_evaluate*1.0/num_train_data))
+            continue;
+
+        //copy the first layer
+        copy_vec(z[0], input_features[smp], num_units_ineach_layer[0]);
+
+        //forward propagation
+        for(int i = 1; i < num_layers; i++) {
+          forward_activation(i-1, weights[i-1], biases[i-1], z[i-1], z[i]);
+        }
+
+        //compute prediction loss
+        prediction_loss += compute_zero_one_loss(z[num_layers-1], num_units_ineach_layer[num_layers-1], smp);
+        cnt++;
+    }
+
+    prediction_loss /= cnt; // average loss over all samples
+
+    for(int i=0; i < num_layers; i++) {
+      delete[]z[i];
+    }
+    delete[]z;
+    return prediction_loss;
+}
+
+
+
 
 
 float dnn::compute_zero_one_loss(float* output, int D, int idx_data) {
