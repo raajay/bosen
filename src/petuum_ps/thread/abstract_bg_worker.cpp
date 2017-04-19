@@ -1065,6 +1065,17 @@ namespace petuum {
           STATS_MLFABRIC_CLIENT_PUSH_END(sender_id, acked_version);
         }
         break;
+
+      case kTransferResponse:
+        {
+          TransferResponseMsg response_msg(msg_mem);
+          VLOG(10) << "Received a reply from scheduler"
+                   << " unique id " << response_msg.get_unique_id()
+                   << " destination id " << response_msg.get_destination_id()
+                   << " transmission rate " << response_msg.get_transmission_rate();
+        }
+        break;
+
       default:
         LOG(FATAL) << "Unrecognized type " << msg_type;
       }
