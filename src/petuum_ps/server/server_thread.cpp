@@ -269,8 +269,16 @@ namespace petuum {
     int32_t clock = row_request_msg.get_clock();
     int32_t server_clock = server_obj_.GetMinClock();
 
-    VLOG(20) <<  "Handling row request sender=" << sender_id
-             << " table_id=" << table_id << " row=" << row_id;
+    uint32_t version = server_obj_.GetBgVersion(sender_id);
+    int32_t global_model_version = server_obj_.GetAsyncModelVersion();
+
+
+    if (row_id < 6) {
+      VLOG(2) <<  "Handling row request sender=" << sender_id
+              << " table_id=" << table_id
+              << " row=" << row_id
+              << " version=" << global_model_version;
+    }
 
 
     if(!GlobalContext::is_asynchronous_mode()) {
@@ -283,8 +291,8 @@ namespace petuum {
       }
     }
 
-    uint32_t version = server_obj_.GetBgVersion(sender_id);
-    int32_t global_model_version = server_obj_.GetAsyncModelVersion();
+    // uint32_t version = server_obj_.GetBgVersion(sender_id);
+    // int32_t global_model_version = server_obj_.GetAsyncModelVersion();
 
     ServerRow *server_row = server_obj_.FindCreateRow(table_id, row_id);
 

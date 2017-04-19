@@ -606,6 +606,9 @@ namespace petuum {
         delete oplog_msg_iter->second;
         oplog_msg_iter->second = 0;
 
+        VLOG(2) << "Oplog sent: client_clock=" << client_clock_
+                << " size=" << accum_size;
+
       } else {
 
         // If there is no gradient update to be sent to the server, then we just send them
@@ -624,7 +627,6 @@ namespace petuum {
     } // end for -- over server ids
 
     STATS_MLFABRIC_CLIENT_PUSH_END(0, version_);
-    VLOG(5) << "Total oplog size sent at clock:" << client_clock_ << " equals " << accum_size << " bytes.";
 
     STATS_BG_ADD_PER_CLOCK_OPLOG_SIZE(accum_size);
     return accum_size;
@@ -939,6 +941,7 @@ namespace petuum {
     RecvAppInitThreadConnection(&num_connected_app_threads);
     VLOG(5) << "Bg Worker thread:" << my_id_ << " connected with "
             << num_connected_app_threads << " app threads.";
+    from_start_timer_.restart();
 
     if(my_comm_channel_idx_ == 0){
       HandleCreateTables();
