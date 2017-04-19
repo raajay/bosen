@@ -168,6 +168,9 @@ namespace petuum {
                           bg_table_oplog,
                           GetSerializedRowOpLogSize);
 
+      // we update the  version used to compute the model
+      model_version_prepared_ = std::min(model_version_prepared_, row_oplog->GetGlobalVersion());
+
     } // end for -- over all rows that have oplog (i.e., those which are modified; obtained from oplog index)
 
     delete new_table_oplog_index_ptr; // no one else points to this struct, see earlier GetAndResetOpLogIndex function

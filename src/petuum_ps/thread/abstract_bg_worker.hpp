@@ -164,6 +164,8 @@ namespace petuum {
 
     std::unordered_map<int32_t, RowOpLogSerializer*> row_oplog_serializer_map_;
     HighResolutionTimer  from_start_timer_;
+    std::unordered_map<int32_t, ClientSendOpLogMsg*> backlog_msgs_;
+    int32_t model_version_prepared_;
   };
 
 } // end namespace -- petuum

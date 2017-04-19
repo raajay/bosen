@@ -228,6 +228,7 @@ namespace petuum {
       // TODO make this a configurable parameter
       is_asynchronous_mode_  = true;
       use_replication_ = false;
+      use_fabric_ = true;
 
       // process host map information
       for (auto host_iter = host_map.begin(); host_iter != host_map.end(); ++host_iter) {
@@ -686,6 +687,7 @@ namespace petuum {
     // (Raajay) new private variables
     static bool is_asynchronous_mode_;
     static bool use_replication_;
+    static bool use_fabric_;
 
   }; // class GlobalContext
 

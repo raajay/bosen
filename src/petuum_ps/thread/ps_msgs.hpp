@@ -702,6 +702,126 @@ namespace petuum {
   };
 
 
+  struct TransferRequestMsg : public NumberedMsg {
+  public:
+    TransferRequestMsg() {
+      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
+        own_mem_ = true;
+        use_stack_buff_ = false;
+        mem_.Alloc(get_size());
+      } else {
+        own_mem_ = false;
+        use_stack_buff_ = true;
+        mem_.Reset(stack_buff_);
+      }
+      InitMsg();
+    }
+
+
+
+    explicit TransferRequestMsg (void *msg):
+      NumberedMsg(msg) { }
+
+
+    // 1. server thread id
+    // 2. size in bytes
+    // 3. version
+    // 4. norm
+
+
+    size_t get_size() {
+      return NumberedMsg::get_size() +
+        sizeof(int32_t) +
+        sizeof(int32_t) +
+        sizeof(int32_t) +
+        sizeof(float)
+        ;
+    }
+
+    int32_t &get_server_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                           + NumberedMsg::get_size()));
+    }
+
+    int32_t &get_gradient_size() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(int32_t)));
+    }
+
+    int32_t &get_gradient_version() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(int32_t)
+                                          + sizeof(int32_t)));
+    }
+
+    float &get_gradient_norm() {
+      return *(reinterpret_cast<float*>(mem_.get_mem()
+                                        + NumberedMsg::get_size()
+                                        + sizeof(int32_t)
+                                        + sizeof(int32_t)
+                                        + sizeof(int32_t)));
+    }
+
+
+  protected:
+    void InitMsg() {
+      NumberedMsg::InitMsg();
+      get_msg_type() = kReplicaOpLogAck;
+    }
+  };
+
+
+
+  struct TransferReplyMsg : public NumberedMsg {
+  public:
+    TransferReplyMsg() {
+      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
+        own_mem_ = true;
+        use_stack_buff_ = false;
+        mem_.Alloc(get_size());
+      } else {
+        own_mem_ = false;
+        use_stack_buff_ = true;
+        mem_.Reset(stack_buff_);
+      }
+      InitMsg();
+    }
+
+    explicit TransferReplyMsg (void *msg):
+      NumberedMsg(msg) { }
+
+    // 1. new destination, -1 implies drop
+    // 2. new rate, in bytes per second
+
+    size_t get_size() {
+      return NumberedMsg::get_size() +
+        sizeof(int32_t) +
+        sizeof(int32_t)
+        ;
+    }
+
+    int32_t &get_destination_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                           + NumberedMsg::get_size()));
+    }
+
+    int32_t &get_transmission_rate() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(int32_t)));
+    }
+
+  protected:
+    void InitMsg() {
+      NumberedMsg::InitMsg();
+      get_msg_type() = kReplicaOpLogAck;
+    }
+  };
+
+
+
   struct BgClockMsg : public NumberedMsg {
   public:
     BgClockMsg() {
