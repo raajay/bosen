@@ -244,9 +244,12 @@ namespace petuum {
     } // end while -- as long as updates are available
 
     VLOG(2) << "Observed delay, sender_id=" << bg_thread_id
-             << ", server_id=" << server_id_
-             << ", server_version=" << async_version_
-             << ", delay=" << *observed_delay;
+            << ", server_id=" << server_id_
+            << ", server_version=" << async_version_
+            << ", delay=" << *observed_delay
+            << ", time=" << GetElapsedTime()
+            << ", size=" << oplog_size;
+
     async_version_++; // finally, increment the global version of the model
 
   } // end function -- apply op log update
@@ -263,7 +266,9 @@ namespace petuum {
     return bg_version_map_[bg_thread_id];
   }
 
-
+  double Server::GetElapsedTime() {
+    return from_start_timer_.elapsed();
+  }
 
   int32_t Server::GetAsyncModelVersion() {
     return async_version_;

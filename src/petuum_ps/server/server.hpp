@@ -54,6 +54,7 @@ namespace petuum {
     int32_t GetMinClock();
     int32_t GetBgVersion(int32_t bg_thread_id);
     int32_t GetAsyncModelVersion();
+    double GetElapsedTime();
 
   private:
     VectorClock bg_clock_;
