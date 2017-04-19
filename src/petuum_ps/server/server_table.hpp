@@ -36,6 +36,8 @@ namespace petuum {
       tmp_row_buff_size_ (kTmpRowBuffSizeInit),
       sample_row_(ClassRegistry<AbstractRow>::GetRegistry().CreateObject(table_info.row_type)) {
 
+      VLOG(15) << "Create a server table with configuration: " << table_info_.toString();
+
       if (table_info.oplog_dense_serialized) {
         ApplyRowBatchInc_ = ApplyRowDenseBatchInc;
       } else {
