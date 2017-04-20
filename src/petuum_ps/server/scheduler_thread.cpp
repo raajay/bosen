@@ -157,7 +157,7 @@ namespace petuum {
       version_counter_[server_id] = 0; // init to zero
     }
 
-    VLOG(10) << "Did i et here"
+    VLOG(10) << "Did i et here";
 
     if(pending_iter->second == 0) {
       VLOG(10) << "Send immediately";
