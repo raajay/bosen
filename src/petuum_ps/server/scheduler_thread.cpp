@@ -221,7 +221,9 @@ namespace petuum {
   }
 
 
-
+  /**
+   * Respond to completion of transfer and corresponding notification from the server.
+   */
   bool SchedulerThread::HandleTransferDelivered(int32_t server_id, TransferDeliveredMsg &delivered_msg) {
 
     int32_t queueing_key = get_queueing_key(server_id);
@@ -309,14 +311,14 @@ namespace petuum {
   } // end function -- operator
 
 
-
-
+  /**
+     Helper function to transfer message to any destination.
+  */
   size_t SchedulerThread::SendMsg(int32_t destination_id, MsgBase *msg) {
     size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(destination_id, msg->get_mem(), msg->get_size());
     CHECK_EQ(sent_size, msg->get_size());
     return sent_size;
   }
-
 
 
 } // end namespace -- petuum
