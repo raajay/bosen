@@ -148,16 +148,16 @@ namespace petuum {
 
 
 
-    auto pending_iter = pending_.find(server_id);
-    if(pending_iter == pending_.end()) {
+    if(pending_.find(server_id) == pending_.end()) {
       pending_[server_id] = 0; // init to zero
     }
-    auto version_iter = version_counter_.find(server_id);
-    if(version_iter == version_counter_.end()) {
+    VLOG(10) << "Inited pending map";
+
+    if(version_counter_.find(server_id) == version_counter_.end()) {
       version_counter_[server_id] = 0; // init to zero
     }
 
-    VLOG(10) << "Did i et here";
+    VLOG(10) << "Inited version map";
 
     if(pending_iter->second == 0) {
       VLOG(10) << "Send immediately";
