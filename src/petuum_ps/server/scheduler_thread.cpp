@@ -171,10 +171,12 @@ namespace petuum {
               << " size " << request_msg.get_gradient_size()
               << " version " << request_msg.get_gradient_version();
       discard = true;
+      send_immediately =  true;
     }
 
 
     if(send_immediately) {
+
       // for now immediately respond with Transfer Response
       TransferResponseMsg response_msg;
       if(discard) {
@@ -188,6 +190,7 @@ namespace petuum {
 
       pending_[server_id] += 1; // increment pending
       version_counter_[server_id] += 1;
+
     } else {
       // buffer it
       VLOG(2) << " Buffer transfer request "
