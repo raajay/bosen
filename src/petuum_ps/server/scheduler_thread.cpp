@@ -146,6 +146,8 @@ namespace petuum {
     bool send_immediately = false;
     bool discard = false;
 
+
+
     auto pending_iter = pending_.find(server_id);
     if(pending_iter == pending_.end()) {
       pending_[server_id] = 0; // init to zero
@@ -155,13 +157,15 @@ namespace petuum {
       version_counter_[server_id] = 0; // init to zero
     }
 
+    VLOG(10) << "Did i et here"
+
     if(pending_iter->second == 0) {
       VLOG(10) << "Send immediately";
       send_immediately = true;
     }
 
     if(version_counter_[server_id] + get_num_queued(server_id) - client_version > GlobalContext::get_num_clients() * 2) {
-      VLOG(10) << "Send immediately";
+      VLOG(10) << "Discard";
       discard = true;
     }
 
