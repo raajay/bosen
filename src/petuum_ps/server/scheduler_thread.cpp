@@ -183,16 +183,20 @@ namespace petuum {
       // for now immediately respond with Transfer Response
       TransferResponseMsg response_msg;
       if(discard) {
+
         response_msg.get_destination_id() =  -1;
+
       } else {
+
         response_msg.get_destination_id() = server_id;
+        pending_[server_id] += 1; // increment pending
+        version_counter_[server_id] += 1;
+
       }
       response_msg.get_unique_id() = unique_id;
       response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
       SendMsg(bg_id, &response_msg);
 
-      pending_[server_id] += 1; // increment pending
-      version_counter_[server_id] += 1;
 
     } else {
       // buffer it
@@ -215,18 +219,22 @@ namespace petuum {
     if(is_request_queued(server_id)) {
 
       TransferResponseMsg response_msg; //
+
       int32_t bg_id = storage_[server_id][0].bg_id_;
       int32_t unique_id = storage_[server_id][0].unique_id_;
+
+      VLOG(2) << "Sending response for server "  << server_id << " to worker " << bg_id << " unique id " << unique_id;
+
       response_msg.get_destination_id() =  server_id;
       response_msg.get_unique_id() = unique_id;
       response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
 
       SendMsg(bg_id, &response_msg);
+
       pending_[server_id] += 1;
       version_counter_[server_id] += 1;
       storage_[server_id].pop_front();
-      VLOG(2) << "Sending response for server "  << server_id
-              << " worker " << bg_id << " unique id " << unique_id;
+
     }
     return false;
   }
