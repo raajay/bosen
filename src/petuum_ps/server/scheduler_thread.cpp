@@ -230,9 +230,13 @@ namespace petuum {
     int32_t server_client_id = GlobalContext::thread_id_to_client_id(server_id);
     int32_t nic_id = get_server_nic_id(server_client_id);
     pending_[nic_id] -= 1;
-
     //TODO add check for ge 0
 
+    VLOG(2) << "ACK transfer complete "
+            << " server_id=" << server_id
+            << " client_id=" << server_client_id
+            << " NIC_id=" << nic_id
+            << " queue_size=" << storage_[nic_id].size();
 
     if(is_request_queued(nic_id)) {
 
