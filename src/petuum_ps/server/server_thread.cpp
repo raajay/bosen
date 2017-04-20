@@ -529,6 +529,11 @@ namespace petuum {
         break;
       case kClientSendOpLog:
         {
+
+          VLOG(2) << "END_TRANSFER"
+                  << " worker_id=" << sender_id
+                  << " destination_id=" << my_id_;
+
           // send a resp to scheduler
           TransferDeliveredMsg delivery_msg;
           delivery_msg.get_server_id() = my_id_;
