@@ -156,10 +156,12 @@ namespace petuum {
     }
 
     if(pending_iter->second == 0) {
+      VLOG(10) << "Send immediately";
       send_immediately = true;
     }
 
     if(version_counter_[server_id] + get_num_queued(server_id) - client_version > GlobalContext::get_num_clients() * 2) {
+      VLOG(10) << "Send immediately";
       discard = true;
     }
 
@@ -180,6 +182,7 @@ namespace petuum {
       version_counter_[server_id] += 1;
     } else {
       // buffer it
+      VLOG(10) << "buffering in storage";
       storage_[server_id].push_back(StoredValue(bg_id, unique_id));
     }
     return false;
