@@ -837,6 +837,61 @@ namespace petuum {
   };
 
 
+  struct TransferDeliveredMsg : public NumberedMsg {
+  public:
+    TransferDeliveredMsg() {
+      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
+        own_mem_ = true;
+        use_stack_buff_ = false;
+        mem_.Alloc(get_size());
+      } else {
+        own_mem_ = false;
+        use_stack_buff_ = true;
+        mem_.Reset(stack_buff_);
+      }
+      InitMsg();
+    }
+
+    explicit TransferDeliveredMsg (void *msg):
+      NumberedMsg(msg) { }
+
+    // 1. new destination, -1 implies drop
+    // 2. new rate, in bits per second
+    // 3. Unique id
+
+    size_t get_size() {
+      return NumberedMsg::get_size() +
+        sizeof(int32_t) +
+        sizeof(int32_t) +
+        sizeof(int32_t)
+        ;
+    }
+
+    int32_t &get_server_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                           + NumberedMsg::get_size()));
+    }
+
+    int32_t &get_worker_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(int32_t)));
+    }
+
+    int32_t &get_unique_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(int32_t)
+                                          + sizeof(int32_t)));
+    }
+
+  protected:
+    void InitMsg() {
+      NumberedMsg::InitMsg();
+      get_msg_type() = kTransferDelivered;
+    }
+  };
+
 
   struct BgClockMsg : public NumberedMsg {
   public:

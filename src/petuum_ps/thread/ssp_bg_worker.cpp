@@ -169,7 +169,9 @@ namespace petuum {
                           GetSerializedRowOpLogSize);
 
       // we update the  version used to compute the model
+      VLOG(20) << "model_version_prepared_:" << model_version_prepared_;
       model_version_prepared_ = std::min(model_version_prepared_, row_oplog->GetGlobalVersion());
+      VLOG(20) << "model_version_prepared_ (new):" << model_version_prepared_;
 
     } // end for -- over all rows that have oplog (i.e., those which are modified; obtained from oplog index)
 
