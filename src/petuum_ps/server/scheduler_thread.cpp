@@ -131,8 +131,11 @@ namespace petuum {
 
 
   bool SchedulerThread::HandleTransferRequest(int32_t bg_id, TransferRequestMsg &request_msg) {
+
     int32_t unique_id = request_msg.get_unique_id();
     int32_t server_id = request_msg.get_server_id();
+    int32_t client_version = request_msg.get_gradient_version();
+
     VLOG(2) << " Handling transfer request "
              << " unique id " << unique_id
              << " sender " << bg_id
@@ -140,21 +143,64 @@ namespace petuum {
              << " size " << request_msg.get_gradient_size()
              << " version " << request_msg.get_gradient_version();
 
+    bool send_immediately = false;
+    bool discard = false;
+
+    auto pending_iter = pending_.find(server_id);
+    if(pending_iter == pending_.end()) {
+      pending_[server_id] = 0; // init to zero
+    }
+    auto version_iter = version_counter_.find(server_id);
+    if(version_iter == version_counter_.end()) {
+      version_counter_[server_id] = 0; // init to zero
+    }
+
+    if(pending_iter->second == 0) {
+      send_immediately = true;
+    }
+
+    if(version_counter_[server_id] + get_num_queued(server_id) - client_version > GlobalContext::get_num_clients() * 2) {
+      discard = true;
+    }
 
 
-    // for now immediately respond with Transfer Response
-    TransferResponseMsg response_msg;
-    response_msg.get_destination_id() = server_id;
-    response_msg.get_unique_id() = unique_id;
-    response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
+    if(send_immediately) {
+      // for now immediately respond with Transfer Response
+      TransferResponseMsg response_msg;
+      if(discard) {
+        response_msg.get_destination_id() =  -1;
+      } else {
+        response_msg.get_destination_id() = server_id;
+      }
+      response_msg.get_unique_id() = unique_id;
+      response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
+      SendMsg(bg_id, &response_msg);
 
-    SendMsg(bg_id, &response_msg);
-
+      pending_[server_id] += 1; // increment pending
+      version_counter_[server_id] += 1;
+    } else {
+      // buffer it
+      storage_[server_id].push_back(StoredValue(bg_id, unique_id));
+    }
     return false;
   }
 
 
 
+  bool SchedulerThread::HandleTransferDelivered(int32_t server_id, TransferDeliveredMsg &delivered_msg) {
+    pending_[server_id] -= 1;
+
+    if(is_request_queued(server_id)) {
+      TransferResponseMsg response_msg; //
+      response_msg.get_destination_id() =  server_id;
+      response_msg.get_unique_id() = storage_[server_id][0].unique_id_;
+      response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
+      SendMsg(storage_[server_id][0].bg_id_, &response_msg);
+      pending_[server_id] += 1;
+      version_counter_[server_id] += 1;
+    }
+    return false;
+  }
 
   /*
    * operator(): The entry point for the main function for all threads.
@@ -188,6 +234,11 @@ namespace petuum {
             TransferRequestMsg transfer_request_msg(zmq_msg.data());
             HandleTransferRequest(sender_id, transfer_request_msg);
             break;
+          }
+        case kTransferDelivered:
+          {
+            TransferDeliveredMsg delivered_msg(zmq_msg.data());
+            HandleTransferDelivered(sender_id, delivered_msg);
           }
         default:
               LOG(FATAL) << "Unrecognized message type " << msg_type

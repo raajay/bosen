@@ -1107,15 +1107,25 @@ namespace petuum {
           int unique_id = response_msg.get_unique_id();
           int destination_id = response_msg.get_destination_id();
 
-          auto oplog_msg_iter = backlog_msgs_.find(unique_id);
-          MemTransfer::TransferMem(comm_bus_, destination_id, oplog_msg_iter->second);
+          if(destination_id == -1) {
+            auto oplog_msg_iter = backlog_msgs_.find(unique_id);
+            delete oplog_msg_iter->second;
+            backlog_msgs_.erase(unique_id);
 
-          VLOG(2) << "Oplog sent: client_clock=" << client_clock_
-                  <<" server=" <<  destination_id
-                  <<" clientversion=" << version_
-                  << " size=" << oplog_msg_iter->second->get_size()
-                  << " time=" << GetElapsedTime();
-          //
+            VLOG(2) << "Discard oplog: client_clock=" << client_clock_
+                    <<" server=" <<  destination_id
+                    <<" clientversion=" << version_
+                    << " size=" << oplog_msg_iter->second->get_size()
+                    << " time=" << GetElapsedTime();
+          } else {
+            auto oplog_msg_iter = backlog_msgs_.find(unique_id);
+            MemTransfer::TransferMem(comm_bus_, destination_id, oplog_msg_iter->second);
+            VLOG(2) << "Oplog sent: client_clock=" << client_clock_
+                    <<" server=" <<  destination_id
+                    <<" clientversion=" << version_
+                    << " size=" << oplog_msg_iter->second->get_size()
+                    << " time=" << GetElapsedTime();
+          }
 
         }
         break;

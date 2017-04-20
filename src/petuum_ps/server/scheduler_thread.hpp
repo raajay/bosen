@@ -8,8 +8,20 @@
 #include <petuum_ps_common/util/thread.hpp>
 #include <petuum_ps/thread/ps_msgs.hpp>
 #include <petuum_ps_common/comm_bus/comm_bus.hpp>
+#include <boost/unordered_map.hpp>
 
 namespace petuum {
+
+  class StoredValue {
+  public:
+    StoredValue(int bg_id, int unique_id) {
+      bg_id_ = bg_id;
+      unique_id_ = unique_id;
+    }
+    int32_t bg_id_;
+    int32_t unique_id_;
+  };
+
 
   class SchedulerThread : public Thread {
   public:
@@ -36,12 +48,39 @@ namespace petuum {
 
     // communication functions
     bool HandleTransferRequest(int32_t bg_id, TransferRequestMsg &request_msg);
+    bool HandleTransferDelivered(int32_t server_id, TransferDeliveredMsg &delivered_msg);
 
     // internal data structures
     int32_t my_id_;    // the id of the scheduler thread
     pthread_barrier_t *init_barrier_; // a barrier to set up comm_buss
     CommBus *comm_bus_;
     std::vector<int32_t> bg_worker_ids_;
+
+    boost::unordered_map<int32_t, std::deque<StoredValue> > storage_;
+    boost::unordered_map<int32_t, int32_t> version_counter_;
+    boost::unordered_map<int32_t, int32_t> pending_;
+
+    int32_t get_num_queued(int32_t server_id) {
+      auto iter = storage_.find(server_id);
+      if(iter == storage_.end()) {
+        return 0;
+      } else {
+        return storage_[server_id].size();
+      }
+    }
+
+
+    bool is_request_queued(int32_t server_id) {
+      auto iter = storage_.find(server_id);
+      if(iter == storage_.end()) {
+        return false;
+      } else {
+        return true;
+      }
+    }
+
+
+
 
   };
 }

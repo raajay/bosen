@@ -529,6 +529,16 @@ namespace petuum {
         break;
       case kClientSendOpLog:
         {
+          // send a resp to scheduler
+          TransferDeliveredMsg delivery_msg;
+          delivery_msg.get_server_id() = my_id_;
+          delivery_msg.get_worker_id() = sender_id;
+          delivery_msg.get_unique_id() = 0;
+          size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))(GlobalContext::get_scheduler_id(),
+                                                                 delivery_msg.get_mem(),
+                                                                 delivery_msg.get_size());
+          CHECK_EQ(delivery_msg.get_size(), sent_size);
+
           // here, we decide what to do with the oplog (update) that the client
           // sends.
           ClientSendOpLogMsg client_send_oplog_msg(msg_mem);
