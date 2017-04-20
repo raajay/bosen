@@ -40,7 +40,7 @@ namespace petuum {
 
     GlobalContext::GetAggregatorThreadIDs(my_comm_channel_idx_, &(aggregator_ids_));
 
-    model_version_prepared_ = 0;
+    model_version_prepared_ = INT_MAX;
     current_unique_id_ = 0;
 
   } // end function -- constructor
@@ -655,6 +655,8 @@ namespace petuum {
     STATS_MLFABRIC_CLIENT_PUSH_END(0, version_);
 
     STATS_BG_ADD_PER_CLOCK_OPLOG_SIZE(accum_size);
+    model_version_prepared_ = INT_MAX;
+
     return accum_size;
 
   } // end function -- send op log message
