@@ -1098,35 +1098,40 @@ namespace petuum {
       case kTransferResponse:
         {
           TransferResponseMsg response_msg(msg_mem);
-          VLOG(2) << "Received a reply from scheduler"
-                   << " unique id " << response_msg.get_unique_id()
-                   << " destination id " << response_msg.get_destination_id()
-                   << " transmission rate " << response_msg.get_transmission_rate();
-          // find the oplog msg
 
           int unique_id = response_msg.get_unique_id();
           int destination_id = response_msg.get_destination_id();
 
+
           if(destination_id == -1) {
+
             auto oplog_msg_iter = backlog_msgs_.find(unique_id);
             delete oplog_msg_iter->second;
             backlog_msgs_.erase(unique_id);
 
-            VLOG(2) << "Discard oplog: client_clock=" << client_clock_
-                    <<" server=" <<  destination_id
-                    <<" clientversion=" << version_
+            VLOG(2) << "DROP_TRANSFER client_clock=" << client_clock_
+                    <<" destination_id=" << destination_id
+                    <<" client_version=" << version_
                     << " size=" << oplog_msg_iter->second->get_size()
                     << " time=" << GetElapsedTime();
-          } else {
-            auto oplog_msg_iter = backlog_msgs_.find(unique_id);
-            MemTransfer::TransferMem(comm_bus_, destination_id, oplog_msg_iter->second);
-            VLOG(2) << "Oplog sent: client_clock=" << client_clock_
-                    <<" server=" <<  destination_id
-                    <<" clientversion=" << version_
-                    << " size=" << oplog_msg_iter->second->get_size()
-                    << " time=" << GetElapsedTime();
-          }
 
+          } else {
+
+            auto oplog_msg_iter = backlog_msgs_.find(unique_id);
+
+            VLOG(2) << "START_TRANSFER "
+                    << " worker_id=" << my_id_
+                    << " destination_id=" << destination_id
+                    << " unique_id=" << unique_id
+                    << " transmission_rate=" << response_msg.get_transmission_rate()
+                    << " transfer_size=" << oplog_msg_iter->second->get_size()
+                    << " time_from_start=" << GetElapsedTime();
+
+            MemTransfer::TransferMem(comm_bus_, destination_id, oplog_msg_iter->second);
+
+            delete oplog_msg_iter->second;
+            backlog_msgs_.erase(unique_id);
+          }
         }
         break;
 
