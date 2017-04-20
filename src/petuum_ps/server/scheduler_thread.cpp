@@ -163,6 +163,7 @@ namespace petuum {
       send_immediately = true;
     }
 
+/*
     if(version_counter_[server_id] + get_num_queued(server_id) - client_version > GlobalContext::get_num_clients() * 2) {
       VLOG(2) << " Discard transfer request "
               << " unique id " << unique_id
@@ -176,6 +177,7 @@ namespace petuum {
       discard = true;
       send_immediately =  true;
     }
+    */
 
 
     if(send_immediately) {
@@ -233,6 +235,9 @@ namespace petuum {
 
       pending_[server_id] += 1;
       version_counter_[server_id] += 1;
+
+
+        // pop from the server
       storage_[server_id].pop_front();
 
     }
