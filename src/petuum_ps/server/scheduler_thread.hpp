@@ -14,12 +14,14 @@ namespace petuum {
 
   class StoredValue {
   public:
-    StoredValue(int bg_id, int unique_id) {
+    StoredValue(int32_t bg_id, int32_t unique_id, int32_t server_id) {
       bg_id_ = bg_id;
       unique_id_ = unique_id;
+      destination_server_id_ = server_id;
     }
     int32_t bg_id_;
     int32_t unique_id_;
+    int32_t destination_server_id_;
   };
 
 
@@ -56,31 +58,40 @@ namespace petuum {
     CommBus *comm_bus_;
     std::vector<int32_t> bg_worker_ids_;
 
+
+
+    // these should be indexed by server client id as opposed to server id
     boost::unordered_map<int32_t, std::deque<StoredValue> > storage_;
     boost::unordered_map<int32_t, int32_t> version_counter_;
     boost::unordered_map<int32_t, int32_t> pending_;
 
-    int32_t get_num_queued(int32_t server_id) {
-      auto iter = storage_.find(server_id);
-      if(iter == storage_.end()) {
+
+
+    int32_t get_num_queued(int32_t nic_id) {
+      if(storage_.find(nic_id) == storage_.end()) {
         return 0;
       } else {
-        return storage_[server_id].size();
+        return storage_[nic_id].size();
       }
     }
 
 
-    bool is_request_queued(int32_t server_id) {
-      auto iter = storage_.find(server_id);
-      if(iter == storage_.end()) {
+    bool is_request_queued(int32_t nic_id) {
+      if(storage_.find(nic_id) == storage_.end()) {
         return false;
       } else {
-        return true;
+        if(storage_[nic_id].empty()) {
+          return false;
+        } else {
+          return true;
+        }
       }
     }
 
 
-
+    int32_t get_server_nic_id(int32_t server_client_id) {
+      return 1;
+    }
 
   };
 }

@@ -135,35 +135,36 @@ namespace petuum {
     int32_t unique_id = request_msg.get_unique_id();
     int32_t server_id = request_msg.get_server_id();
     int32_t client_version = request_msg.get_gradient_version();
+    int32_t gradient_size = request_msg.get_gradient_size();
 
-    VLOG(2) << " Handling transfer request "
-             << " unique id " << unique_id
-             << " sender " << bg_id
-             << " server " << server_id
-             << " size " << request_msg.get_gradient_size()
-             << " version " << request_msg.get_gradient_version();
+    int32_t server_client_id = GlobalContext::thread_id_to_client_id(server_id);
+    int32_t nic_id = get_server_nic_id(server_client_id);
+
+    VLOG(2) << "GET transfer request "
+            << " sender_id=" << bg_id
+            << " unique_id=" << unique_id
+            << " server_id=" << server_id
+            << " client_id=" << server_client_id
+            << " NIC_id=" << nic_id
+            << " size=" << gradient_size
+            << " update_version=" << client_version;
 
     bool send_immediately = false;
     bool discard = false;
 
-
-
-    if(pending_.find(server_id) == pending_.end()) {
-      pending_[server_id] = 0; // init to zero
+    if(pending_.find(nic_id) == pending_.end()) {
+      pending_[nic_id] = 0; // init to zero
     }
-
 
     if(version_counter_.find(server_id) == version_counter_.end()) {
       version_counter_[server_id] = 0; // init to zero
     }
 
-
-    if(pending_[server_id] == 0) {
-      VLOG(10) << "Send response to request immediately.";
+    if(pending_[nic_id] == 0) {
       send_immediately = true;
     }
 
-/*
+    /*
     if(version_counter_[server_id] + get_num_queued(server_id) - client_version > GlobalContext::get_num_clients() * 2) {
       VLOG(2) << " Discard transfer request "
               << " unique id " << unique_id
@@ -185,60 +186,78 @@ namespace petuum {
       // for now immediately respond with Transfer Response
       TransferResponseMsg response_msg;
       if(discard) {
-
         response_msg.get_destination_id() =  -1;
-
       } else {
-
         response_msg.get_destination_id() = server_id;
-        pending_[server_id] += 1; // increment pending
-        version_counter_[server_id] += 1;
 
+        pending_[nic_id] += 1; // increment pending on NIC
+        version_counter_[server_id] += 1; // increment version sent to server
       }
       response_msg.get_unique_id() = unique_id;
       response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
       SendMsg(bg_id, &response_msg);
 
+      VLOG(2) << "REPLY IMMEDIATE transfer request "
+              << " sender_id=" << bg_id
+              << " unique_id=" << unique_id
+              << " server_id=" << server_id
+              << " client_id=" << server_client_id
+              << " NIC_id=" << nic_id
+              << " size=" << gradient_size
+              << " update_version=" << client_version;
 
     } else {
       // buffer it
-      VLOG(2) << " Buffer transfer request "
-              << " unique id " << unique_id
-              << " sender " << bg_id
-              << " server " << server_id
-              << " size " << request_msg.get_gradient_size()
-              << " version " << request_msg.get_gradient_version();
-      storage_[server_id].push_back(StoredValue(bg_id, unique_id));
+      VLOG(2) << "BUFFER transfer request "
+              << " sender_id=" << bg_id
+              << " unique_id=" << unique_id
+              << " server_id=" << server_id
+              << " client_id=" << server_client_id
+              << " NIC_id=" << nic_id
+              << " size=" << gradient_size
+              << " update_version=" << client_version;
+
+      storage_[nic_id].push_back(StoredValue(bg_id, unique_id, server_id));
     }
+
     return false;
   }
 
 
 
   bool SchedulerThread::HandleTransferDelivered(int32_t server_id, TransferDeliveredMsg &delivered_msg) {
-    pending_[server_id] -= 1;
 
-    if(is_request_queued(server_id)) {
+    int32_t server_client_id = GlobalContext::thread_id_to_client_id(server_id);
+    int32_t nic_id = get_server_nic_id(server_client_id);
+    pending_[nic_id] -= 1;
 
-      TransferResponseMsg response_msg; //
+    //TODO add check for ge 0
 
-      int32_t bg_id = storage_[server_id][0].bg_id_;
-      int32_t unique_id = storage_[server_id][0].unique_id_;
 
-      VLOG(2) << "Sending response for server "  << server_id << " to worker " << bg_id << " unique id " << unique_id;
+    if(is_request_queued(nic_id)) {
 
-      response_msg.get_destination_id() =  server_id;
+      TransferResponseMsg response_msg;
+      int32_t bg_id = storage_[nic_id][0].bg_id_;
+      int32_t unique_id = storage_[nic_id][0].unique_id_;
+      int32_t destination_server_id = storage_[nic_id][0].destination_server_id_;
+
+      VLOG(2) << "REPLY from STORAGE transfer request "
+              << " worker_id=" << bg_id
+              << " unique_id=" << unique_id
+              << " destination_server_id=" << destination_server_id
+              << " client_id=" << server_client_id
+              << " NIC_id=" << nic_id;
+
+      response_msg.get_destination_id() =  destination_server_id;
       response_msg.get_unique_id() = unique_id;
       response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
 
       SendMsg(bg_id, &response_msg);
-
-      pending_[server_id] += 1;
+      pending_[nic_id] += 1;
       version_counter_[server_id] += 1;
+      // pop from the storage
 
-
-        // pop from the server
-      storage_[server_id].pop_front();
+      storage_[nic_id].pop_front();
 
     }
     return false;
