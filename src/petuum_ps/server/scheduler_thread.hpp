@@ -9,6 +9,7 @@
 #include <petuum_ps/thread/ps_msgs.hpp>
 #include <petuum_ps_common/comm_bus/comm_bus.hpp>
 #include <boost/unordered_map.hpp>
+#include <petuum_ps/thread/context.hpp>
 
 namespace petuum {
 
@@ -66,7 +67,6 @@ namespace petuum {
     boost::unordered_map<int32_t, int32_t> pending_;
 
 
-
     int32_t get_num_queued(int32_t nic_id) {
       if(storage_.find(nic_id) == storage_.end()) {
         return 0;
@@ -92,6 +92,18 @@ namespace petuum {
     int32_t get_server_nic_id(int32_t server_client_id) {
       return 1;
     }
+
+
+    int32_t get_queueing_key(int32_t server_id) {
+      if(true) {
+        int32_t server_client_id = GlobalContext::thread_id_to_client_id(server_id);
+        int32_t nic_id = get_server_nic_id(server_client_id);
+        return nic_id;
+      } else {
+        return server_id;
+      }
+    }
+
 
   };
 }
