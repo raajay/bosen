@@ -605,8 +605,24 @@ namespace petuum {
         oplog_msg_iter->second->get_bg_clock() = clock_has_pushed_ + 1;
 
         accum_size += oplog_msg_iter->second->get_size();
-        MemTransfer::TransferMem(comm_bus_, server_id, oplog_msg_iter->second);
 
+        // buffer the update and send a transfer request msg
+        backlog_msgs_[current_unique_id_] = oplog_msg_iter->second;
+
+
+        // also send a transfer request. At some point this will take over.
+        TransferRequestMsg request_msg;
+        request_msg.get_server_id() = server_id;
+        request_msg.get_gradient_size() = oplog_msg_iter->second->get_size();
+        request_msg.get_gradient_norm() = 0.0;
+        request_msg.get_unique_id() = current_unique_id_;
+        // at any point there are not a million pending requests from servers
+        current_unique_id_ = (current_unique_id_ + 1) % 1000000;
+        comm_bus_->SendInterProc(GlobalContext::get_scheduler_id(), request_msg.get_mem(), request_msg.get_size());
+
+
+        /*
+        MemTransfer::TransferMem(comm_bus_, server_id, oplog_msg_iter->second);
         // delete message after send
         delete oplog_msg_iter->second;
         oplog_msg_iter->second = 0;
@@ -616,6 +632,7 @@ namespace petuum {
                 <<" clientversion=" << version_
                 << " size=" << accum_size
                 << " time=" << GetElapsedTime();
+        */
 
       } else {
 
@@ -1078,10 +1095,25 @@ namespace petuum {
       case kTransferResponse:
         {
           TransferResponseMsg response_msg(msg_mem);
-          VLOG(10) << "Received a reply from scheduler"
+          VLOG(2) << "Received a reply from scheduler"
                    << " unique id " << response_msg.get_unique_id()
                    << " destination id " << response_msg.get_destination_id()
                    << " transmission rate " << response_msg.get_transmission_rate();
+          // find the oplog msg
+
+          int unique_id = response_msg.get_unique_id();
+          int destination_id = response_msg.get_destination_id();
+
+          auto oplog_msg_iter = backlog_msgs_.find(unique_id);
+          MemTransfer::TransferMem(comm_bus_, destination_id, oplog_msg_iter->second);
+
+          VLOG(2) << "Oplog sent: client_clock=" << client_clock_
+                  <<" server=" <<  destination_id
+                  <<" clientversion=" << version_
+                  << " size=" << oplog_msg_iter->second->get_size()
+                  << " time=" << GetElapsedTime();
+          //
+
         }
         break;
 
