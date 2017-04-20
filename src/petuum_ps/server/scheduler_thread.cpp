@@ -159,7 +159,7 @@ namespace petuum {
 
     VLOG(10) << "Inited version map";
 
-    if(pending_iter->second == 0) {
+    if(pending_[server_id] == 0) {
       VLOG(10) << "Send immediately";
       send_immediately = true;
     }
