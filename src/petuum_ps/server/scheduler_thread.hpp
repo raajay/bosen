@@ -95,7 +95,7 @@ namespace petuum {
 
 
     int32_t get_queueing_key(int32_t server_id) {
-      if(true) {
+      if(false) {
         int32_t server_client_id = GlobalContext::thread_id_to_client_id(server_id);
         int32_t nic_id = get_server_nic_id(server_client_id);
         return nic_id;
