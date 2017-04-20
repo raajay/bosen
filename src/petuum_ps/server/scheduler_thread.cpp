@@ -151,21 +151,25 @@ namespace petuum {
     if(pending_.find(server_id) == pending_.end()) {
       pending_[server_id] = 0; // init to zero
     }
-    VLOG(10) << "Inited pending map";
+
 
     if(version_counter_.find(server_id) == version_counter_.end()) {
       version_counter_[server_id] = 0; // init to zero
     }
 
-    VLOG(10) << "Inited version map";
 
     if(pending_[server_id] == 0) {
-      VLOG(10) << "Send immediately";
+      VLOG(10) << "Send response to request immediately.";
       send_immediately = true;
     }
 
     if(version_counter_[server_id] + get_num_queued(server_id) - client_version > GlobalContext::get_num_clients() * 2) {
-      VLOG(10) << "Discard";
+      VLOG(2) << " Discard transfer request "
+              << " unique id " << unique_id
+              << " sender " << bg_id
+              << " server " << server_id
+              << " size " << request_msg.get_gradient_size()
+              << " version " << request_msg.get_gradient_version();
       discard = true;
     }
 
@@ -186,7 +190,12 @@ namespace petuum {
       version_counter_[server_id] += 1;
     } else {
       // buffer it
-      VLOG(10) << "buffering in storage";
+      VLOG(2) << " Buffer transfer request "
+              << " unique id " << unique_id
+              << " sender " << bg_id
+              << " server " << server_id
+              << " size " << request_msg.get_gradient_size()
+              << " version " << request_msg.get_gradient_version();
       storage_[server_id].push_back(StoredValue(bg_id, unique_id));
     }
     return false;
@@ -198,13 +207,20 @@ namespace petuum {
     pending_[server_id] -= 1;
 
     if(is_request_queued(server_id)) {
+
       TransferResponseMsg response_msg; //
+      int32_t bg_id = storage_[server_id][0].bg_id_;
+      int32_t unique_id = storage_[server_id][0].unique_id_;
       response_msg.get_destination_id() =  server_id;
-      response_msg.get_unique_id() = storage_[server_id][0].unique_id_;
+      response_msg.get_unique_id() = unique_id;
       response_msg.get_transmission_rate() = 1000000000; // 10 Gbps
-      SendMsg(storage_[server_id][0].bg_id_, &response_msg);
+
+      SendMsg(bg_id, &response_msg);
       pending_[server_id] += 1;
       version_counter_[server_id] += 1;
+      storage_[server_id].pop_front();
+      VLOG(2) << "Sending response for server "  << server_id
+              << " worker " << bg_id << " unique id " << unique_id;
     }
     return false;
   }
@@ -247,6 +263,7 @@ namespace petuum {
             TransferDeliveredMsg delivered_msg(zmq_msg.data());
             HandleTransferDelivered(sender_id, delivered_msg);
           }
+          break;
         default:
               LOG(FATAL) << "Unrecognized message type " << msg_type
                   << " sender = " << sender_id;
