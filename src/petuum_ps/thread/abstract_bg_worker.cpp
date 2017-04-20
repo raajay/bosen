@@ -614,6 +614,7 @@ namespace petuum {
         TransferRequestMsg request_msg;
         request_msg.get_server_id() = server_id;
         request_msg.get_gradient_size() = oplog_msg_iter->second->get_size();
+        request_msg.get_gradient_version() = model_version_prepared_;
         request_msg.get_gradient_norm() = 0.0;
         request_msg.get_unique_id() = current_unique_id_;
         // at any point there are not a million pending requests from servers
