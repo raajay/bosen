@@ -169,7 +169,10 @@ namespace petuum {
               << " sender " << bg_id
               << " server " << server_id
               << " size " << request_msg.get_gradient_size()
-              << " version " << request_msg.get_gradient_version();
+              << " version " << request_msg.get_gradient_version()
+              << " vccounter " << version_counter_[server_id]
+              << " num queued " << get_num_queued(server_id);
+
       discard = true;
       send_immediately =  true;
     }
