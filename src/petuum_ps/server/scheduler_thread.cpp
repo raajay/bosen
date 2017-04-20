@@ -133,7 +133,7 @@ namespace petuum {
   bool SchedulerThread::HandleTransferRequest(int32_t bg_id, TransferRequestMsg &request_msg) {
     int32_t unique_id = request_msg.get_unique_id();
     int32_t server_id = request_msg.get_server_id();
-    VLOG(10) << " Handling transfer request "
+    VLOG(2) << " Handling transfer request "
              << " unique id " << unique_id
              << " sender " << bg_id
              << " server " << server_id
