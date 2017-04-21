@@ -502,6 +502,11 @@ namespace petuum {
     }
   };
 
+
+  /**
+   * Send a notification from scheduler and name node thread to notification
+   * connection of server.
+   */
   struct ConnectServerMsg : public NumberedMsg {
   public:
     ConnectServerMsg() {
@@ -525,8 +530,12 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kConnectServer;
     }
-  };
+  }; // end class -- connect server message
 
+
+  /**
+   * Send a notification that client starts sent to scheduler and name node thread.
+   */
   struct ClientStartMsg : public NumberedMsg {
   public:
     ClientStartMsg() {
@@ -550,8 +559,12 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kClientStart;
     }
-  };
+  }; // end class -- send a notification that client is started.
 
+
+  /**
+   * Send a message notifying that the application wants to de-register.
+   */
   struct AppThreadDeregMsg : public NumberedMsg {
   public:
     AppThreadDeregMsg() {
@@ -575,8 +588,11 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kAppThreadDereg;
     }
-  };
+  }; // end class -- application thread de-register
 
+
+  /**
+   */
   struct ClientShutDownMsg : public NumberedMsg {
   public:
     ClientShutDownMsg() {
@@ -600,8 +616,12 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kClientShutDown;
     }
-  };
+  }; // end class - client shutdown message
 
+
+  /**
+   * Acknowledgement to shutdown the server.
+   */
   struct ServerShutDownAckMsg : public NumberedMsg {
   public:
     ServerShutDownAckMsg() {
@@ -625,8 +645,12 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kServerShutDownAck;
     }
-  };
+  }; // end class -- server shutdown acknowledgement message
 
+
+  /**
+   * Acknowledgement that the server gives after receiving the oplog from a client.
+   */
   struct ServerOpLogAckMsg : public NumberedMsg {
   public:
     ServerOpLogAckMsg() {
@@ -659,8 +683,13 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kServerOpLogAck;
     }
-  };
+  }; // end class -- server oplog acknowledgement message
 
+
+  /**
+   * Send a acknowledgement from replica after the oplog is received. Useful for
+   * chain replication.
+   */
   struct ReplicaOpLogAckMsg : public NumberedMsg {
   public:
     ReplicaOpLogAckMsg() {
@@ -699,9 +728,12 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kReplicaOpLogAck;
     }
-  };
+  }; // end class -- replica oplog ack message
 
 
+  /**
+   * Send a request to scheduler asking for transfer.
+   */
   struct TransferRequestMsg : public NumberedMsg {
   public:
     TransferRequestMsg() {
@@ -777,10 +809,12 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kTransferRequest;
     }
-  };
+  }; // end class -- transfer request message
 
 
-
+  /**
+   * Notification from scheduler to start transfer.
+   */
   struct TransferResponseMsg : public NumberedMsg {
   public:
     TransferResponseMsg() {
@@ -837,6 +871,10 @@ namespace petuum {
   };
 
 
+  /**
+   * Notification that a server sends to the scheduler that a scheduled
+   * transfer is complete.
+   */
   struct TransferDeliveredMsg : public NumberedMsg {
   public:
     TransferDeliveredMsg() {
@@ -852,12 +890,11 @@ namespace petuum {
       InitMsg();
     }
 
-    explicit TransferDeliveredMsg (void *msg):
-      NumberedMsg(msg) { }
-
     // 1. new destination, -1 implies drop
     // 2. new rate, in bits per second
     // 3. Unique id
+    explicit TransferDeliveredMsg (void *msg):
+      NumberedMsg(msg) { }
 
     size_t get_size() {
       return NumberedMsg::get_size() +
@@ -890,9 +927,11 @@ namespace petuum {
       NumberedMsg::InitMsg();
       get_msg_type() = kTransferDelivered;
     }
-  };
+  }; // end class -- Transfer delivered message
 
 
+  /**
+   */
   struct BgClockMsg : public NumberedMsg {
   public:
     BgClockMsg() {
@@ -918,6 +957,9 @@ namespace petuum {
     }
   };
 
+
+  /**
+   */
   struct BgSendOpLogMsg : public NumberedMsg {
   public:
     BgSendOpLogMsg() {
@@ -943,40 +985,11 @@ namespace petuum {
     }
   };
 
-  struct BgHandleAppendOpLogMsg : public NumberedMsg {
-  public:
-    BgHandleAppendOpLogMsg() {
-      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
-        own_mem_ = true;
-        use_stack_buff_ = false;
-        mem_.Alloc(get_size());
-      } else {
-        own_mem_ = false;
-        use_stack_buff_ = true;
-        mem_.Reset(stack_buff_);
-      }
-      InitMsg();
-    }
 
-    explicit BgHandleAppendOpLogMsg(void *msg):
-      NumberedMsg(msg) {}
-
-    size_t get_size() {
-      return NumberedMsg::get_size() + sizeof(int32_t);
-    }
-
-    int32_t &get_table_id() {
-      return *(reinterpret_cast<int32_t*>(
-                                          mem_.get_mem() + NumberedMsg::get_size()));
-    }
-
-  protected:
-    void InitMsg() {
-      NumberedMsg::InitMsg();
-      get_msg_type() = kBgHandleAppendOpLog;
-    }
-  };
-
+  /**
+   * Reply from the server having the model values. We currently focus only on
+   * split based on row_id.
+   */
   struct ServerRowRequestReplyMsg : public ArbitrarySizedMsg {
 
   public:
@@ -1062,8 +1075,9 @@ namespace petuum {
   }; // end class - Server Row Request reply message
 
 
-
-
+  /**
+   * Message with the gradient updates that an client sends to the server.
+   */
   struct ClientSendOpLogMsg : public ArbitrarySizedMsg {
 
   public:
@@ -1145,6 +1159,10 @@ namespace petuum {
   }; // end class - Client send operation log message
 
 
+  /**
+   * Message that the server sends to the replica server, after receiving an
+   * oplog from client.
+   */
   struct ServerSendOpLogMsg : public ArbitrarySizedMsg {
 
   public:
@@ -1203,56 +1221,5 @@ namespace petuum {
     }
 
   }; // end class - Server send operation log message to replica
-
-
-
-
-  struct ServerPushRowMsg : public ArbitrarySizedMsg {
-  public:
-    explicit ServerPushRowMsg(int32_t avai_size) {
-      own_mem_ = true;
-      mem_.Alloc(get_header_size() + avai_size);
-      InitMsg(avai_size);
-    }
-
-    explicit ServerPushRowMsg(void *msg):
-      ArbitrarySizedMsg(msg) {}
-
-    size_t get_header_size() {
-      return ArbitrarySizedMsg::get_header_size() + sizeof(int32_t)
-        + sizeof(uint32_t) + sizeof(bool);
-    }
-
-    int32_t &get_clock() {
-      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
-                                          + ArbitrarySizedMsg::get_header_size()));
-    }
-
-    uint32_t &get_version() {
-      return *(reinterpret_cast<uint32_t*>(mem_.get_mem()
-                                           + ArbitrarySizedMsg::get_header_size() + sizeof(int32_t)));
-    }
-
-    bool &get_is_clock() {
-      return *(reinterpret_cast<bool*>(mem_.get_mem()
-                                       + ArbitrarySizedMsg::get_header_size() + sizeof(int32_t)
-                                       + sizeof(uint32_t) ));
-    }
-
-    // data is to be accessed via SerializedRowReader
-    void *get_data() {
-      return mem_.get_mem() + get_header_size();
-    }
-
-    size_t get_size() {
-      return get_header_size() + get_avai_size();
-    }
-
-  protected:
-    virtual void InitMsg(int32_t avai_size) {
-      ArbitrarySizedMsg::InitMsg(avai_size);
-      get_msg_type() = kServerPushRow;
-    }
-  };
 
 }  // namespace petuum

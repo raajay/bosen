@@ -179,11 +179,13 @@ namespace petuum {
     CHECK_EQ(sent_size, bg_clock_msg.get_size());
   }
 
+
   void AbstractBgWorker::SendOpLogsAllTables() {
     BgSendOpLogMsg bg_send_oplog_msg;
     size_t sent_size = SendMsg(reinterpret_cast<MsgBase*>(&bg_send_oplog_msg));
     CHECK_EQ(sent_size, bg_send_oplog_msg.get_size());
   }
+
 
   void AbstractBgWorker::InitWhenStart() {
     SetWaitMsg();
