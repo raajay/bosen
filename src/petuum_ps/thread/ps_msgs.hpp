@@ -987,6 +987,48 @@ namespace petuum {
 
 
   /**
+   *
+   */
+  struct ServerBulkRowRequestReplyMsg : public ArbitrarySizedMsg {
+  public:
+    explicit ServerBulkRowRequestReplyMsg(int32_t avai_size) {
+      own_mem_ = true;
+      mem_.Alloc(get_header_size() + avai_size);
+      InitMsg(avai_size);
+    }
+
+    explicit ServerBulkRowRequestReplyMsg(void *msg):
+      ArbitrarySizedMsg(msg) {}
+
+    size_t get_header_size() {
+      return ArbitrarySizedMsg::get_header_size()
+        + sizeof(int32_t)
+        ;
+    }
+
+    int32_t &get_table_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + ArbitrarySizedMsg::get_header_size()));
+    }
+
+    void *get_row_data() {
+      return mem_.get_mem() + get_header_size();
+    }
+
+    size_t get_size() {
+      return get_header_size() + get_avai_size();
+    }
+
+  protected:
+    virtual void InitMsg(int32_t avai_size) {
+      ArbitrarySizedMsg::InitMsg(avai_size);
+      get_msg_type() = kBulkServerRowRequestReply;
+    }
+  }; // end class -- bulk row request reply message
+
+
+
+  /**
    * Reply from the server having the model values. We currently focus only on
    * split based on row_id.
    */

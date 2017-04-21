@@ -40,8 +40,8 @@ enum MsgType {
   kReplicaOpLogAck=63,
   kServerSendOpLog = 64,
   kTransferDelivered=65,
-  kBulkRowRequest=66,
-  kBulkRowRequestReply=67
+  kBulkServerRowRequest=66,
+  kBulkServerRowRequestReply=67
 };
 
 // Represent a message over wire that is very easy to serialize.
