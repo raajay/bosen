@@ -76,6 +76,41 @@ namespace petuum {
     }
   };
 
+  struct ReplicaConnectMsg : public NumberedMsg {
+  public:
+    ReplicaConnectMsg() {
+      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
+        own_mem_ = true;
+        use_stack_buff_ = false;
+        mem_.Alloc(get_size());
+      } else {
+        own_mem_ = false;
+        use_stack_buff_ = true;
+        mem_.Reset(stack_buff_);
+      }
+      InitMsg();
+    }
+
+    explicit ReplicaConnectMsg(void *msg):
+      NumberedMsg(msg) {}
+
+    int32_t &get_client_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()));
+    }
+
+    size_t get_size() {
+      return NumberedMsg::get_size() + sizeof(int32_t);
+    }
+
+  protected:
+    void InitMsg() {
+      NumberedMsg::InitMsg();
+      get_msg_type() = kReplicaConnect;
+    }
+  };
+
+
   struct ServerConnectMsg : public NumberedMsg {
   public:
     ServerConnectMsg() {
