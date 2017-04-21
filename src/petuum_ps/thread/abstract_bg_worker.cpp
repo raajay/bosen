@@ -728,6 +728,7 @@ namespace petuum {
     }
 
     std::pair<int32_t, int32_t> request_key(table_id, row_id);
+
     RowRequestInfo row_request;
     row_request.app_thread_id = app_thread_id;
     row_request.clock = row_request_msg.get_clock();
@@ -750,11 +751,14 @@ namespace petuum {
     if (should_be_sent) {
       int32_t server_id = GlobalContext::GetPartitionServerID(row_id, my_comm_channel_idx_);
       VLOG(20) << "Sending a row request (received) from app thread=" << app_thread_id
-               << " to server=" << server_id << " for table=" << table_id
-               << " and row_id=" << row_id << " with version=" << row_request.version;
+               << " to server=" << server_id
+               << " for table=" << table_id
+               << " and row_id=" << row_id
+               << " with version=" << row_request.version;
 
-      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))
-        (server_id, row_request_msg.get_mem(), row_request_msg.get_size());
+      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_)) (server_id,
+                                                              row_request_msg.get_mem(),
+                                                              row_request_msg.get_size());
 
       CHECK_EQ(sent_size, row_request_msg.get_size());
     }
