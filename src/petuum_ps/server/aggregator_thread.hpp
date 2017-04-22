@@ -74,6 +74,9 @@ namespace petuum {
 
     // virtual void SendOpLogAckMsg(int32_t bg_id, uint32_t version);
 
+
+    void FlushServerTable();
+
     virtual void *operator() ();
 
     int32_t my_id_;

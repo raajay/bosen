@@ -94,8 +94,8 @@ namespace petuum {
   }
 
 
-  /*
-   * InitScheduler completes the handshake with all the background worker threads.
+  /**
+   * InitScheduler completes the handshake with all other entities in the system.
    */
   void SchedulerThread::InitScheduler() {
 
@@ -104,9 +104,17 @@ namespace petuum {
       GlobalContext::get_num_total_aggregator_threads() +
       GlobalContext::get_num_total_server_threads() + GlobalContext::get_num_total_replica_threads();
 
-    int32_t num_bgs = 0; // total number of background worker threads
+    int32_t num_bgs = 0;
     int32_t num_servers = 0;
 
+    VLOG(10) << "Number of expected connections from workers="
+             << GlobalContext::get_num_total_bg_threads();
+    VLOG(10) << "Number of expected connections from aggregators="
+             << GlobalContext::get_num_total_aggregator_threads();
+    VLOG(10) << "Number of expected connections from servers="
+             << GlobalContext::get_num_total_server_threads();
+    VLOG(10) << "Number of expected connections from replicas="
+             << GlobalContext::get_num_total_replica_threads();
     VLOG(10) << "Number of expected connections at scheduler=" << num_expected_conns;
     int32_t num_connections;
     for(num_connections = 0; num_connections < num_expected_conns; ++num_connections) {

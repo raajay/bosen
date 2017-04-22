@@ -224,6 +224,10 @@ namespace petuum {
   }
 
 
+  void AggregatorThread::FlushServerTable() {
+  }
+
+
 
   void *AggregatorThread::operator() () {
     ThreadContext::RegisterThread(my_id_);
