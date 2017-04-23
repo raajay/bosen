@@ -19,6 +19,9 @@ namespace petuum {
       bg_worker_ids_(GlobalContext::get_num_worker_clients()),
       aggregator_ids_(GlobalContext::get_num_aggregator_clients()),
       num_shutdown_bgs_(0),
+      num_registered_workers_(0),
+      num_registered_aggregators_(0),
+      num_registered_replicas_(0),
       comm_bus_(GlobalContext::comm_bus),
       init_barrier_(init_barrier) { }
 
@@ -56,8 +59,13 @@ namespace petuum {
     void SendToAllAggregatorThreads(MsgBase *msg);
 
     bool HandleShutDownMsg();
-    void HandleCreateTable(int32_t sender_id, CreateTableMsg &create_table_msg);
-    void HandleRowRequest(int32_t sender_id, RowRequestMsg &row_request_msg);
+    void HandleCreateTable(int32_t sender_id,
+                           CreateTableMsg &create_table_msg);
+    void HandleRowRequest(int32_t sender_id,
+                          RowRequestMsg &row_request_msg);
+    void HandleBulkRowRequest(int32_t bg_id,
+                              BulkRowRequestMsg &bulk_request_msg);
+
 
     void ReplyRowRequest(int32_t bg_id,
                          ServerRow *server_row,
@@ -80,6 +88,10 @@ namespace petuum {
     int32_t my_id_;
     std::vector<int32_t> bg_worker_ids_;
     std::vector<int32_t> aggregator_ids_;
+
+    int32_t num_registered_workers_;
+    int32_t num_registered_aggregators_;
+    int32_t num_registered_replicas_;
 
     Server server_obj_;
     int32_t num_shutdown_bgs_;

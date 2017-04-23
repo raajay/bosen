@@ -104,6 +104,10 @@ namespace petuum {
       }
     }
 
-
+    // private variables
+    int32_t num_registered_servers_;
+    int32_t num_registered_replicas_;
+    int32_t num_registered_workers_;
+    int32_t num_registered_aggregators_;
   };
 }
