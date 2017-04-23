@@ -12,10 +12,14 @@
 namespace petuum {
 
   enum EntityType {
-    SERVER = 0,
-    WORKER = 1,
-    AGGREGATOR = 2,
-    ALL = 3
+    SERVER=0,
+    WORKER=1,
+    AGGREGATOR=2,
+    REPLICA=3,
+    SCHEDULER=4,
+    NAMENODE=5,
+    APPLICATION=6,
+    ALL=7
   };
 
 enum ConsistencyModel {

@@ -11,13 +11,14 @@ namespace petuum {
   bool AggregatorThread::WaitMsgBusy(int32_t *sender_id,
                                      zmq::message_t *zmq_msg,
                                      long timeout_milli __attribute__ ((unused)) ) {
-    bool received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvAsyncAny_)) (sender_id, zmq_msg);
+    bool received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvAsyncAny_))
+      (sender_id, zmq_msg);
     while (!received) {
-      received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvAsyncAny_)) (sender_id, zmq_msg);
+      received = (GlobalContext::comm_bus->*(GlobalContext::comm_bus->RecvAsyncAny_))
+        (sender_id, zmq_msg);
     }
     return true;
   }
-
 
   bool AggregatorThread::WaitMsgSleep(int32_t *sender_id,
                                       zmq::message_t *zmq_msg,
@@ -26,7 +27,6 @@ namespace petuum {
     return true;
   }
 
-
   bool AggregatorThread::WaitMsgTimeOut(int32_t *sender_id,
                                         zmq::message_t *zmq_msg,
                                         long timeout_milli) {
@@ -34,12 +34,9 @@ namespace petuum {
     return received;
   }
 
-
   void AggregatorThread::InitWhenStart() {
     SetWaitMsg();
   }
-
-
 
   void AggregatorThread::SetWaitMsg() {
     if (GlobalContext::get_aggressive_cpu()) {
@@ -48,7 +45,6 @@ namespace petuum {
       WaitMsg_ = WaitMsgSleep;
     }
   }
-
 
   void AggregatorThread::SetUpCommBus() {
     CommBus::Config comm_config;
@@ -64,133 +60,95 @@ namespace petuum {
     comm_bus_->ThreadRegister(comm_config);
   }
 
+  void AggregatorThread::ConnectToEntity(int32_t entity_id) {
+    ConnectMsg agg_connect_msg;
+    agg_connect_msg.get_entity_id() = my_id_;
+    agg_connect_msg.get_entity_type() = petuum::AGGREGATOR;
 
-  void AggregatorThread::ConnectToNameNode() {
-    int32_t name_node_id = GlobalContext::get_name_node_id();
-
-    AggregatorConnectMsg aggregator_connect_msg;
-    aggregator_connect_msg.get_client_id() = my_id_;
-    void *msg = aggregator_connect_msg.get_mem();
-    int32_t msg_size = aggregator_connect_msg.get_size();
-
-    if (comm_bus_->IsLocalEntity(name_node_id)) {
-      comm_bus_->ConnectTo(name_node_id, msg, msg_size);
-    } else {
-      HostInfo name_node_info = GlobalContext::get_name_node_info();
-      std::string name_node_addr = name_node_info.ip + ":" + name_node_info.port;
-      comm_bus_->ConnectTo(name_node_id, name_node_addr, msg, msg_size);
-    }
-    VLOG(5) << "Send connection to Name Node";
-  }
-
-
-  void AggregatorThread :: ConnectToScheduler() {
-    int32_t scheduler_id = GlobalContext::get_scheduler_id();
-    AggregatorConnectMsg agg_connect_msg;
-    agg_connect_msg.get_client_id() = GlobalContext::get_client_id();
     void *msg = agg_connect_msg.get_mem();
     int32_t msg_size = agg_connect_msg.get_size();
 
     if(comm_bus_->IsLocalEntity(scheduler_id)) {
       comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
     } else {
-      HostInfo scheduler_info = GlobalContext::get_scheduler_info();
-      std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
+      HostInfo destination_info = GlobalContext::get_destination_info();
+      if(entity_id == GlobalContext::get_name_node_id()) {
+        destination_info = GlobalContext::get_name_node_info();
+      } else if(entity_id == GlobalContext::get_scheduler_id()) {
+        destination_info = GlobalContext::get_scheduler_info();
+      } else {
+        int32_t client_id = GlobalContext::thread_id_to_client_id(entity_id);
+        if (GlobalContext::is_aggregator_client(client_id)) {
+          destination_info = GlobalContext::get_aggregator_info(entity_id);
+        } else if (GlobalContext::is_server_client(client_id)) {
+          destination_info = GlobalContext::get_destination_info(entity_id);
+        } else if (GlobalContext::is_replica_client(client_id)) {
+          destination_info = GlobalContext::get_replica_info(entity_id);
+        } else {
+          LOG(FATAL) << "Unknown entity: " << entity_id;
+        }
+      }
+      std::string scheduler_addr = destination_info.ip + ":" + destination_info.port;
       comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
     }
-    VLOG(5) << "Sent connection to Scheduler node";
   }
 
-
-  int32_t AggregatorThread::GetConnection(bool *is_client, int32_t *client_id) {
+  int32_t AggregatorThread::GetConnection() {
 
     int32_t sender_id;
     zmq::message_t zmq_msg;
-
     (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
     MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
 
-    if (msg_type == kClientConnect) {
-      ClientConnectMsg msg(zmq_msg.data());
-      *is_client = true;
-      *client_id = msg.get_client_id();
-      VLOG(5) << "Receive connection from worker: " << msg.get_client_id();
-    } else if (msg_type == kClientStart) {
+    if (msg_type == kConnect) {
+      ConnectMsg msg(zmq_msg.data());
+      EntityType entity_type = msg.get_entity_type();
+      int32_t entity_id = msg.get_entity_id();
+      if(entity_type == petuum::WORKER) {
+        bg_worker_ids_[num_registered_workers_++] = sender_id;
+      } else {
+        LOG(FATAL) << "Received connect from non WORKER entity:" << entity_id;
+      }
+    } else if(msg_type == kClientStart) {
       ClientStartMsg msg(zmq_msg.data());
-      *is_client = false;
-      *client_id = 0;
-      VLOG(5) << "Receive reply from server. ";
+      num_registered_servers_++;
     } else {
       LOG(FATAL) << "Server received request from non bgworker/server";
-      *is_client = false;
     }
     return sender_id;
   } // end function -- get connection
 
-
   void AggregatorThread::SendToAllBgThreads(MsgBase *msg) {
     for (const auto &bg_worker_id : bg_worker_ids_) {
-      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_)) (bg_worker_id, msg->get_mem(), msg->get_size());
+      size_t sent_size = (comm_bus_->*(comm_bus_->SendAny_))
+        (bg_worker_id, msg->get_mem(), msg->get_size());
       CHECK_EQ(sent_size, msg->get_size());
     }
   }
 
   void AggregatorThread::InitAggregator() {
 
-    ConnectToNameNode();
-    ConnectToScheduler();
+    ConnectToEntity(GlobalContext::get_name_node_id());
+    ConnectToEntity(GlobalContext::get_scheduler_id());
 
-    // connect to all servers (server will respond with Client Start msg)
-    // so get connection later should be cognizant of it
     for (const auto &server_id : server_ids_) {
-      ConnectToServer(server_id);
+      ConnectToEntity(server_id);
     }
 
-    // wait for connection from all bg threads and replied from all server
-    int32_t num_expected_conns = GlobalContext::get_num_worker_clients() + GlobalContext::get_num_server_clients();
+    // wait for connection from all bg threads and replies from all server
+    int32_t num_expected_conns = GlobalContext::get_num_worker_clients()
+      + GlobalContext::get_num_server_clients();
 
-    int32_t num_bgs = 0;
-    int32_t num_servers = 0;
     int32_t num_connections;
-
     for (num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
-      int32_t client_id;
-      bool is_client;
-      int32_t sender_id = GetConnection(&is_client, &client_id);
-      if(is_client) {
-        bg_worker_ids_[num_bgs++] = sender_id;
-      } else {
-        num_servers++;
-      }
+      GetConnection();
     } // end for -- over expected connections
-
-    VLOG(5) << "Total connections from bgthreads: " << num_bgs++;
-    VLOG(5) << "Total connections from servers: " << num_servers++;
 
     aggregator_obj_.Init(my_id_, bg_worker_ids_);
 
-    VLOG(5) << "Server Thread - send client start to all bg threads";
     ClientStartMsg client_start_msg;
     SendToAllBgThreads(reinterpret_cast<MsgBase*>(&client_start_msg));
   }
-
-
-
-  void AggregatorThread :: ConnectToServer(int32_t server_id) {
-    AggregatorConnectMsg aggregator_connect_msg;
-    aggregator_connect_msg.get_client_id() = GlobalContext::get_client_id();
-    void *msg = aggregator_connect_msg.get_mem();
-    int32_t msg_size = aggregator_connect_msg.get_size();
-
-    if (comm_bus_->IsLocalEntity(server_id)) {
-      comm_bus_->ConnectTo(server_id, msg, msg_size);
-    } else {
-      HostInfo server_info;
-      server_info = GlobalContext::get_server_info(server_id);
-      std::string server_addr = server_info.ip + ":" + server_info.port;
-      comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
-    }
-  } // end function -- connect to server
 
 
   // msg handler
@@ -298,3 +256,8 @@ namespace petuum {
     return 0;
   }
 }
+
+// Local Variables:
+// mode: C++
+// origami-fold-style: triple-braces
+// End:

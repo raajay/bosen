@@ -59,7 +59,6 @@ namespace petuum {
     AppConnectMsg app_connect_msg;
     void *msg = app_connect_msg.get_mem();
     size_t msg_size = app_connect_msg.get_size();
-
     comm_bus_->ConnectTo(my_id_, msg, msg_size);
   }
 
@@ -122,7 +121,8 @@ namespace petuum {
       VLOG(5) << "Received reply for CREATE_TABLE from sender=" << sender_id;
     }
     return true;
-  }
+  } // end function -- create table
+
 
   bool AbstractBgWorker::RequestRow(int32_t table_id, int32_t row_id, int32_t clock) {
     petuum::HighResolutionTimer rr_send;
@@ -247,77 +247,41 @@ namespace petuum {
     comm_bus_->ThreadRegister(comm_config);
   }
 
-  void AbstractBgWorker::BgSchedulerHandshake() {
-    // connect to scheduler
+
+  void AbstractBgWorker::BgHandshake() {
+    // connect to name node
+    int32_t name_node_id = GlobalContext::get_name_node_id();
+    ConnectToEntity(name_node_id);
+    ReceiveFromEntity(name_node_id);
+
     int32_t scheduler_id = GlobalContext::get_scheduler_id();
-    // this sends a ClientConnectMsg to the scheduler
-    ConnectToScheduler();
+    ConnectToEntity(scheduler_id); // send a connect into to scheduler
+    ReceiveFromEntity(scheduler_id); // send the corresponding recv msg
 
-    // wait for the scheduler to get back
-    {
-      zmq::message_t zmq_msg;
-      int32_t sender_id;
-      if(comm_bus_->IsLocalEntity(scheduler_id)) {
-        comm_bus_->RecvInProc(&sender_id, &zmq_msg);
-      } else {
-        comm_bus_->RecvInterProc(&sender_id, &zmq_msg);
-      }
-      MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
-      CHECK_EQ(sender_id, scheduler_id);
-      CHECK_EQ(msg_type, kConnectServer) << "sender_id = " << sender_id;
-    }
-    VLOG(5) << "Completed handshake with scheduler";
-  }
-
-  void AbstractBgWorker::BgServerHandshake() {
-    {
-      // connect to name node
-      int32_t name_node_id = GlobalContext::get_name_node_id();
-      ConnectToNameNodeOrServer(name_node_id);
-
-      // wait for ConnectServerMsg from NameNode
-      zmq::message_t zmq_msg;
-      int32_t sender_id;
-      if (comm_bus_->IsLocalEntity(name_node_id)) {
-        comm_bus_->RecvInProc(&sender_id, &zmq_msg);
-      }else{
-        comm_bus_->RecvInterProc(&sender_id, &zmq_msg);
-      }
-      MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
-      CHECK_EQ(sender_id, name_node_id);
-      CHECK_EQ(msg_type, kConnectServer) << "sender_id = " << sender_id;
+    for (const auto &server_id : server_ids_) {
+      ConnectToEntity(server_id);
     }
 
-    // connect to servers
-    {
-      for (const auto &server_id : server_ids_) {
-        ConnectToNameNodeOrServer(server_id);
-      }
+    for(const auto &agg_id : aggregator_ids_) {
+      ConnectToEntity(agg_id);
     }
-
-    // connect to aggregators
-    {
-      for(const auto &agg_id : aggregator_ids_) {
-        ConnectToNameNodeOrServer(agg_id);
-      }
-    }
-
 
     // get messages from servers, namenode, aggregator for permission to start
-    {
-      int32_t num_started_servers = 0;
-      for (num_started_servers = 0;
-           // receive from all servers and name node and aggregators
-           num_started_servers < GlobalContext::get_num_server_clients() + GlobalContext::get_num_aggregator_clients() + 1;
-           ++num_started_servers) {
-        zmq::message_t zmq_msg;
-        int32_t sender_id;
-        (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
-        MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
+    int32_t started_entities = 0;
+    for (started_entities = 0;
+         started_entities < GlobalContext::get_num_server_clients()
+           + GlobalContext::get_num_aggregator_clients()
+           + 1;
+         ++started_entities) {
 
-        CHECK_EQ(msg_type, kClientStart);
-        VLOG(5) << "Received client start from server:" << sender_id;
-      }
+      zmq::message_t zmq_msg;
+      int32_t sender_id;
+      (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
+      MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
+
+      CHECK_EQ(msg_type, kClientStart);
+      VLOG(5) << "Received client start from server:" << sender_id;
+
     }
 
   } // end function -- bg server handshake
@@ -389,14 +353,12 @@ namespace petuum {
 
         ClientTable *client_table;
         try {
-          VLOG(5) << "Creating an instance of a ClientTable(id=" << table_id << ", address:" << &client_table << ") in bgworker=" << my_id_;
           client_table  = new ClientTable(table_id, client_table_config);
         } catch (std::bad_alloc &e) {
           LOG(FATAL) << "Bad alloc exception";
         }
         // not thread-safe
         (*tables_)[table_id] = client_table;
-
         size_t sent_size = comm_bus_->SendInProc(sender_id, zmq_msg.data(), zmq_msg.size());
         CHECK_EQ(sent_size, zmq_msg.size());
       }
@@ -410,8 +372,7 @@ namespace petuum {
       CHECK_EQ(msg_type, kCreatedAllTables);
       VLOG(5) << "Received a kCreatedAllTables message from sender=" << sender_id;
     }
-  }
-
+  } // end function -- handle create tables
 
 
   long AbstractBgWorker::HandleClockMsg(bool clock_advanced) {
@@ -445,31 +406,10 @@ namespace petuum {
 
   }
 
-
-
-  void AbstractBgWorker::HandleServerPushRow(int32_t sender_id, void *msg_mem) {
-    LOG(FATAL) << "Consistency model = "
-               << GlobalContext::get_consistency_model()
-               << " does not support HandleServerPushRow";
-  }
-
-
   void AbstractBgWorker::PrepareBeforeInfiniteLoop() { }
-
-
   void AbstractBgWorker::FinalizeTableStats() { }
-
-
-
-  long AbstractBgWorker::ResetBgIdleMilli() {
-    return 0;
-  }
-
-
-
-  long AbstractBgWorker::BgIdleWork() {
-    return 0;
-  }
+  long AbstractBgWorker::ResetBgIdleMilli() {return 0;}
+  long AbstractBgWorker::BgIdleWork() {return 0;}
 
 
   void AbstractBgWorker::FinalizeOpLogMsgStats(int32_t table_id,
@@ -686,16 +626,6 @@ namespace petuum {
   }
 
 
-  void AbstractBgWorker::RecvAppInitThreadConnection(int32_t *num_connected_app_threads) {
-    zmq::message_t zmq_msg;
-    int32_t sender_id;
-    comm_bus_->RecvInProc(&sender_id, &zmq_msg);
-    MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
-    CHECK_EQ(msg_type, kAppConnect) << "send_id = " << sender_id;
-    ++(*num_connected_app_threads);
-    CHECK(*num_connected_app_threads <= GlobalContext::get_num_app_threads());
-  }
-
 
   void AbstractBgWorker::CheckForwardRowRequestToServer(int32_t app_thread_id,
                                                         RowRequestMsg &row_request_msg) {
@@ -766,6 +696,8 @@ namespace petuum {
 
 
 
+  /**
+   */
   void AbstractBgWorker::UpdateExistingRow(int32_t table_id,
                                            int32_t row_id,
                                            ClientRow *client_row,
@@ -782,9 +714,8 @@ namespace petuum {
   } // end function - Update Existing Row
 
 
-
-
-
+  /**
+   */
   void AbstractBgWorker::InsertNonexistentRow(int32_t table_id,
                                               int32_t row_id,
                                               ClientTable *client_table,
@@ -892,94 +823,29 @@ namespace petuum {
   } // end function - Handle Row Request reply msg
 
 
-
-  size_t AbstractBgWorker::SendMsg(MsgBase *msg) {
-    size_t sent_size = comm_bus_->SendInProc(my_id_, msg->get_mem(),
-                                             msg->get_size());
-    return sent_size;
-  }
-
-
-
-  void AbstractBgWorker::RecvMsg(zmq::message_t &zmq_msg) {
-    int32_t sender_id;
-    comm_bus_->RecvInProc(&sender_id, &zmq_msg);
-  }
-
-
-
-  void AbstractBgWorker::ConnectToScheduler() {
-    ClientConnectMsg client_connect_msg;
-    client_connect_msg.get_client_id() = GlobalContext::get_client_id();
-    void *msg = client_connect_msg.get_mem();
-    int32_t msg_size = client_connect_msg.get_size();
-
-    int scheduler_id = GlobalContext::get_scheduler_id();
-    if(comm_bus_->IsLocalEntity(scheduler_id)) {
-      comm_bus_->ConnectTo(scheduler_id, msg, msg_size);
-    } else {
-      HostInfo scheduler_info = GlobalContext::get_scheduler_info();
-      std::string scheduler_addr = scheduler_info.ip + ":" + scheduler_info.port;
-      comm_bus_->ConnectTo(scheduler_id, scheduler_addr, msg, msg_size);
-    }
-
-  }
-
-
-  void AbstractBgWorker::ConnectToNameNodeOrServer(int32_t server_id) {
-
-    ClientConnectMsg client_connect_msg;
-    client_connect_msg.get_client_id() = GlobalContext::get_client_id();
-    void *msg = client_connect_msg.get_mem();
-    int32_t msg_size = client_connect_msg.get_size();
-
-    if (comm_bus_->IsLocalEntity(server_id)) {
-      comm_bus_->ConnectTo(server_id, msg, msg_size);
-    } else {
-      HostInfo server_info;
-      if (server_id == GlobalContext::get_name_node_id()) {
-        server_info = GlobalContext::get_name_node_info();
-      } else {
-        int32_t client_id = GlobalContext::thread_id_to_client_id(server_id);
-        if(GlobalContext::is_aggregator_client(client_id)) {
-          server_info = GlobalContext::get_aggregator_info(server_id);
-        } else {
-          server_info = GlobalContext::get_server_info(server_id);
-        }
-      }
-      std::string server_addr = server_info.ip + ":" + server_info.port;
-      comm_bus_->ConnectTo(server_id, server_addr, msg, msg_size);
-    }
-  }
-
-
-
-
   void *AbstractBgWorker::operator() () {
     STATS_REGISTER_THREAD(kBgThread);
-
     ThreadContext::RegisterThread(my_id_);
-
     InitCommBus();
-
-    BgServerHandshake();
-    BgSchedulerHandshake();
-
+    BgHandshake();
     pthread_barrier_wait(init_barrier_);
 
     int32_t num_connected_app_threads = 0;
     int32_t num_deregistered_app_threads = 0;
     int32_t num_shutdown_acked_servers = 0;
 
-    VLOG(5) << "Prepare to connect with app threads";
+    VLOG(5) << "Prepare to connect with main thread";
     RecvAppInitThreadConnection(&num_connected_app_threads);
-    VLOG(5) << "Bg Worker thread:" << my_id_ << " connected with "
-            << num_connected_app_threads << " app threads.";
-    from_start_timer_.restart();
+
+    VLOG(5) << "Bg Worker thread:" << my_id_
+            << " connected with " << num_connected_app_threads << " app threads.";
+
+    from_start_timer_.restart(); // restart timer
 
     if(my_comm_channel_idx_ == 0){
       HandleCreateTables();
     }
+
     pthread_barrier_wait(create_table_barrier_);
 
     FinalizeTableStats();
@@ -990,10 +856,13 @@ namespace petuum {
     void *msg_mem;
     bool destroy_mem = false;
     long timeout_milli = GlobalContext::get_bg_idle_milli();
+
     PrepareBeforeInfiniteLoop();
+
     // here, the BgWorker runs an infinite loop and processes the different messages
     // initiated by either the AppThread (eg. RequestRow) or server thread (e.g. )
     // Further, it also creates new handle clock messages I guess.
+
     while (1) {
       bool received = WaitMsg_(&sender_id, &zmq_msg, timeout_milli);
 
@@ -1018,16 +887,16 @@ namespace petuum {
       }
 
       switch (msg_type) {
+
       case kAppConnect:
         {
           ++num_connected_app_threads;
-
           CHECK(num_connected_app_threads <= GlobalContext::get_num_app_threads())
             << "num_connected_app_threads = " << num_connected_app_threads
-            << " get_num_app_threads() = "
-            << GlobalContext::get_num_app_threads();
+            << " get_num_app_threads() = " << GlobalContext::get_num_app_threads();
         }
         break;
+
       case kAppThreadDereg:
         {
           ++num_deregistered_app_threads;
@@ -1046,6 +915,7 @@ namespace petuum {
           }
         }
         break;
+
       case kServerShutDownAck:
         {
           ++num_shutdown_acked_servers;
@@ -1057,6 +927,7 @@ namespace petuum {
           }
         }
         break;
+
       case kRowRequest:
         {
           // app thread typically sends a row request, your job is to forward it to the server.
@@ -1064,6 +935,7 @@ namespace petuum {
           CheckForwardRowRequestToServer(sender_id, row_request_msg);
         }
         break;
+
       case kServerRowRequestReply:
         {
           // server responds with the information of rows requested
@@ -1071,6 +943,7 @@ namespace petuum {
           HandleServerRowRequestReply(sender_id, server_row_request_reply_msg);
         }
         break;
+
       case kBgClock:
         {
           // clock message is sent from the app thread using the static function defined in bgworkers.
@@ -1080,17 +953,13 @@ namespace petuum {
           STATS_BG_CLOCK();
         }
         break;
+
       case kBgSendOpLog:
         {
           timeout_milli = HandleClockMsg(false);
         }
         break;
-      case kServerPushRow:
-        {
-          // this is required only for SSP Push (ignore for our setting)
-          HandleServerPushRow(sender_id, msg_mem);
-        }
-        break;
+
       case kServerOpLogAck:
         {
           // this is sent by the server to acknowledge the receipt of an oplog
@@ -1104,27 +973,16 @@ namespace petuum {
       case kTransferResponse:
         {
           TransferResponseMsg response_msg(msg_mem);
-
           int unique_id = response_msg.get_unique_id();
           int destination_id = response_msg.get_destination_id();
-
-
+          auto oplog_msg_iter = backlog_msgs_.find(unique_id);
           if(destination_id == -1) {
-
-            auto oplog_msg_iter = backlog_msgs_.find(unique_id);
-            delete oplog_msg_iter->second;
-            backlog_msgs_.erase(unique_id);
-
             VLOG(2) << "DROP_TRANSFER client_clock=" << client_clock_
                     <<" destination_id=" << destination_id
                     <<" client_version=" << version_
                     << " size=" << oplog_msg_iter->second->get_size()
                     << " time=" << GetElapsedTime();
-
           } else {
-
-            auto oplog_msg_iter = backlog_msgs_.find(unique_id);
-
             VLOG(2) << "START_TRANSFER "
                     << " worker_id=" << my_id_
                     << " destination_id=" << destination_id
@@ -1132,25 +990,93 @@ namespace petuum {
                     << " transmission_rate=" << response_msg.get_transmission_rate()
                     << " transfer_size=" << oplog_msg_iter->second->get_size()
                     << " time_from_start=" << GetElapsedTime();
-
             MemTransfer::TransferMem(comm_bus_, destination_id, oplog_msg_iter->second);
-
-            delete oplog_msg_iter->second;
-            backlog_msgs_.erase(unique_id);
           }
+          delete oplog_msg_iter->second;
+          backlog_msgs_.erase(unique_id);
         }
         break;
 
       default:
         LOG(FATAL) << "Unrecognized type " << msg_type;
       }
-
-      if (destroy_mem)
+      if (destroy_mem) {
         MemTransfer::DestroyTransferredMem(msg_mem);
-    }
-
+      }
+    } // end while
     return 0;
+  } // end function -- operator
 
-  } // end class -- abstract bg worker
+
+
+  /* Utility functions */
+  size_t AbstractBgWorker::SendMsg(MsgBase *msg) {
+    size_t sent_size = comm_bus_->SendInProc(my_id_,
+                                             msg->get_mem(),
+                                             msg->get_size());
+    return sent_size;
+  }
+
+  void AbstractBgWorker::RecvMsg(zmq::message_t &zmq_msg) {
+    int32_t sender_id;
+    comm_bus_->RecvInProc(&sender_id, &zmq_msg);
+  }
+
+  void AbstractBgWorker::ConnectToEntity(int32_t entity_id) {
+    ConnectMsg connect_msg;
+    connect_msg.get_entity_type() = petuum::WORKER;
+    connect_msg.get_entity_id() = my_id_;
+
+    void *msg = connect_msg.get_mem();
+    int32_t msg_size = connect_msg.get_size();
+
+    if (comm_bus_->IsLocalEntity(entity_id)) {
+      comm_bus_->ConnectTo(entity_id, msg, msg_size);
+    } else {
+      HostInfo destination_info;
+      if (entity_id == GlobalContext::get_name_node_id()) {
+        destination_info = GlobalContext::get_name_node_info();
+      } else if(entity_id == GlobalContext::get_scheduler_id()) {
+        destination_info = GlobalContext::get_scheduler_info();
+      } else {
+        int32_t client_id = GlobalContext::thread_id_to_client_id(entity_id);
+        if (GlobalContext::is_aggregator_client(client_id)) {
+          destination_info = GlobalContext::get_aggregator_info(entity_id);
+        } else if (GlobalContext::is_server_client(client_id)) {
+          destination_info = GlobalContext::get_destination_info(entity_id);
+        } else if (GlobalContext::is_replica_client(client_id)) {
+          destination_info = GlobalContext::get_replica_info(entity_id);
+        } else {
+          LOG(FATAL) << "Unknown entity: " << entity_id;
+        }
+      }
+      std::string destination_addr = destination_info.ip + ":" + destination_info.port;
+      comm_bus_->ConnectTo(entity_id, destination_addr, msg, msg_size);
+    }
+  }
+
+  void AbstractBgWorker::ReceiveFromEntity(int32_t entity_id) {
+    zmq::message_t zmq_msg;
+    int32_t sender_id;
+    if(comm_bus_->IsLocalEntity(entity_id)) {
+      comm_bus_->RecvInProc(&sender_id, &zmq_msg);
+    } else {
+      comm_bus_->RecvInterProc(&sender_id, &zmq_msg);
+    }
+    MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data);
+    CHECK_EQ(sender_id, entity_id);
+    CHECK_EQ(msg_type, kConnectServer) << " sender_id=" << sender_id;
+  }
+
+  void AbstractBgWorker::RecvAppInitThreadConnection(int32_t *num_connected_app_threads) {
+    zmq::message_t zmq_msg;
+    int32_t sender_id;
+    comm_bus_->RecvInProc(&sender_id, &zmq_msg);
+    MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
+    CHECK_EQ(msg_type, kAppConnect) << "send_id = " << sender_id;
+    ++(*num_connected_app_threads);
+    CHECK(*num_connected_app_threads <= GlobalContext::get_num_app_threads());
+  }
+  /* End utility functions */
 
 } // end namespace -- petuum

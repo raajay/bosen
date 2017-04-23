@@ -16,7 +16,11 @@ namespace petuum {
     my_id_(GlobalContext::get_scheduler_id()), // the id of the scheduler is by default 900
     init_barrier_(init_barrier),
     comm_bus_(GlobalContext::comm_bus),
-    bg_worker_ids_(GlobalContext::get_num_total_bg_threads()) {}
+    bg_worker_ids_(GlobalContext::get_num_total_bg_threads()),
+    num_registered_servers_(0),
+    num_registered_replicas_(0),
+    num_registered_workers_(0),
+    num_registered_aggregators_(0) {}
 
 
   /**
@@ -24,10 +28,8 @@ namespace petuum {
    * communications.
    */
   void SchedulerThread::SetupCommBus() {
-
     CommBus::Config comm_config;
     comm_config.entity_id_ = my_id_;
-
     if(GlobalContext::get_num_clients() > 1) {
       comm_config.ltype_ = CommBus::kInProc | CommBus::kInterProc;
       HostInfo host_info = GlobalContext::get_scheduler_info();
@@ -35,51 +37,44 @@ namespace petuum {
     } else {
       comm_config.ltype_ = CommBus::kInProc;
     }
-
     // register the server thread with the commbus. This, basically,
     // creates sockets for this thread, and updates some static variables
     // in comm_bus.
     comm_bus_->ThreadRegister(comm_config);
     std::cout << "The scheduler is up and running!" << std::endl;
-
   } // end function  -- set up comm bus
 
 
   /**
-   * GetConnection: Receive a connection initiating message from background threads.
+   * Receive a connection initiating message from all interacting entities.
    */
-  int32_t SchedulerThread::GetConnection(bool *is_client, int32_t *client_id) {
+  int32_t SchedulerThread::GetConnection() {
 
     int32_t sender_id;
     zmq::message_t zmq_msg;
     (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
     MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
+    VLOG(5) << "Receive connection from entity: " << msg.get_entity_id();
+    CHECK_EQ(sender_id, msg.get_entity_id());
 
-    if(msg_type == kClientConnect) {
-
-      ClientConnectMsg msg(zmq_msg.data());
-      *is_client = true;
-      *client_id = msg.get_client_id();
-      VLOG(10) << "Scheduler received connection from client: " << msg.get_client_id();
-
-    } else if (msg_type == kAggregatorConnect) {
-
-      AggregatorConnectMsg msg(zmq_msg.data());
-      *is_client = false;
-      VLOG(10) << "Scheduler received connection from aggregator: " << msg.get_client_id();
-
-    } else if (msg_type == kServerConnect) {
-
-      *is_client = false;
-      VLOG(10) << "Scheduler received connection from a server.";
-
+    if(msg_type == kConnect) {
+      ConnectMsg msg(zmq_msg.data());
+      EntityType entity_type = msg.get_entity_type();
+      if(entity_type == petuum::SERVER) {
+        num_registered_servers_++;
+      } else if(entity_type == petuum::WORKER) {
+        bg_worker_ids_[num_registered_workers_++] = sender_id;
+      } else if(entity_type == petuum::AGGREGATOR) {
+        num_registered_aggregators_++;
+      } else if(entity_type == petuum::REPLICA) {
+        num_registered_replicas_++;
+      } else {
+        LOG(FATAL) << "Unknown type of connect message type. msg_type=" << entity_type;
+      }
     } else {
-      *is_client = false;
-      CHECK_EQ(true, false) << "Message other than Client connect msg received on init scheduler.";
+      LOG(FATAL) << "Unknown type of message. Expected kConnect.";
     }
-
     return sender_id;
-
   } // end function -- get connection
 
 
@@ -116,6 +111,7 @@ namespace petuum {
     VLOG(10) << "Number of expected connections from replicas="
              << GlobalContext::get_num_total_replica_threads();
     VLOG(10) << "Number of expected connections at scheduler=" << num_expected_conns;
+
     int32_t num_connections;
     for(num_connections = 0; num_connections < num_expected_conns; ++num_connections) {
       int32_t client_id;

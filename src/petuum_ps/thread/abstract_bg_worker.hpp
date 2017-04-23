@@ -71,8 +71,7 @@ namespace petuum {
 
     /* Functions Called From Main Loop -- BEGIN */
     void InitCommBus();
-    void BgServerHandshake();
-    void BgSchedulerHandshake();
+    void BgHandshake();
     void HandleCreateTables();
 
     // get connection from init thread
@@ -117,8 +116,6 @@ namespace petuum {
                                      ServerRowRequestReplyMsg &server_row_request_reply_msg);
     /* Handles Row Requests -- END */
 
-    // Handles server pushed rows
-    virtual void HandleServerPushRow(int32_t sender_id, void *msg_mem);
 
     /* Helper Functions */
     size_t SendMsg(MsgBase *msg);

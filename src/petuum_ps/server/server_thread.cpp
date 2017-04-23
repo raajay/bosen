@@ -130,29 +130,33 @@ namespace petuum {
   }
 
 
-  int32_t ServerThread::GetConnection(bool *is_client, int32_t *client_id) {
+  int32_t ServerThread::GetConnection() {
     int32_t sender_id;
     zmq::message_t zmq_msg;
     (comm_bus_->*(comm_bus_->RecvAny_))(&sender_id, &zmq_msg);
     MsgType msg_type = MsgBase::get_msg_type(zmq_msg.data());
-    if (msg_type == kClientConnect) {
-      ClientConnectMsg msg(zmq_msg.data());
-      *is_client = true;
-      *client_id = msg.get_client_id();
-      VLOG(5) << "Receive connection from worker: " << msg.get_client_id();
-    } else if (msg_type == kAggregatorConnect) {
-      AggregatorConnectMsg msg(zmq_msg.data());
-      *is_client = false;
-      *client_id = msg.get_client_id();
-      VLOG(5) << "Receive connection from aggregator: " << msg.get_client_id();
+
+    if (msg_type == kConnect) {
+      ConnectMsg msg(zmq_msg.data());
+      int32_t entity_id = msg.get_entity_id();
+      VLOG(5) << "Receive connection from entity: " << entity_id;
+      CHECK_EQ(sender_id, msg.get_entity_id());
+
+      EntityType entity_type = msg.get_entity_type();
+      if(entity_type == petuum::WORKER) {
+        bg_worker_ids_[num_registered_workers_++] = sender_id;
+      } else if(entity_type == petuum::AGGREGATOR) {
+        aggregator_ids_[num_registered_aggregators_++] = sender_id;
+      } else if(entity_type == petuum::REPLICA) {
+        num_registered_replicas_++;
+      } else {
+        LOG(FATAL) << "Unknown type of connect message type. msg_type=" << entity_type;
+      }
     } else {
-      LOG(FATAL) << "Server received request from non bgworker/aggregator";
-      *is_client = false;
+      LOG(FATAL) << "Unknown type of message. Expected kConnect.";
     }
     return sender_id;
   }
-
-
 
 
   void ServerThread::SendToAllBgThreads(MsgBase *msg) {
@@ -311,6 +315,9 @@ namespace petuum {
 
   } // end function -- handle row request
 
+
+  void ServerThread::HandleBulkRowRequest(int32_t bg_id, BulkRowRequestMsg &build_request_msg) {
+  }
 
 
   void ServerThread::ReplyRowRequest(int32_t bg_id,

@@ -8,9 +8,12 @@
 
 namespace petuum {
 
-  struct ClientConnectMsg : public NumberedMsg {
+  /**
+   * Message send by an entity to connect with another.
+   */
+  struct ConnectMsg : public NumberedMsg {
   public:
-    ClientConnectMsg() {
+    ConnectMsg() {
       if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
         own_mem_ = true;
         use_stack_buff_ = false;
@@ -23,90 +26,28 @@ namespace petuum {
       InitMsg();
     }
 
-    explicit ClientConnectMsg(void *msg):
-      NumberedMsg(msg) {}
-
-    int32_t &get_client_id() {
-      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
-                                          + NumberedMsg::get_size()));
-    }
+    explicit ConnectMsg(void *msg): NumberedMsg(msg) {}
 
     size_t get_size() {
-      return NumberedMsg::get_size() + sizeof(int32_t);
+      return NumberedMsg::get_size()
+        + sizeof(EntityType) // 1. entity type
+        + sizeof(int32_t) // 2. entity id
+        ;
     }
 
-  protected:
-    void InitMsg() {
-      NumberedMsg::InitMsg();
-      get_msg_type() = kClientConnect;
-    }
-  };
-
-  struct AggregatorConnectMsg : public NumberedMsg {
-  public:
-    AggregatorConnectMsg() {
-      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
-        own_mem_ = true;
-        use_stack_buff_ = false;
-        mem_.Alloc(get_size());
-      } else {
-        own_mem_ = false;
-        use_stack_buff_ = true;
-        mem_.Reset(stack_buff_);
-      }
-      InitMsg();
+    // 1st element
+    EntityType &get_entity_type() {
+      return *(reinterpret_cast<EntityType*>(mem_.get_mem()
+                                             + NumberedMsg::get_size()
+                                             ));
     }
 
-    explicit AggregatorConnectMsg(void *msg):
-      NumberedMsg(msg) {}
-
-    int32_t &get_client_id() {
+    // 2nd element
+    int32_t &get_entity_id() {
       return *(reinterpret_cast<int32_t*>(mem_.get_mem()
-                                          + NumberedMsg::get_size()));
-    }
-
-    size_t get_size() {
-      return NumberedMsg::get_size() + sizeof(int32_t);
-    }
-
-  protected:
-    void InitMsg() {
-      NumberedMsg::InitMsg();
-      get_msg_type() = kAggregatorConnect;
-    }
-  };
-
-  struct ReplicaConnectMsg : public NumberedMsg {
-  public:
-    ReplicaConnectMsg() {
-      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
-        own_mem_ = true;
-        use_stack_buff_ = false;
-        mem_.Alloc(get_size());
-      } else {
-        own_mem_ = false;
-        use_stack_buff_ = true;
-        mem_.Reset(stack_buff_);
-      }
-      InitMsg();
-    }
-
-    explicit ReplicaConnectMsg(void *msg):
-      NumberedMsg(msg) {}
-
-    int32_t &get_client_id() {
-      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
-                                          + NumberedMsg::get_size()));
-    }
-
-    size_t get_size() {
-      return NumberedMsg::get_size() + sizeof(int32_t);
-    }
-
-  protected:
-    void InitMsg() {
-      NumberedMsg::InitMsg();
-      get_msg_type() = kReplicaConnect;
+                                          + NumberedMsg::get_size()
+                                          + sizeof(EntityType)
+                                          ));
     }
   };
 
@@ -136,6 +77,7 @@ namespace petuum {
     }
   };
 
+
   struct AppConnectMsg : public NumberedMsg {
   public:
     AppConnectMsg() {
@@ -160,6 +102,7 @@ namespace petuum {
       get_msg_type() = kAppConnect;
     }
   };
+
 
   struct BgCreateTableMsg : public NumberedMsg {
   public:
@@ -326,6 +269,7 @@ namespace petuum {
     }
   };
 
+
   struct CreateTableMsg : public NumberedMsg {
   public:
     CreateTableMsg() {
@@ -398,6 +342,7 @@ namespace petuum {
     }
   };
 
+
   struct CreateTableReplyMsg : public NumberedMsg {
   public:
     CreateTableReplyMsg() {
@@ -429,6 +374,57 @@ namespace petuum {
     void InitMsg(){
       NumberedMsg::InitMsg();
       get_msg_type() = kCreateTableReply;
+    }
+  };
+
+  // TODO should be called Table request msg
+  struct BulkRowRequestMsg : public NumberedMsg {
+  public:
+    BulkRowRequestMsg() {
+      if (get_size() > PETUUM_MSG_STACK_BUFF_SIZE) {
+        own_mem_ = true;
+        use_stack_buff_ = false;
+        mem_.Alloc(get_size());
+      } else {
+        own_mem_ = false;
+        use_stack_buff_ = true;
+        mem_.Reset(stack_buff_);
+      }
+      InitMsg();
+    }
+
+    explicit BulkRowRequestMsg(void *msg): NumberedMsg(msg) {}
+
+    size_t get_size() {
+      return NumberedMsg::get_size()
+        + sizeof(int32_t) // 1. table id
+        + sizeof(int32_t) // 2. clock
+        + sizeof(int32_t) // 3. forced
+        ;
+    }
+
+    int32_t &get_table_id() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()));
+    }
+
+    int32_t &get_clock() {
+      return *(reinterpret_cast<int32_t*>(mem_.get_mem()
+                                          + NumberedMsg::get_size()
+                                          + sizeof(int32_t)));
+    }
+
+    bool &get_forced_request() {
+      return *(reinterpret_cast<bool*>(mem_.get_mem()
+                                       + NumberedMsg::get_size()
+                                       + sizeof(int32_t)
+                                       +sizeof(int32_t)));
+    }
+
+  protected:
+    void InitMsg() {
+      NumberedMsg::InitMsg();
+      get_msg_type() = kBulkRowRequest;
     }
   };
 
@@ -483,6 +479,10 @@ namespace petuum {
     }
   };
 
+  /**
+   * Reply that a bg worker sends to app thread after successful completion of a
+   * row request.
+   */
   struct RowRequestReplyMsg : public NumberedMsg {
   public:
     RowRequestReplyMsg() {
@@ -512,6 +512,10 @@ namespace petuum {
     }
   };
 
+  /**
+   * Notification that a name node sends to a client after all the tables have
+   * been created.
+   */
   struct CreatedAllTablesMsg : public NumberedMsg {
   public:
     CreatedAllTablesMsg() {
@@ -536,7 +540,6 @@ namespace petuum {
       get_msg_type() = kCreatedAllTables;
     }
   };
-
 
   /**
    * Send a notification from scheduler and name node thread to notification
@@ -569,7 +572,8 @@ namespace petuum {
 
 
   /**
-   * Send a notification that client starts sent to scheduler and name node thread.
+   * Send a notification that client starts sent to scheduler and name node
+   * thread.
    */
   struct ClientStartMsg : public NumberedMsg {
   public:
@@ -1022,7 +1026,7 @@ namespace petuum {
 
 
   /**
-   *
+   * Reply from server having all the model parameters from a server.
    */
   struct ServerBulkRowRequestReplyMsg : public ArbitrarySizedMsg {
   public:

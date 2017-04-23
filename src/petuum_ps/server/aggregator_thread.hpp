@@ -20,9 +20,7 @@ namespace petuum {
       bg_worker_ids_(GlobalContext::get_num_worker_clients()),
       comm_bus_(GlobalContext::comm_bus),
       init_barrier_(init_barrier) {
-
       GlobalContext::GetServerThreadIDs(my_comm_channel_idx_, &(server_ids_));
-
     }
 
     virtual ~AggregatorThread() {}
@@ -36,9 +34,18 @@ namespace petuum {
 
 
   protected:
-    static bool WaitMsgBusy(int32_t *sender_id, zmq::message_t *zmq_msg, long timeout_milli = -1);
-    static bool WaitMsgSleep(int32_t *sender_id, zmq::message_t *zmq_msg, long timeout_milli  = -1);
-    static bool WaitMsgTimeOut(int32_t *sender_id, zmq::message_t *zmq_msg, long timeout_milli);
+    static bool WaitMsgBusy(int32_t *sender_id,
+                            zmq::message_t *zmq_msg,
+                            long timeout_milli = -1);
+
+    static bool WaitMsgSleep(int32_t *sender_id,
+                             zmq::message_t *zmq_msg,
+                             long timeout_milli  = -1);
+
+    static bool WaitMsgTimeOut(int32_t *sender_id,
+                               zmq::message_t *zmq_msg,
+                               long timeout_milli);
+
     CommBus::WaitMsgTimeOutFunc WaitMsg_;
     virtual void SetWaitMsg();
 
@@ -86,6 +93,10 @@ namespace petuum {
     CommBus* const comm_bus_;
     pthread_barrier_t *init_barrier_;
     Aggregator aggregator_obj_;
+
+
+    // private variables
+    int32_t num_registered_workers_;
 
   }; // end class -- aggregator thread
 
